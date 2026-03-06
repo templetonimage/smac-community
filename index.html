@@ -90,6 +90,32 @@
     .btn-post{padding:9px 20px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;cursor:pointer;transition:background .15s;}
     .btn-post:hover{background:var(--gold-dark);}
     .admin-compose{background:#fffbf0;border:1.5px dashed var(--gold);}
+    /* ── Gamification ── */
+    .submit-form{background:var(--surface);border-radius:var(--radius);border:2px solid var(--gold);padding:16px;margin-bottom:24px;box-shadow:var(--shadow);}
+    .submit-form-title{font-family:"Bebas Neue",sans-serif;font-size:20px;letter-spacing:0.04em;color:var(--gold);margin-bottom:12px;}
+    .format-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+    .format-btn{padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-family:"DM Sans",sans-serif;font-size:13px;cursor:pointer;transition:all .15s;}
+    .format-btn.selected{border-color:var(--gold);background:#fffbf0;color:var(--gold);font-weight:700;}
+    .pts-preview{font-size:12px;color:var(--text-muted);margin-bottom:12px;}
+    .pts-preview strong{color:var(--gold);}
+    .leaderboard-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+    .leaderboard-row:last-child{border-bottom:none;}
+    .lb-rank{font-family:"Bebas Neue",sans-serif;font-size:22px;color:var(--text-muted);width:28px;text-align:center;}
+    .lb-rank.top3{color:var(--gold);}
+    .lb-avatar{width:38px;height:38px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:16px;color:#fff;flex-shrink:0;}
+    .lb-info{flex:1;}
+    .lb-name{font-weight:700;font-size:15px;}
+    .lb-meta{font-size:12px;color:var(--text-muted);margin-top:2px;}
+    .lb-pts{font-family:"Bebas Neue",sans-serif;font-size:22px;color:var(--gold);}
+    .lb-streak{font-size:11px;background:#fff8e1;color:#b8860b;border-radius:6px;padding:2px 7px;font-weight:700;}
+    .pts-badge{display:inline-block;background:var(--gold);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;}
+    .milestone-badge{display:inline-block;font-size:13px;margin-right:4px;}
+    .submission-history{margin-top:8px;}
+    .sub-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+    .sub-item:last-child{border-bottom:none;}
+    .sub-pts{font-weight:700;color:var(--gold);width:40px;text-align:right;}
+    .sub-late{color:#e74c3c;font-size:11px;}
+    .sub-ontime{color:#27ae60;font-size:11px;}
     .admin-banner{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
     .admin-banner-icon{font-size:24px;}
     .admin-banner-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;}
@@ -247,7 +273,45 @@
         <button class="btn-post" onclick="submitPost()">Post</button>
       </div>
     </div>
+    <div class="submit-form" id="ig-submit-form">
+      <div class="submit-form-title">📸 Submit Your Instagram Post</div>
+      <input class="auth-input" id="submit-ig-url" type="url" placeholder="Paste your Instagram post URL" style="margin-bottom:10px;" />
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Post format:</div>
+      <div class="format-btns">
+        <button class="format-btn selected" id="fmt-static"  onclick="selectFormat('Static')">📷 Static</button>
+        <button class="format-btn"           id="fmt-reel"    onclick="selectFormat('Reel')">🎬 Reel +2pts</button>
+        <button class="format-btn"           id="fmt-carousel" onclick="selectFormat('Carousel')">🖼 Carousel +2pts</button>
+      </div>
+      <div class="pts-preview" id="pts-preview">You will earn <strong>10 pts</strong> for this on-time submission.</div>
+      <button class="btn-post" style="width:100%;" onclick="submitIgPost()">Submit Post for Points</button>
+      <div id="submit-error" style="font-size:13px;color:#e74c3c;margin-top:8px;display:none;"></div>
+    </div>
+    <div class="card" id="my-submissions-card" style="margin-bottom:24px;display:none;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">My Submissions</div>
+      <div id="my-points-total" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;"></div>
+      <div class="submission-history" id="my-submissions-list"></div>
+    </div>
     <div id="feed-list"></div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="page" id="page-leaderboard">
+    <div class="page-header">
+      <h1 class="page-title">Leaderboard</h1>
+      <p class="page-subtitle">Real-time points standings</p>
+    </div>
+    <div class="card" id="leaderboard-list"><div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">Loading...</div></div></div>
+    <div class="card" style="margin-top:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:10px;">How Points Work</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+        ✅ On-time post submission: <strong>10 pts</strong><br>
+        ⏰ Late (within 24hrs): <strong>5 pts</strong><br>
+        🎬 Reel bonus: <strong>+2 pts</strong><br>
+        🖼 Carousel bonus: <strong>+2 pts</strong><br>
+        🔥 4-week perfect streak: <strong>+25 pts</strong><br>
+        ⭐ All-Star: complete every weekly requirement all 12 weeks
+      </div>
+    </div>
   </div>
 
   <!-- ANNOUNCEMENTS -->
@@ -431,6 +495,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     Tracker
   </button>
+  <button class="nav-item" onclick="navTo('leaderboard',this);loadLeaderboard();">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    Ranks
+  </button>
   <button class="nav-item" onclick="navTo('directory',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     Members
@@ -498,6 +566,54 @@ const FIREBASE_CONFIG = {
 // Members: created via Zapier with auto-generated passwords sent by email
 const ADMIN_EMAIL = "nate@templetonimage.com";
 const CURRENT_ROUND = "R2"; // ← Change to "R3", "R4" etc. at the start of each new Round
+// ─────────────────────────────────────────────
+//  POINTS CONFIG
+// ─────────────────────────────────────────────
+const PTS_ON_TIME   = 10;
+const PTS_LATE_24H  = 5;
+const PTS_REEL      = 2;
+const PTS_CAROUSEL  = 2;
+const PTS_STREAK    = 25; // bonus for 4-week perfect streak
+
+// Fixed calendar schedule for Round 2 (ET = UTC-5 in March/April, UTC-4 in May)
+// Each entry: [start, end] as UTC timestamps matching ET midnight boundaries
+const WEEK_SCHEDULE = [
+  // Week 1: Mar 1–7 (already past, kept for completeness)
+  [Date.UTC(2026,2,1,5,0,0),   Date.UTC(2026,2,8,4,59,59,999)],
+  // Week 2: Mar 8–14 (spans DST change Mar 8)
+  [Date.UTC(2026,2,8,5,0,0),   Date.UTC(2026,2,15,3,59,59,999)],
+  // Week 3: Mar 15–21 (post-DST, EDT = UTC-4)
+  [Date.UTC(2026,2,15,4,0,0),  Date.UTC(2026,2,22,3,59,59,999)],
+  // Week 4: Mar 22–31 (EDT = UTC-4)
+  [Date.UTC(2026,2,22,4,0,0),  Date.UTC(2026,3,1,3,59,59,999)],
+  // Week 5: Apr 1–7 (EDT = UTC-4)
+  [Date.UTC(2026,3,1,4,0,0),   Date.UTC(2026,3,8,3,59,59,999)],
+  // Week 6: Apr 8–14
+  [Date.UTC(2026,3,8,4,0,0),   Date.UTC(2026,3,15,3,59,59,999)],
+  // Week 7: Apr 15–21
+  [Date.UTC(2026,3,15,4,0,0),  Date.UTC(2026,3,22,3,59,59,999)],
+  // Week 8: Apr 22–30
+  [Date.UTC(2026,3,22,4,0,0),  Date.UTC(2026,4,1,3,59,59,999)],
+  // Week 9: May 1–7 (EDT = UTC-4)
+  [Date.UTC(2026,4,1,4,0,0),   Date.UTC(2026,4,8,3,59,59,999)],
+  // Week 10: May 8–14
+  [Date.UTC(2026,4,8,4,0,0),   Date.UTC(2026,4,15,3,59,59,999)],
+  // Week 11: May 15–21
+  [Date.UTC(2026,4,15,4,0,0),  Date.UTC(2026,4,22,3,59,59,999)],
+  // Week 12: May 22–31
+  [Date.UTC(2026,4,22,4,0,0),  Date.UTC(2026,4,1,3,59,59,999)+Date.UTC(2026,5,1,3,59,59,999)-Date.UTC(2026,4,1,3,59,59,999)],
+];
+// Fix Week 12 end: Jun 1 00:00 ET = Jun 1 04:00 UTC
+WEEK_SCHEDULE[11][1] = Date.UTC(2026,5,1,3,59,59,999);
+
+// Get which week index (0-11) a timestamp falls in, or -1 if outside schedule
+function getWeekIndex(ts){
+  return WEEK_SCHEDULE.findIndex(([start,end])=>ts>=start&&ts<=end);
+}
+// Get the deadline (end timestamp) for a given week index
+function getWeekDeadline(weekIdx){
+  return WEEK_SCHEDULE[weekIdx]?WEEK_SCHEDULE[weekIdx][1]:null;
+}
 
 // ─────────────────────────────────────────────
 //  SCHEDULE
@@ -522,7 +638,7 @@ const MONTH_REQS={"March":"1 post/week","April":"2 posts/week","May":"3 posts/we
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
-let db=null, auth=null, currentUser=null, useLocalFallback=false, activeFilter="All", cachedResources=[];
+let db=null, auth=null, currentUser=null, useLocalFallback=false, activeFilter="All", cachedResources=[], cachedLeaderboard=[];
 
 function initFirebase(){
   try {
@@ -621,9 +737,11 @@ function bootApp(){
     document.getElementById("admin-compose").style.display="block";
     document.getElementById("admin-resource-compose").style.display="block";
     document.getElementById("nav-reports").style.display="flex";
+    document.getElementById("ig-submit-form").style.display="none";
+    document.getElementById("change-password-card").style.display="none";
     showFirebaseSetupCard();
   }
-  loadFeed();loadAnnouncements();loadResources();buildTracker();loadProfile();loadDirectory();
+  loadFeed();loadAnnouncements();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();
 }
 
 // ─────────────────────────────────────────────
@@ -637,6 +755,7 @@ window.navTo=function(page,el){
   if(el)el.classList.add("active");
   window.scrollTo(0,0);
   if(page==="directory")loadDirectory();
+  if(page==="leaderboard")loadLeaderboard();
 };
 
 // ─────────────────────────────────────────────
@@ -1453,6 +1572,220 @@ window.changePassword=async function(){
     }
   }
 };
+
+// ─────────────────────────────────────────────
+//  GAMIFICATION ENGINE
+// ─────────────────────────────────────────────
+let selectedFormat="Static";
+
+window.selectFormat=function(fmt){
+  selectedFormat=fmt;
+  ["Static","Reel","Carousel"].forEach(f=>{
+    const el=document.getElementById("fmt-"+f.toLowerCase());
+    if(el)el.classList.toggle("selected",f===fmt);
+  });
+  updatePtsPreview();
+};
+
+function updatePtsPreview(){
+  const preview=document.getElementById("pts-preview");
+  if(!preview)return;
+  const now=Date.now();
+  const weekIdx=getWeekIndex(now);
+  const deadline=weekIdx>=0?getWeekDeadline(weekIdx):null;
+  const isLate=deadline&&now>deadline&&now<deadline+(24*60*60*1000);
+  const isMissed=deadline&&now>deadline+(24*60*60*1000);
+  let base=isMissed?0:isLate?PTS_LATE_24H:PTS_ON_TIME;
+  let bonus=(selectedFormat==="Reel"||selectedFormat==="Carousel")?(isMissed?0:PTS_REEL):0;
+  let total=base+bonus;
+  if(isMissed){
+    preview.innerHTML=`Submission window closed — <strong style="color:#e74c3c;">0 pts</strong>. You can still submit for your record.`;
+  } else if(isLate){
+    preview.innerHTML=`Late submission: <strong>${total} pts</strong> (${bonus>0?"+"+bonus+" format bonus":""}).`;
+  } else {
+    preview.innerHTML=`You will earn <strong>${total} pts</strong> for this on-time submission${bonus>0?" (includes +"+bonus+" format bonus)":""}.`;
+  }
+}
+
+window.submitIgPost=async function(){
+  const url=document.getElementById("submit-ig-url").value.trim();
+  const errEl=document.getElementById("submit-error");
+  errEl.style.display="none";
+  if(!url){errEl.style.display="block";errEl.textContent="Please paste your Instagram post URL.";return;}
+  if(!url.includes("instagram.com")){errEl.style.display="block";errEl.textContent="URL must be an Instagram link.";return;}
+
+  const now=Date.now();
+  const weekIdx=getWeekIndex(now);
+  if(weekIdx<0){errEl.style.display="block";errEl.textContent="Round hasn't started yet.";return;}
+
+  const deadline=getWeekDeadline(weekIdx);
+  const isLate=now>deadline&&now<deadline+(24*60*60*1000);
+  const isMissed=now>deadline+(24*60*60*1000);
+  let base=isMissed?0:isLate?PTS_LATE_24H:PTS_ON_TIME;
+  let bonus=(selectedFormat==="Reel"||selectedFormat==="Carousel")?(!isMissed?PTS_REEL:0):0;
+  let pts=base+bonus;
+  const status=isMissed?"missed":isLate?"late":"ontime";
+
+  const submission={
+    uid:currentUser.uid,
+    memberName:currentUser.name,
+    url,
+    format:selectedFormat,
+    weekIdx,
+    pts,
+    status,
+    ts:now
+  };
+
+  if(!useLocalFallback&&db){
+    try{
+      // Check for duplicate URL this week
+      const {addDoc,collection:col,getDocs,query:q,where,orderBy:ob,updateDoc,doc:docRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const dupCheck=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx),where("url","==",url)));
+      if(!dupCheck.empty){errEl.style.display="block";errEl.textContent="You already submitted this post.";return;}
+
+      await addDoc(col(db,"submissions"),submission);
+
+      // Update points on registry doc
+      if(currentUser.registryId){
+        await updateDoc(docRef(db,"smac_registry",currentUser.registryId),{points:increment(pts),totalPosts:increment(1)});
+      }
+
+      // Check streak — 4 consecutive weeks all met
+      await checkAndAwardStreak(currentUser.uid,currentUser.registryId,weekIdx);
+
+      // Check All-Star — all 12 weeks fully met
+      await checkAllStar(currentUser.uid,currentUser.registryId);
+
+      document.getElementById("submit-ig-url").value="";
+      selectFormat("Static");
+      showToast(pts>0?`+${pts} pts earned! 🎉`:"Submitted (0 pts — window closed).");
+      loadMySubmissions();
+      loadLeaderboard();
+    }catch(e){console.error(e);errEl.style.display="block";errEl.textContent="Error saving submission.";}
+  } else {
+    lsPush("smac_submissions",{...submission,id:Date.now().toString()});
+    document.getElementById("submit-ig-url").value="";
+    showToast(pts>0?`+${pts} pts! 🎉`:"Submitted (0 pts).");
+    loadMySubmissions();
+  }
+};
+
+async function checkAndAwardStreak(uid,registryId,currentWeekIdx){
+  if(currentWeekIdx<3)return; // Need at least 4 weeks
+  try{
+    const {getDocs,collection:col,query:q,where,updateDoc,doc:docRef,increment,getDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    // Check if streak bonus already awarded for this 4-week block
+    const blockStart=Math.floor(currentWeekIdx/4)*4;
+    const streakKey="streakBonus_"+blockStart;
+    if(registryId){
+      const regDoc=await getDoc(docRef(db,"smac_registry",registryId));
+      if(regDoc.exists()&&regDoc.data()[streakKey])return; // Already awarded
+    }
+    // Check submissions for weeks blockStart through blockStart+3
+    const weekIndices=[blockStart,blockStart+1,blockStart+2,blockStart+3];
+    const subs=await getDocs(q(col(db,"submissions"),where("uid","==",uid),where("status","==","ontime")));
+    const weekSet=new Set(subs.docs.map(d=>d.data().weekIdx));
+    const allMet=weekIndices.every(w=>weekSet.has(w));
+    if(allMet&&registryId){
+      const update={points:increment(PTS_STREAK)};
+      update[streakKey]=true;
+      await updateDoc(docRef(db,"smac_registry",registryId),update);
+      showToast("🔥 4-week streak bonus! +"+PTS_STREAK+" pts!");
+    }
+  }catch(e){console.warn("Streak check error:",e);}
+}
+
+async function checkAllStar(uid,registryId){
+  if(!registryId)return;
+  try{
+    const {getDocs,collection:col,query:q,where,updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const subs=await getDocs(q(col(db,"submissions"),where("uid","==",uid),where("status","==","ontime")));
+    const weekSet=new Set(subs.docs.map(d=>d.data().weekIdx));
+    // All 12 weeks must have at least the required posts
+    const allMet=WEEKS.every((w,i)=>{
+      const postsThisWeek=subs.docs.filter(d=>d.data().weekIdx===i).length;
+      return postsThisWeek>=w.required;
+    });
+    if(allMet){
+      await updateDoc(docRef(db,"smac_registry",registryId),{isAllStar:true});
+      showToast("⭐ You earned All-Star status!");
+    }
+  }catch(e){console.warn("All-Star check error:",e);}
+}
+
+function getMilestoneBadges(totalPosts){
+  const badges=[];
+  if(totalPosts>=100)badges.push("💎");
+  else if(totalPosts>=75)badges.push("🥇");
+  else if(totalPosts>=50)badges.push("🥈");
+  else if(totalPosts>=25)badges.push("🥉");
+  return badges.join("");
+}
+
+async function loadMySubmissions(){
+  const card=document.getElementById("my-submissions-card");
+  const list=document.getElementById("my-submissions-list");
+  const total=document.getElementById("my-points-total");
+  if(!card||!list)return;
+  let subs=[];
+  if(!useLocalFallback&&db){
+    try{
+      const {getDocs,collection:col,query:q,where,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),ob("ts","desc")));
+      subs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    }catch(e){console.warn("Submissions load error:",e);}
+  } else {
+    subs=(lsGet("smac_submissions")||[]).filter(s=>s.uid===currentUser.uid);
+  }
+  if(!subs.length){card.style.display="none";return;}
+  card.style.display="block";
+  const totalPts=subs.reduce((a,s)=>a+s.pts,0);
+  const milestones=getMilestoneBadges(subs.length);
+  total.innerHTML=`<strong>${totalPts} total pts</strong> · ${subs.length} posts ${milestones}`;
+  list.innerHTML=subs.slice(0,10).map(s=>`
+    <div class="sub-item">
+      <div style="flex:1;">
+        <a href="${esc(s.url)}" target="_blank" style="color:var(--gold);font-size:12px;">View post ↗</a>
+        <div style="font-size:11px;color:var(--text-muted);">Week ${s.weekIdx+1} · ${s.format} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+      </div>
+      <div>
+        ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
+        <span class="sub-pts">+${s.pts}</span>
+      </div>
+    </div>`).join("");
+}
+
+async function loadLeaderboard(){
+  const el=document.getElementById("leaderboard-list");
+  if(!el)return;
+  let members=[];
+  if(!useLocalFallback&&db){
+    try{
+      const {getDocs,collection:col,query:q,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap=await getDocs(q(col(db,"smac_registry"),ob("points","desc")));
+      members=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.name);
+    }catch(e){el.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load leaderboard</div></div>';return;}
+  }
+  if(!members.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">No scores yet</div><div class="empty-desc">Submit your first post to get on the board!</div></div>';return;}
+  cachedLeaderboard=members;
+  el.innerHTML=members.map((m,i)=>{
+    const initials=(m.name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    const pts=m.points||0;
+    const posts=m.totalPosts||0;
+    const milestones=getMilestoneBadges(posts);
+    const badges=`${m.isAllStar?"⭐":""}${m.isFounder?"🏅":""}${m.isVIP?"⚡":""}${milestones}`;
+    return`<div class="leaderboard-row">
+      <div class="lb-rank ${i<3?"top3":""}">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div>
+      <div class="lb-avatar">${initials}</div>
+      <div class="lb-info">
+        <div class="lb-name">${esc(m.name)} ${badges}</div>
+        <div class="lb-meta">${posts} posts · ${m.ig?`<a href="https://instagram.com/${esc(m.ig.replace("@",""))}" target="_blank" style="color:var(--gold);">@${esc(m.ig.replace("@",""))}</a>`:"no IG linked"}</div>
+      </div>
+      <div class="lb-pts">${pts}<span style="font-size:12px;color:var(--text-muted);"> pts</span></div>
+    </div>`;
+  }).join("");
+}
 
 // Legacy aliases (keep for any old calls)
 window.toggleAllStar=function(idx){toggleRegistryFlag(idx,"isAllStar");};
