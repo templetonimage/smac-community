@@ -325,6 +325,7 @@
         <div><div class="admin-banner-title">Member Registry</div><div class="admin-banner-sub">Members persist across all Rounds — enroll them per Round below</div></div>
       </div>
       <input class="auth-input" id="dir-name" type="text" placeholder="Full name..." style="margin-bottom:8px;" />
+      <input class="auth-input" id="dir-email" type="email" placeholder="Email address (used to log in)..." style="margin-bottom:8px;" />
       <input class="auth-input" id="dir-business" type="text" placeholder="Business / brand name..." style="margin-bottom:8px;" />
       <select class="auth-input" id="dir-type" style="margin-bottom:8px;">
         <option value="">Business type (optional)...</option>
@@ -1050,14 +1051,14 @@ function renderAdminRegistry(registry, list){
       Registry — ${registry.length} member${registry.length!==1?"s":""} · Round ${CURRENT_ROUND.replace("R","")} active
     </div>
     <div class="member-grid">${sorted.map((m,i)=>{
-    const realIdx=registry.indexOf(m);
+    const docId=m.id||m.uid||"";
     const initials=m.name.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
     const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";
     const enrolledNow=m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND);
     return `<div class="member-card" style="${!enrolledNow?"opacity:0.55;":""}">
       <div class="member-card-top">
         <div class="member-avatar-sm">${initials}</div>
-        <div><div class="member-name">${esc(m.name)}</div>${m.business?`<div class="member-biz">${esc(m.business)}</div>`:""}</div>
+        <div><div class="member-name">${esc(m.name)}</div>${m.business?`<div class="member-biz">${esc(m.business)}</div>`:""}<div style="font-size:10px;color:var(--text-muted);margin-top:1px;">${esc(m.email||"")}</div></div>
       </div>
       <div style="margin-bottom:4px;">
         ${m.isFounder?`<span class="member-founder-badge">🏅 Founder</span>`:""}
@@ -1071,16 +1072,16 @@ function renderAdminRegistry(registry, list){
       ${igUrl?`<a class="member-ig-btn" href="${igUrl}" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${esc(m.ig)}</a>`:""}
       <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
         <div style="display:flex;gap:4px;flex-wrap:wrap;">
-          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound(${realIdx},'R2')">R2 ${(m.rounds||[]).includes("R2")||m.isFounder?"✓":""}</button>
-          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound(${realIdx},'R3')">R3 ${(m.rounds||[]).includes("R3")||m.isFounder?"✓":""}</button>
-          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound(${realIdx},'R4')">R4 ${(m.rounds||[]).includes("R4")||m.isFounder?"✓":""}</button>
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound('${docId}','R2')">R2 ${(m.rounds||[]).includes("R2")||m.isFounder?"✓":""}</button>
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound('${docId}','R3')">R3 ${(m.rounds||[]).includes("R3")||m.isFounder?"✓":""}</button>
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound('${docId}','R4')">R4 ${(m.rounds||[]).includes("R4")||m.isFounder?"✓":""}</button>
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;">
-          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryFlag(${realIdx},'isFounder')">${m.isFounder?"Remove Founder":"🏅 Founder"}</button>
-          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryFlag(${realIdx},'isVIP')">${m.isVIP?"Remove VIP":"⚡ VIP"}</button>
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryFlag('${docId}','isFounder')">${m.isFounder?"Remove Founder":"🏅 Founder"}</button>
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryFlag('${docId}','isVIP')">${m.isVIP?"Remove VIP":"⚡ VIP"}</button>
         </div>
-        <button class="react-btn" style="width:100%;justify-content:center;" onclick="toggleRegistryFlag(${realIdx},'isAllStar')">${m.isAllStar?"Remove All-Star":"⭐ All-Star"}</button>
-        <button class="react-btn" style="width:100%;justify-content:center;" onclick="removeRegistryMember(${realIdx})">🗑 Remove from Registry</button>
+        <button class="react-btn" style="width:100%;justify-content:center;" onclick="toggleRegistryFlag('${docId}','isAllStar')">${m.isAllStar?"Remove All-Star":"⭐ All-Star"}</button>
+        <button class="react-btn" style="width:100%;justify-content:center;" onclick="removeRegistryMember('${docId}')">🗑 Remove from Registry</button>
       </div>
     </div>`;
   }).join("")}</div>`;
@@ -1265,53 +1266,96 @@ function renderEngagementReport(members){
       <div style="font-size:11px;color:var(--text-muted);margin-top:12px;">Props Given = posts they've propped. Props Received = total props across their posts.</div>
     </div>`;
 }
-window.addRegistryMember=function(){
+window.addRegistryMember=async function(){
   const name=document.getElementById("dir-name").value.trim();
+  const email=document.getElementById("dir-email")?document.getElementById("dir-email").value.trim().toLowerCase():"";
   const business=document.getElementById("dir-business").value.trim();
   const type=document.getElementById("dir-type").value;
   const ig=document.getElementById("dir-ig").value.trim();
   const isFounder=document.getElementById("dir-founder").checked;
   const isVIP=document.getElementById("dir-vip").checked;
-  if(!name)return;
+  if(!name||!email){showToast("Name and email are required.");return;}
   const rounds=["R2","R3","R4"].filter(r=>document.getElementById("dir-"+r.toLowerCase()).checked);
-  // Founders auto-enroll in R2, R3, R4
   const finalRounds=isFounder?["R2","R3","R4"]:rounds;
-  const registry=lsGet("smac_registry")||[];
-  const uid=name.toLowerCase().replace(/\s+/g,"-");
-  if(registry.find(m=>m.uid===uid)){showToast(`${name} is already in the registry.`);return;}
-  registry.push({name,business,type,ig,uid,isFounder,isVIP,isAllStar:false,rounds:finalRounds,addedAt:Date.now()});
-  lsSet("smac_registry",registry);
-  ["dir-name","dir-business","dir-ig"].forEach(id=>document.getElementById(id).value="");
+  const uid=email.replace(/[^a-z0-9]/g,"-");
+  const member={name,email,business,type,ig,uid,isFounder,isVIP,isAllStar:false,rounds:finalRounds,addedAt:Date.now()};
+  if(!useLocalFallback&&db){
+    try{
+      const {addDoc:aDoc,collection:col,getDocs,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const existing=await getDocs(q(col(db,"smac_registry"),where("email","==",email)));
+      if(!existing.empty){showToast(`${email} is already in the registry.`);return;}
+      await aDoc(col(db,"smac_registry"),member);
+    }catch(e){console.error(e);showToast("Error saving to Firestore.");return;}
+  } else {
+    const registry=lsGet("smac_registry")||[];
+    if(registry.find(m=>(m.email||"").toLowerCase()===email)){showToast(`${email} is already in the registry.`);return;}
+    registry.push(member);
+    lsSet("smac_registry",registry);
+  }
+  ["dir-name","dir-email","dir-business","dir-ig"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   document.getElementById("dir-type").value="";
   ["dir-r2","dir-r3","dir-r4","dir-founder","dir-vip"].forEach(id=>document.getElementById(id).checked=false);
   loadDirectory();
   showToast(`${name} added to the registry!`);
 };
-window.toggleRegistryRound=function(idx,round){
-  const registry=lsGet("smac_registry")||[];
-  if(!registry[idx])return;
-  if(registry[idx].isFounder){showToast("Founders are auto-enrolled in all Rounds.");return;}
-  const rounds=registry[idx].rounds||[];
-  registry[idx].rounds=rounds.includes(round)?rounds.filter(r=>r!==round):[...rounds,round];
-  lsSet("smac_registry",registry);
-  loadDirectory();
-};
-window.toggleRegistryFlag=function(idx,flag){
-  const registry=lsGet("smac_registry")||[];
-  if(!registry[idx])return;
-  registry[idx][flag]=!registry[idx][flag];
-  // If toggling Founder on, auto-enroll in all rounds
-  if(flag==="isFounder"&&registry[idx].isFounder){
-    registry[idx].rounds=["R2","R3","R4"];
+window.toggleRegistryRound=async function(docId,round){
+  if(!useLocalFallback&&db){
+    try{
+      const {getDoc,updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const ref=docRef(db,"smac_registry",docId);
+      const snap=await getDoc(ref);
+      if(!snap.exists())return;
+      const m=snap.data();
+      if(m.isFounder){showToast("Founders are auto-enrolled in all Rounds.");return;}
+      const rounds=m.rounds||[];
+      await updateDoc(ref,{rounds:rounds.includes(round)?rounds.filter(r=>r!==round):[...rounds,round]});
+    }catch(e){console.error(e);showToast("Error updating Firestore.");}
+  } else {
+    const registry=lsGet("smac_registry")||[];
+    const idx=registry.findIndex(m=>m.uid===docId);
+    if(idx<0)return;
+    if(registry[idx].isFounder){showToast("Founders are auto-enrolled in all Rounds.");return;}
+    const rounds=registry[idx].rounds||[];
+    registry[idx].rounds=rounds.includes(round)?rounds.filter(r=>r!==round):[...rounds,round];
+    lsSet("smac_registry",registry);
   }
-  lsSet("smac_registry",registry);
   loadDirectory();
 };
-window.removeRegistryMember=function(idx){
+window.toggleRegistryFlag=async function(docId,flag){
+  if(!useLocalFallback&&db){
+    try{
+      const {getDoc,updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const ref=docRef(db,"smac_registry",docId);
+      const snap=await getDoc(ref);
+      if(!snap.exists())return;
+      const m=snap.data();
+      const newVal=!m[flag];
+      const update={[flag]:newVal};
+      if(flag==="isFounder"&&newVal)update.rounds=["R2","R3","R4"];
+      await updateDoc(ref,update);
+    }catch(e){console.error(e);showToast("Error updating Firestore.");}
+  } else {
+    const registry=lsGet("smac_registry")||[];
+    const idx=registry.findIndex(m=>m.uid===docId);
+    if(idx<0)return;
+    registry[idx][flag]=!registry[idx][flag];
+    if(flag==="isFounder"&&registry[idx].isFounder)registry[idx].rounds=["R2","R3","R4"];
+    lsSet("smac_registry",registry);
+  }
+  loadDirectory();
+};
+window.removeRegistryMember=async function(docId){
   if(!confirm("Remove this member from the registry? This cannot be undone."))return;
-  const registry=lsGet("smac_registry")||[];
-  registry.splice(idx,1);
-  lsSet("smac_registry",registry);
+  if(!useLocalFallback&&db){
+    try{
+      const {deleteDoc:dDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await dDoc(docRef(db,"smac_registry",docId));
+    }catch(e){console.error(e);showToast("Error deleting from Firestore.");return;}
+  } else {
+    const registry=lsGet("smac_registry")||[];
+    const idx=registry.findIndex(m=>m.uid===docId);
+    if(idx>=0){registry.splice(idx,1);lsSet("smac_registry",registry);}
+  }
   loadDirectory();
   showToast("Member removed from registry.");
 };
@@ -1356,11 +1400,19 @@ window.saveProfile=function(){
     ig:document.getElementById("profile-ig").value.trim(),
   };
   lsSet(`smac_profile_${currentUser.uid}`,prof);
-  // Sync ig back to registry so directory stays current
+  // Sync ig back to Firestore registry so directory stays current
   if(!currentUser.isAdmin){
-    const registry=lsGet("smac_registry")||[];
-    const idx=registry.findIndex(m=>m.uid===currentUser.uid);
-    if(idx>-1){registry[idx].ig=prof.ig;lsSet("smac_registry",registry);}
+    if(!useLocalFallback&&db){
+      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDocs,collection:col,query:q,where,updateDoc,doc:docRef})=>{
+        getDocs(q(col(db,"smac_registry"),where("email","==",currentUser.email||""))).then(snap=>{
+          if(!snap.empty)updateDoc(docRef(db,"smac_registry",snap.docs[0].id),{ig:prof.ig}).catch(()=>{});
+        });
+      });
+    } else {
+      const registry=lsGet("smac_registry")||[];
+      const idx=registry.findIndex(m=>m.uid===currentUser.uid);
+      if(idx>-1){registry[idx].ig=prof.ig;lsSet("smac_registry",registry);}
+    }
   }
   document.getElementById("topnav-username").innerHTML=`<strong>${prof.name}</strong>${currentUser.isAdmin?" 🔐":""}`;
   renderProfileHero(prof);
