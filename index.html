@@ -452,7 +452,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {getFirestore, collection, addDoc, doc, getDoc, setDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc,getDocs} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import {getAuth, signInAnonymously} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getAuth, signInAnonymously, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ─────────────────────────────────────────────
 //  🔧 FIREBASE CONFIG  (replace with your values)
@@ -570,9 +570,14 @@ window.handleLogin=async function(){
   }
   lsSet("smac_session",currentUser);
   if(!useLocalFallback&&auth){
-    try{ await signInAnonymously(auth); }catch(e){ console.warn("Auth warning:",e); }
+    // Wait for Firestore auth state to fully propagate before booting
+    const unsub=onAuthStateChanged(auth,user=>{
+      if(user){unsub();bootApp();}
+    });
+    signInAnonymously(auth).catch(e=>{console.warn("Auth warning:",e);unsub();bootApp();});
+  } else {
+    bootApp();
   }
-  bootApp();
 };
 window.handleLogout=function(){
   if(auth)auth.signOut().catch(()=>{});
@@ -758,7 +763,7 @@ window.submitAnnouncement=async function(){
   if(!useLocalFallback&&db)await addDoc(collection(db,"announcements"),item);
   else lsPush("smac_announcements",{...item,id:Date.now().toString()});
   document.getElementById("ann-title").value="";document.getElementById("ann-body").value="";
-  if(useLocalFallback)loadAnnouncements();
+  loadAnnouncements();
 };
 async function loadAnnouncements(){
   if(!useLocalFallback&&db){
@@ -1471,12 +1476,14 @@ initFirebase();
 const saved=lsGet("smac_session");
 if(saved?.name){
   currentUser=saved;
-  (async()=>{
-    if(!useLocalFallback&&auth){
-      try{ await signInAnonymously(auth); }catch(e){ console.warn("Auth warning:",e); }
-    }
+  if(!useLocalFallback&&auth){
+    const unsub=onAuthStateChanged(auth,user=>{
+      if(user){unsub();bootApp();}
+    });
+    signInAnonymously(auth).catch(e=>{console.warn("Auth warning:",e);unsub();bootApp();});
+  } else {
     bootApp();
-  })();
+  }
 } else {
   document.getElementById("auth-screen").style.display="flex";
 }
