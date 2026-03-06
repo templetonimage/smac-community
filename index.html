@@ -467,7 +467,7 @@ const FIREBASE_CONFIG = {
   projectId: "smac-2026",
   storageBucket: "smac-2026.firebasestorage.app",
   messagingSenderId: "533376960532",
-  appId: "1:533376960532:web:3c969a34e05dd26b30bf01"
+  appId: "1:533376960532:web:3c969a34e05dd26b30bf01",
 };
 
 // ─────────────────────────────────────────────
@@ -554,8 +554,9 @@ window.handleLogin=function(){
   }
   lsSet("smac_session",currentUser);
   // Sign into Firebase Auth so Firestore rules can verify request.auth != null
+  // bootApp is triggered by onAuthStateChanged once auth is confirmed
   if(!useLocalFallback && auth){
-    signInAnonymously(auth).then(()=>bootApp()).catch(()=>bootApp());
+    signInAnonymously(auth).catch(()=>bootApp()); // fallback if auth fails
   } else {
     bootApp();
   }
@@ -1402,11 +1403,21 @@ document.getElementById("install-btn").addEventListener("click",async()=>{
 //  BOOT
 // ─────────────────────────────────────────────
 initFirebase();
+// Single auth gate — bootApp only runs once Firebase confirms an active session
+if(!useLocalFallback && auth){
+  onAuthStateChanged(auth, user => {
+    if(user && currentUser){
+      // Auth confirmed and we have a SMAC session — safe to boot
+      const appEl = document.getElementById("app");
+      if(appEl && appEl.style.display !== "block") bootApp();
+    }
+  });
+}
 const saved=lsGet("smac_session");
 if(saved?.name){
   currentUser=saved;
   if(!useLocalFallback&&auth){
-    signInAnonymously(auth).then(()=>bootApp()).catch(()=>bootApp());
+    signInAnonymously(auth).catch(()=>bootApp()); // fallback if auth fails
   } else {
     bootApp();
   }
