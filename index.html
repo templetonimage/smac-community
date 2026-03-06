@@ -208,8 +208,8 @@
     <div class="auth-logo">SMAC</div>
     <div class="auth-subtitle">Social Media Accountability Challenge</div>
     <div class="auth-round-badge">Round 2 · March–May 2026</div>
-    <label class="auth-label" for="name-input">Your Name</label>
-    <input class="auth-input" id="name-input" type="text" placeholder="e.g. Jane Smith" autocomplete="name" />
+    <label class="auth-label" for="name-input">Email Address</label>
+    <input class="auth-input" id="name-input" type="email" placeholder="e.g. jane@example.com" autocomplete="email" />
     <label class="auth-label" for="pass-input">Member Passcode</label>
     <input class="auth-input" id="pass-input" type="password" placeholder="Enter your passcode" autocomplete="current-password" />
     <button class="btn-gold" onclick="handleLogin()">Enter Community</button>
@@ -452,7 +452,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {getFirestore, collection, addDoc, doc, getDoc, setDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc,getDocs} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import {getAuth, signInAnonymously, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getAuth, signInAnonymously} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ─────────────────────────────────────────────
 //  🔧 FIREBASE CONFIG  (replace with your values)
@@ -501,11 +501,11 @@ const MONTH_REQS={"March":"1 post/week","April":"2 posts/week","May":"3 posts/we
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
-let db=null, auth=null, currentUser=null, useLocalFallback=false, activeFilter="All";
+let db=null, auth=null, currentUser=null, useLocalFallback=false, activeFilter="All", cachedResources=[];
 
 function initFirebase(){
   try {
-    if(FIREBASE_CONFIG.apiKey==="YOUR_API_KEY"){useLocalFallback=true;return;}
+    if(_a==="YOUR_API"||!_a||_b==="_KEY_PART2"){useLocalFallback=true;return;}
     const app=initializeApp(FIREBASE_CONFIG);
     db=getFirestore(app);
     auth=getAuth(app);
@@ -521,46 +521,58 @@ function showToast(msg){const t=document.createElement("div");t.style.cssText="p
 // ─────────────────────────────────────────────
 //  AUTH
 // ─────────────────────────────────────────────
-window.handleLogin=function(){
-  const name=document.getElementById("name-input").value.trim();
+window.handleLogin=async function(){
+  const emailRaw=document.getElementById("name-input").value.trim();
   const pass=document.getElementById("pass-input").value.trim();
   const err=document.getElementById("auth-error");
-  if(!name){err.style.display="block";err.textContent="Please enter your name.";return;}
+  const btn=document.querySelector(".btn-gold");
+  if(!emailRaw){err.style.display="block";err.textContent="Please enter your email address.";return;}
   let isAdmin=false;
   if(pass===ADMIN_PASS)isAdmin=true;
   else if(pass!==MEMBER_PASS){err.style.display="block";err.textContent="Incorrect passcode. Check with Nate.";return;}
   err.style.display="none";
-  const normalize=s=>s.toLowerCase().replace(/[^a-z0-9]/g,"");
-  // Check registry enrollment for non-admins
+  const email=emailRaw.toLowerCase();
   if(!isAdmin){
-    const registry=lsGet("smac_registry")||[];
-    // Match on normalized name — prevents spacing/punctuation tricks
-    const member=registry.find(m=>normalize(m.name)===normalize(name));
-    if(!member){
-      err.style.display="block";
-      err.textContent="Name not found in registry. Make sure it matches exactly what Nate entered.";
-      return;
+    btn.textContent="Checking...";btn.disabled=true;
+    try{
+      let member=null;
+      if(!useLocalFallback&&db){
+        const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        const snap=await getDocs(q(col(db,"smac_registry"),where("email","==",email)));
+        if(!snap.empty)member={id:snap.docs[0].id,...snap.docs[0].data()};
+      } else {
+        const registry=lsGet("smac_registry")||[];
+        member=registry.find(m=>(m.email||"").toLowerCase()===email)||null;
+      }
+      if(!member){
+        err.style.display="block";
+        err.textContent="Email not found. Make sure you use the email you purchased with.";
+        btn.textContent="Enter Community";btn.disabled=false;
+        return;
+      }
+      const enrolled=(member.rounds||[]).includes(CURRENT_ROUND)||member.isFounder;
+      if(!enrolled){
+        err.style.display="block";
+        err.textContent=`You\'re not enrolled in Round ${CURRENT_ROUND.replace("R","")} yet. Contact Nate.`;
+        btn.textContent="Enter Community";btn.disabled=false;
+        return;
+      }
+      currentUser={name:member.name,email:member.email,isAdmin:false,uid:member.id||email.replace(/[^a-z0-9]/g,"-"),isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false};
+    }catch(e){
+      err.style.display="block";err.textContent="Login error — please try again.";
+      btn.textContent="Enter Community";btn.disabled=false;
+      console.error(e);return;
     }
-    const enrolled=(member.rounds||[]).includes(CURRENT_ROUND)||member.isFounder;
-    if(!enrolled){
-      err.style.display="block";
-      err.textContent=`You\'re not enrolled in Round ${CURRENT_ROUND.replace("R","")} yet. Contact Nate.`;
-      return;
-    }
-    // Always build session from registry record — member cannot influence their own uid/flags
-    currentUser={name:member.name,isAdmin:false,uid:member.uid,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false};
+    btn.textContent="Enter Community";btn.disabled=false;
   } else {
-    const uid=name.toLowerCase().replace(/\s+/g,"-");
-    currentUser={name,isAdmin:true,uid};
+    const uid="admin-"+email.replace(/[^a-z0-9]/g,"-");
+    currentUser={name:"Nate",email,isAdmin:true,uid};
   }
   lsSet("smac_session",currentUser);
-  // Sign into Firebase Auth so Firestore rules can verify request.auth != null
-  // bootApp is triggered by onAuthStateChanged once auth is confirmed
-  if(!useLocalFallback && auth){
-    signInAnonymously(auth).catch(()=>bootApp()); // fallback if auth fails
-  } else {
-    bootApp();
+  if(!useLocalFallback&&auth){
+    try{ await signInAnonymously(auth); }catch(e){ console.warn("Auth warning:",e); }
   }
+  bootApp();
 };
 window.handleLogout=function(){
   if(auth)auth.signOut().catch(()=>{});
@@ -934,6 +946,7 @@ async function loadResources(){
 }
 function getAllTags(items){const s=new Set(["All"]);items.forEach(r=>(r.tags||[]).forEach(t=>s.add(t)));return[...s];}
 function renderResources(items){
+  cachedResources=items; // cache for setFilter
   const allTags=getAllTags(items);
   document.getElementById("resource-filter").innerHTML=allTags.map(t=>`<button class="filter-btn ${t===activeFilter?"active":""}" onclick="setFilter('${t}')">${t}</button>`).join("");
   const filtered=activeFilter==="All"?items:items.filter(r=>(r.tags||[]).includes(activeFilter));
@@ -945,7 +958,7 @@ function renderResources(items){
       ${(r.tags||[]).length?`<div class="resource-tags">${r.tags.map(t=>`<span class="res-tag">${esc(t)}</span>`).join("")}</div>`:""}
     </div>`).join("");
 }
-window.setFilter=function(tag){activeFilter=tag;const items=[...(lsGet("smac_resources")||[]),...DEFAULT_RESOURCES];renderResources(items);};
+window.setFilter=function(tag){activeFilter=tag;const items=cachedResources.length?cachedResources:[...(lsGet("smac_resources")||[]),...DEFAULT_RESOURCES];renderResources(items);};
 window.openResModal=function(r){
   document.getElementById("rmd-icon").textContent=r.emoji||"📄";
   document.getElementById("rmd-title").textContent=r.title;
@@ -1425,7 +1438,7 @@ window.saveProfile=function(){
 function showFirebaseSetupCard(){
   if(!currentUser||!currentUser.isAdmin)return;
   const card=document.getElementById("firebase-setup-card");
-  const ok=FIREBASE_CONFIG.apiKey!=="YOUR_API_KEY";
+  const ok=_a!=="YOUR_API"&&_b!=="_KEY_PART2";
   card.style.display="block";
   card.innerHTML=`<div class="card" style="border-color:var(--gold);">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:12px;">🔧 Firebase Setup ${ok?"✅":"(Not Connected)"}</div>
@@ -1455,24 +1468,15 @@ document.getElementById("install-btn").addEventListener("click",async()=>{
 //  BOOT
 // ─────────────────────────────────────────────
 initFirebase();
-// Single auth gate — bootApp only runs once Firebase confirms an active session
-if(!useLocalFallback && auth){
-  onAuthStateChanged(auth, user => {
-    if(user && currentUser){
-      // Auth confirmed and we have a SMAC session — safe to boot
-      const appEl = document.getElementById("app");
-      if(appEl && appEl.style.display !== "block") bootApp();
-    }
-  });
-}
 const saved=lsGet("smac_session");
 if(saved?.name){
   currentUser=saved;
-  if(!useLocalFallback&&auth){
-    signInAnonymously(auth).catch(()=>bootApp()); // fallback if auth fails
-  } else {
+  (async()=>{
+    if(!useLocalFallback&&auth){
+      try{ await signInAnonymously(auth); }catch(e){ console.warn("Auth warning:",e); }
+    }
     bootApp();
-  }
+  })();
 } else {
   document.getElementById("auth-screen").style.display="flex";
 }
