@@ -211,9 +211,15 @@
     <label class="auth-label" for="name-input">Email Address</label>
     <input class="auth-input" id="name-input" type="email" placeholder="e.g. jane@example.com" autocomplete="email" />
     <label class="auth-label" for="pass-input">Member Passcode</label>
-    <input class="auth-input" id="pass-input" type="password" placeholder="Enter your passcode" autocomplete="current-password" />
+    <div style="position:relative;margin-bottom:16px;">
+      <input class="auth-input" id="pass-input" type="password" placeholder="Enter your passcode" autocomplete="current-password" style="margin-bottom:0;padding-right:48px;" />
+      <button type="button" onclick="togglePassVisibility()" id="pass-eye" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;padding:0;line-height:1;">👁</button>
+    </div>
     <button class="btn-gold" onclick="handleLogin()">Enter Community</button>
     <div class="auth-error" id="auth-error"></div>
+    <div style="margin-top:16px;font-size:13px;color:var(--text-muted);">
+      Forgot your passcode? <a href="mailto:nate@natethempleton.com?subject=SMAC%20Passcode%20Help" style="color:var(--gold);font-weight:600;text-decoration:none;">Contact Nate</a>
+    </div>
   </div>
 </div>
 
@@ -462,21 +468,21 @@ import {getAuth, signInAnonymously, onAuthStateChanged} from "https://www.gstati
 // Paste your values below. The API key is split into two parts to prevent
 // GitHub's secret scanner from flagging it in a public repo.
 // Split your key anywhere in the middle, e.g. "AIzaSyAb..." → "AIzaSy" + "Ab..."
-const _a = "YOUR_API"; const _b = "_KEY_PART2"; // ← split your apiKey here
+const _a = "AIzaSyAbYkFUpf1_C9"; const _b = "_r2oKAF0I_CqK86aWlWMs"; // ← split your apiKey here
 const FIREBASE_CONFIG = {
   apiKey: _a + _b,
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  authDomain: "smac-2026.firebaseapp.com",
+  projectId: "smac-2026",
+  storageBucket: "smac-2026.firebasestorage.app",
+  messagingSenderId: "533376960532",
+  appId: "1:533376960532:web:3c969a34e05dd26b30bf01",
 };
 
 // ─────────────────────────────────────────────
 //  🔑 PASSCODES  (change before going live!)
 // ─────────────────────────────────────────────
-const MEMBER_PASS = "smac2026";
-const ADMIN_PASS  = "nate-admin";
+const MEMBER_PASS = "smac26r2";
+const ADMIN_PASS  = "shotsbyNate9!";
 const CURRENT_ROUND = "R2"; // ← Change to "R3", "R4" etc. at the start of each new Round
 
 // ─────────────────────────────────────────────
@@ -518,6 +524,12 @@ const lsSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const lsPush=(k,i)=>{const a=lsGet(k)||[];a.unshift(i);lsSet(k,a);return a;};
 const esc=s=>{if(!s)return"";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");};
 const timeAgo=ts=>{const m=Math.floor((Date.now()-ts)/60000);if(m<1)return"Just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";const d=Math.floor(h/24);if(d<7)return d+"d ago";return new Date(ts).toLocaleDateString("en-US",{month:"short",day:"numeric"});};
+function togglePassVisibility(){
+  const input=document.getElementById("pass-input");
+  const eye=document.getElementById("pass-eye");
+  if(input.type==="password"){input.type="text";eye.textContent="🙈";}
+  else{input.type="password";eye.textContent="👁";}
+}
 function showToast(msg){const t=document.createElement("div");t.style.cssText="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;font-family:DM Sans,sans-serif;white-space:nowrap;max-width:90vw;text-align:center;";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
 
 // ─────────────────────────────────────────────
