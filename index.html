@@ -451,6 +451,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {getFirestore, collection, addDoc, doc, getDoc, setDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc,getDocs} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {getAuth, signInAnonymously, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ─────────────────────────────────────────────
 //  🔧 FIREBASE CONFIG  (replace with your values)
@@ -499,13 +500,14 @@ const MONTH_REQS={"March":"1 post/week","April":"2 posts/week","May":"3 posts/we
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
-let db=null, currentUser=null, useLocalFallback=false, activeFilter="All";
+let db=null, auth=null, currentUser=null, useLocalFallback=false, activeFilter="All";
 
 function initFirebase(){
   try {
     if(FIREBASE_CONFIG.apiKey==="YOUR_API_KEY"){useLocalFallback=true;return;}
     const app=initializeApp(FIREBASE_CONFIG);
     db=getFirestore(app);
+    auth=getAuth(app);
   } catch(e){useLocalFallback=true;}
 }
 const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch{return null;}};
@@ -551,9 +553,15 @@ window.handleLogin=function(){
     currentUser={name,isAdmin:true,uid};
   }
   lsSet("smac_session",currentUser);
-  bootApp();
+  // Sign into Firebase Auth so Firestore rules can verify request.auth != null
+  if(!useLocalFallback && auth){
+    signInAnonymously(auth).then(()=>bootApp()).catch(()=>bootApp());
+  } else {
+    bootApp();
+  }
 };
 window.handleLogout=function(){
+  if(auth)auth.signOut().catch(()=>{});
   localStorage.removeItem("smac_session");currentUser=null;
   document.getElementById("app").style.display="none";
   document.getElementById("auth-screen").style.display="flex";
@@ -1395,8 +1403,16 @@ document.getElementById("install-btn").addEventListener("click",async()=>{
 // ─────────────────────────────────────────────
 initFirebase();
 const saved=lsGet("smac_session");
-if(saved?.name){currentUser=saved;bootApp();}
-else document.getElementById("auth-screen").style.display="flex";
+if(saved?.name){
+  currentUser=saved;
+  if(!useLocalFallback&&auth){
+    signInAnonymously(auth).then(()=>bootApp()).catch(()=>bootApp());
+  } else {
+    bootApp();
+  }
+} else {
+  document.getElementById("auth-screen").style.display="flex";
+}
 </script>
 
 <script>
