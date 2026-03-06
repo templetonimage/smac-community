@@ -1,0 +1,26 @@
+{
+  "name": "SMAC Community",
+  "short_name": "SMAC",
+  "description": "Social Media Accountability Challenge — Member Community",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#faf9f7",
+  "theme_color": "#c9a84c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "productivity"],
+  "lang": "en-US"
+}

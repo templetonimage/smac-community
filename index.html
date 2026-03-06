@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>SMAC Community</title>
+  <meta name="description" content="Social Media Accountability Challenge — Member Community" />
+  <meta name="theme-color" content="#c9a84c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="SMAC" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#faf9f7;--surface:#ffffff;--surface2:#f3f1ed;--text:#1a1a1a;--text-muted:#6b6b6b;
+      --gold:#c9a84c;--gold-light:#e8d28a;--gold-dark:#a07c28;--border:#e8e4de;
+      --radius:12px;--shadow:0 2px 16px rgba(0,0,0,0.07);--shadow-lg:0 8px 40px rgba(0,0,0,0.12);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+    h1,h2,h3{font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em;}
+
+    /* AUTH */
+    #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+    .auth-card{background:var(--surface);border-radius:20px;padding:48px 40px;width:100%;max-width:400px;box-shadow:var(--shadow-lg);border:1px solid var(--border);text-align:center;}
+    .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:72px;letter-spacing:0.08em;color:var(--gold);line-height:1;margin-bottom:4px;}
+    .auth-subtitle{font-size:13px;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:40px;}
+    .auth-label{display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);text-align:left;margin-bottom:8px;}
+    .auth-input{width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:15px;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s;margin-bottom:16px;}
+    .auth-input:focus{border-color:var(--gold);}
+    .btn-gold{width:100%;padding:15px;background:var(--gold);color:#fff;border:none;border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.08em;cursor:pointer;transition:background .2s,transform .1s;}
+    .btn-gold:hover{background:var(--gold-dark);}
+    .btn-gold:active{transform:scale(0.98);}
+    .auth-error{color:#c0392b;font-size:13px;margin-top:12px;display:none;}
+    .auth-round-badge{display:inline-block;background:var(--gold);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.1em;padding:4px 12px;border-radius:20px;margin-bottom:32px;}
+
+    /* APP */
+    #app{display:none;min-height:100vh;padding-bottom:80px;}
+    .topnav{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:60px;}
+    .topnav-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);letter-spacing:0.06em;}
+    .topnav-right{display:flex;align-items:center;gap:12px;}
+    .topnav-user{font-size:13px;color:var(--text-muted);}
+    .topnav-user strong{color:var(--text);}
+    .btn-sm{padding:7px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text);transition:all .15s;}
+    .btn-sm:hover{border-color:var(--gold);color:var(--gold);}
+
+    /* BOTTOM NAV */
+    .bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;height:68px;padding-bottom:env(safe-area-inset-bottom);}
+    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;color:var(--text-muted);font-size:9px;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.03em;transition:color .15s;padding:8px 2px;}
+    .nav-item svg{width:20px;height:20px;}
+    .nav-item.active{color:var(--gold);}
+
+    /* PAGES */
+    .page{display:none;padding:20px;max-width:680px;margin:0 auto;}
+    .page.active{display:block;}
+    .page-header{margin-bottom:24px;}
+    .page-title{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:0.04em;line-height:1;}
+    .page-subtitle{font-size:13px;color:var(--text-muted);margin-top:4px;}
+
+    /* CARDS */
+    .card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);}
+    .card-meta{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+    .avatar{width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0;}
+    .card-author{font-weight:600;font-size:14px;}
+    .card-time{font-size:12px;color:var(--text-muted);}
+    .card-body{font-size:15px;line-height:1.6;}
+    .card-link{display:inline-flex;align-items:center;gap:6px;margin-top:12px;color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;border:1.5px solid var(--gold);padding:6px 14px;border-radius:8px;transition:all .15s;}
+    .card-link:hover{background:var(--gold);color:#fff;}
+    .card-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap;}
+    .react-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text-muted);transition:all .15s;}
+    .react-btn:hover{border-color:var(--gold);color:var(--gold);background:#fdf8ec;}
+    .react-btn.active{border-color:var(--gold);color:var(--gold);background:#fdf8ec;}
+    .react-btn.locked{opacity:.45;cursor:default;}
+    .props-summary{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+    .props-count-btn{background:none;border:none;font-size:13px;color:var(--text-muted);cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;text-align:left;}
+    .props-count-btn:hover{color:var(--gold);}
+    .props-see{color:var(--gold);font-weight:600;text-decoration:underline;}
+    .props-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+    .props-name-pill{background:var(--surface2);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500;color:var(--text);}
+
+    /* COMPOSE */
+    .compose-box{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px;margin-bottom:24px;box-shadow:var(--shadow);}
+    .compose-textarea{width:100%;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);background:transparent;resize:none;min-height:80px;line-height:1.6;}
+    .compose-textarea::placeholder{color:var(--text-muted);}
+    .compose-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+    .compose-hint{font-size:12px;color:var(--text-muted);}
+    .btn-post{padding:9px 20px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;cursor:pointer;transition:background .15s;}
+    .btn-post:hover{background:var(--gold-dark);}
+    .admin-compose{background:#fffbf0;border:1.5px dashed var(--gold);}
+    .admin-banner{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+    .admin-banner-icon{font-size:24px;}
+    .admin-banner-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;}
+    .admin-banner-sub{font-size:12px;opacity:.7;}
+
+    /* ANNOUNCEMENTS */
+    .announcement-card{border-left:3px solid var(--gold);padding-left:16px;}
+    .announcement-tag{display:inline-block;background:var(--gold);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 8px;border-radius:4px;margin-bottom:8px;}
+
+    /* RESOURCES */
+    .resource-filter{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+    .filter-btn{padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-muted);transition:all .15s;}
+    .filter-btn.active,.filter-btn:hover{border-color:var(--gold);color:var(--gold);background:#fdf8ec;}
+    .resource-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+    @media(max-width:480px){.resource-grid{grid-template-columns:1fr;}}
+    .resource-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);color:var(--text);display:block;}
+    .resource-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:var(--shadow-lg);}
+    .resource-icon{width:40px;height:40px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:20px;}
+    .resource-title{font-weight:600;font-size:14px;margin-bottom:4px;}
+    .resource-desc{font-size:12px;color:var(--text-muted);line-height:1.4;}
+    .resource-tags{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;}
+    .res-tag{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:#fdf5e0;color:var(--gold-dark);padding:2px 8px;border-radius:20px;}
+
+    /* RESOURCE MODAL */
+    .res-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:flex-end;justify-content:center;}
+    .res-modal-overlay.open{display:flex;}
+    .res-modal{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:88vh;overflow-y:auto;position:relative;}
+    .res-modal-header{padding:28px 24px 0;position:relative;}
+    .res-modal-close{position:absolute;top:20px;right:20px;background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
+    .res-modal-icon{width:52px;height:52px;background:var(--surface2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:12px;}
+    .res-modal-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.04em;line-height:1.1;margin-bottom:10px;}
+    .res-modal-tags{display:flex;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
+    .res-modal-divider{height:1px;background:var(--border);margin:16px 0 0;}
+    .res-modal-body{padding:20px 24px;font-size:15px;line-height:1.75;color:var(--text);white-space:pre-wrap;}
+    .res-modal-footer{padding:4px 24px 32px;}
+    .res-modal-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;background:var(--gold);color:#fff;border:none;border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;cursor:pointer;text-decoration:none;transition:background .15s;}
+    .res-modal-btn:hover{background:var(--gold-dark);}
+
+    /* TRACKER */
+    .tracker-header{background:linear-gradient(135deg,var(--gold),var(--gold-dark));border-radius:var(--radius);padding:20px;color:#fff;margin-bottom:20px;}
+    .tracker-header h2{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;}
+    .progress-bar{height:6px;background:rgba(255,255,255,0.3);border-radius:3px;overflow:hidden;margin-top:8px;}
+    .progress-fill{height:100%;background:#fff;border-radius:3px;transition:width .4s ease;}
+    .progress-label{font-size:13px;opacity:.9;margin-top:10px;}
+    .month-section{margin-bottom:24px;}
+    .month-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;}
+    .month-req{font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface2);padding:3px 10px;border-radius:20px;color:var(--text-muted);font-weight:500;letter-spacing:0;}
+    .week-row{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;box-shadow:var(--shadow);}
+    .week-label{font-weight:600;font-size:14px;}
+    .week-sublabel{font-size:12px;color:var(--text-muted);}
+    .week-checks{display:flex;gap:8px;align-items:center;}
+    .check-box{width:28px;height:28px;border:2px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;background:var(--bg);}
+    .check-box.checked{background:var(--gold);border-color:var(--gold);}
+    .check-box svg{display:none;}
+    .check-box.checked svg{display:block;}
+    .week-status{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;min-width:52px;text-align:right;}
+    .status-met{color:#2ecc71;}.status-partial{color:var(--gold);}.status-upcoming{color:var(--text-muted);}
+    .allstar-track{background:linear-gradient(135deg,#fffbf0,#fdf5e0);border:1.5px solid var(--gold-light);border-radius:var(--radius);padding:16px;margin-top:20px;display:flex;align-items:center;gap:14px;}
+    .allstar-track .star-icon{font-size:32px;flex-shrink:0;}
+    .allstar-track-title{font-weight:600;font-size:14px;}
+    .allstar-track-desc{font-size:13px;color:var(--text-muted);line-height:1.5;}
+
+    /* MEMBER DIRECTORY */
+    .member-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    @media(max-width:440px){.member-grid{grid-template-columns:1fr;}}
+    .member-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);transition:all .15s;}
+    .member-card:hover{border-color:var(--gold);transform:translateY(-1px);}
+    .member-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .member-avatar-sm{width:40px;height:40px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;flex-shrink:0;}
+    .member-name{font-weight:600;font-size:14px;line-height:1.2;}
+    .member-biz{font-size:12px;color:var(--text-muted);}
+    .member-type-tag{display:inline-block;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:var(--surface2);color:var(--text-muted);padding:3px 9px;border-radius:20px;margin-bottom:10px;}
+    .member-ig-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;text-decoration:none;transition:all .15s;}
+    .member-ig-btn:hover{border-color:#e1306c;color:#e1306c;background:#fff0f5;}
+    .member-allstar-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;letter-spacing:0.06em;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;padding:2px 8px;border-radius:20px;margin-bottom:8px;}
+
+    /* PROFILE */
+    .profile-hero{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:28px 24px;text-align:center;margin-bottom:16px;box-shadow:var(--shadow);}
+    .profile-avatar{width:72px;height:72px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;margin:0 auto 14px;}
+    .profile-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.04em;}
+    .profile-business{font-size:14px;color:var(--text-muted);margin-top:2px;}
+    .profile-badges{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;}
+    .badge{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 12px;border-radius:20px;}
+    .badge-round{background:var(--surface2);color:var(--text-muted);}
+    .badge-allstar{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;}
+    .profile-form-field{margin-bottom:16px;}
+    .field-label{display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+    .field-input,.field-select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;background:var(--surface);color:var(--text);outline:none;transition:border-color .2s;}
+    .field-input:focus,.field-select:focus{border-color:var(--gold);}
+
+    /* MISC */
+    .empty-state{text-align:center;padding:48px 24px;color:var(--text-muted);}
+    .empty-icon{font-size:40px;margin-bottom:12px;}
+    .empty-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);margin-bottom:6px;}
+    .empty-desc{font-size:14px;line-height:1.5;}
+    #install-banner{display:none;position:fixed;bottom:76px;left:12px;right:12px;z-index:200;background:var(--surface);border:1.5px solid var(--gold);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow-lg);align-items:center;gap:12px;}
+    .install-text{flex:1;font-size:13px;line-height:1.4;}
+    .install-text strong{display:block;font-size:14px;}
+    #install-btn{padding:8px 16px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;cursor:pointer;white-space:nowrap;}
+    #install-dismiss{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);padding:0 4px;}
+    .firebase-notice{background:#fff8e6;border:1px solid var(--gold-light);border-radius:var(--radius);padding:16px;font-size:13px;line-height:1.6;margin-bottom:20px;}
+    .firebase-notice strong{display:block;margin-bottom:4px;color:var(--gold-dark);}
+    .setup-steps{counter-reset:steps;}
+    .setup-step{counter-increment:steps;display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;}
+    .setup-step::before{content:counter(steps);width:24px;height:24px;background:var(--gold);color:#fff;border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+    .setup-step-content{font-size:13px;line-height:1.5;}
+    .setup-step-content code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px;}
+    @media(max-width:480px){.auth-card{padding:32px 24px;}.auth-logo{font-size:60px;}.page{padding:16px;}}
+  </style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">SMAC</div>
+    <div class="auth-subtitle">Social Media Accountability Challenge</div>
+    <div class="auth-round-badge">Round 2 · March–May 2026</div>
+    <label class="auth-label" for="name-input">Your Name</label>
+    <input class="auth-input" id="name-input" type="text" placeholder="e.g. Jane Smith" autocomplete="name" />
+    <label class="auth-label" for="pass-input">Member Passcode</label>
+    <input class="auth-input" id="pass-input" type="password" placeholder="Enter your passcode" autocomplete="current-password" />
+    <button class="btn-gold" onclick="handleLogin()">Enter Community</button>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav class="topnav">
+    <div class="topnav-logo">SMAC</div>
+    <div class="topnav-right">
+      <span class="topnav-user" id="topnav-username"></span>
+      <button class="btn-sm" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- FEED -->
+  <div class="page active" id="page-feed">
+    <div class="page-header">
+      <h1 class="page-title">Community Feed</h1>
+      <p class="page-subtitle">Share your wins, posts, and progress</p>
+    </div>
+    <div class="compose-box">
+      <textarea class="compose-textarea" id="compose-text" placeholder="Share a post link, win, or update with the group..." rows="3"></textarea>
+      <input class="auth-input" id="compose-link" type="url" placeholder="Instagram post URL (optional — required to receive Props)" style="margin-top:10px;margin-bottom:0;" />
+      <div class="compose-footer">
+        <span class="compose-hint">Posts with a link can receive 🙌 Props</span>
+        <button class="btn-post" onclick="submitPost()">Post</button>
+      </div>
+    </div>
+    <div id="feed-list"></div>
+  </div>
+
+  <!-- ANNOUNCEMENTS -->
+  <div class="page" id="page-announcements">
+    <div class="page-header">
+      <h1 class="page-title">Announcements</h1>
+      <p class="page-subtitle">Updates from Nate</p>
+    </div>
+    <div class="compose-box admin-compose" id="admin-compose" style="display:none;">
+      <div class="admin-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+        <span class="admin-banner-icon">🔐</span>
+        <div><div class="admin-banner-title">Admin — Post Announcement</div><div class="admin-banner-sub">Visible to all members</div></div>
+      </div>
+      <input class="auth-input" id="ann-title" type="text" placeholder="Announcement title..." style="margin-bottom:10px;" />
+      <textarea class="compose-textarea" id="ann-body" placeholder="Write your announcement..." rows="4"></textarea>
+      <div class="compose-footer">
+        <span class="compose-hint">Posted as Nate Templeton</span>
+        <button class="btn-post" onclick="submitAnnouncement()">Post</button>
+      </div>
+    </div>
+    <div id="announcements-list"></div>
+  </div>
+
+  <!-- RESOURCES -->
+  <div class="page" id="page-resources">
+    <div class="page-header">
+      <h1 class="page-title">Resources</h1>
+      <p class="page-subtitle">Content strategy guides and tools — click any card to read</p>
+    </div>
+    <div class="compose-box admin-compose" id="admin-resource-compose" style="display:none;">
+      <div class="admin-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+        <span class="admin-banner-icon">🔐</span>
+        <div><div class="admin-banner-title">Add Resource</div></div>
+      </div>
+      <input class="auth-input" id="res-title" type="text" placeholder="Resource title..." style="margin-bottom:8px;" />
+      <input class="auth-input" id="res-desc" type="text" placeholder="Short description (shown on card)..." style="margin-bottom:8px;" />
+      <textarea class="compose-textarea" id="res-body" placeholder="Full body content (shown inside the modal when they click — write as much as you want)..." rows="6" style="border:1.5px solid var(--border);border-radius:10px;padding:12px;background:var(--bg);margin-bottom:8px;"></textarea>
+      <input class="auth-input" id="res-url" type="url" placeholder="External link URL (optional)..." style="margin-bottom:8px;" />
+      <input class="auth-input" id="res-url-label" type="text" placeholder='Link button label (e.g. "Download Template")...' style="margin-bottom:8px;" />
+      <input class="auth-input" id="res-tags" type="text" placeholder="Tags, comma separated (e.g. Captions, Strategy)..." style="margin-bottom:8px;" />
+      <input class="auth-input" id="res-source" type="text" placeholder="Source name (e.g. Hootsuite Blog)..." style="margin-bottom:8px;" />
+      <input class="auth-input" id="res-source-url" type="url" placeholder="Source URL (optional)..." style="margin-bottom:8px;" />
+      <input class="auth-input" id="res-emoji" type="text" placeholder="Emoji icon (e.g. 📄)" maxlength="4" style="margin-bottom:8px;" />
+      <div class="compose-footer"><span></span><button class="btn-post" onclick="submitResource()">Add Resource</button></div>
+    </div>
+    <div class="resource-filter" id="resource-filter"></div>
+    <div class="resource-grid" id="resource-grid"></div>
+  </div>
+
+  <!-- TRACKER -->
+  <div class="page" id="page-tracker">
+    <div class="page-header">
+      <h1 class="page-title">My Tracker</h1>
+      <p class="page-subtitle">Log your weekly posts — check off <em>after</em> you've posted, not before</p>
+    </div>
+    <div class="tracker-header">
+      <h2>Round 2 Progress</h2>
+      <div class="progress-label" id="tracker-progress-label">0 of 24 posts completed</div>
+      <div class="progress-bar"><div class="progress-fill" id="tracker-bar" style="width:0%"></div></div>
+    </div>
+    <div id="tracker-weeks"></div>
+    <div class="allstar-track">
+      <div class="star-icon">⭐</div>
+      <div>
+        <div class="allstar-track-title">SMAC All-Star</div>
+        <div class="allstar-track-desc">Complete every weekly requirement across all 12 weeks to earn All-Star status. 1 post/week in March, 2/week in April, and 3/week in May — 24 posts total.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTORY -->
+  <div class="page" id="page-directory">
+    <div class="page-header">
+      <h1 class="page-title">Member Directory</h1>
+      <p class="page-subtitle">Your Round 2 crew — tap any card to visit their Instagram</p>
+    </div>
+    <!-- Admin: add / manage member registry -->
+    <div class="compose-box admin-compose" id="admin-dir-compose" style="display:none;">
+      <div class="admin-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+        <span class="admin-banner-icon">🔐</span>
+        <div><div class="admin-banner-title">Member Registry</div><div class="admin-banner-sub">Members persist across all Rounds — enroll them per Round below</div></div>
+      </div>
+      <input class="auth-input" id="dir-name" type="text" placeholder="Full name..." style="margin-bottom:8px;" />
+      <input class="auth-input" id="dir-business" type="text" placeholder="Business / brand name..." style="margin-bottom:8px;" />
+      <select class="auth-input" id="dir-type" style="margin-bottom:8px;">
+        <option value="">Business type (optional)...</option>
+        <option>Coaching / Consulting</option><option>Creative / Design</option>
+        <option>E-Commerce / Products</option><option>Health &amp; Wellness</option>
+        <option>Real Estate</option><option>Marketing / Agency</option>
+        <option>Finance / Accounting</option><option>Food &amp; Beverage</option>
+        <option>Photography / Video</option><option>Other</option>
+      </select>
+      <input class="auth-input" id="dir-ig" type="text" placeholder="Instagram handle (e.g. @username)..." style="margin-bottom:8px;" />
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
+        <span style="font-size:12px;color:var(--text-muted);font-weight:600;">Enroll in Rounds:</span>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="dir-r2" value="R2"> R2</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="dir-r3" value="R3"> R3</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="dir-r4" value="R4"> R4</label>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
+        <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="dir-founder"> 🏅 Founder <span style="font-size:11px;color:var(--text-muted);">(auto-enrolls R2–R4)</span></label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="dir-vip"> ⚡ VIP</label>
+      </div>
+      <div class="compose-footer"><span class="compose-hint">All-Star is earned — set it after a Round ends</span><button class="btn-post" onclick="addRegistryMember()">Add to Registry</button></div>
+    </div>
+    <div id="directory-list"></div>
+  </div>
+
+  <!-- REPORTS (admin only) -->
+  <div class="page" id="page-reports">
+    <div class="page-header">
+      <h1 class="page-title">Reports</h1>
+      <p class="page-subtitle">Admin only — member progress and engagement</p>
+    </div>
+    <div id="tracker-report-body"></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="page" id="page-profile">
+    <div class="page-header"><h1 class="page-title">Profile</h1></div>
+    <div class="profile-hero" id="profile-hero"></div>
+    <div class="card">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Edit Profile</div>
+      <div class="profile-form-field">
+        <label class="field-label">Full Name</label>
+        <input class="field-input" id="profile-name" type="text" placeholder="Your name" readonly style="opacity:0.6;cursor:not-allowed;background:var(--border);" />
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Name is set by admin — contact Nate to update it.</div>
+      </div>
+      <div class="profile-form-field"><label class="field-label">Business / Brand Name</label><input class="field-input" id="profile-business" type="text" placeholder="e.g. Jane's Creative Studio" /></div>
+      <div class="profile-form-field">
+        <label class="field-label">Business Type</label>
+        <select class="field-select" id="profile-type">
+          <option value="">Select...</option>
+          <option>Coaching / Consulting</option><option>Creative / Design</option>
+          <option>E-Commerce / Products</option><option>Health &amp; Wellness</option>
+          <option>Real Estate</option><option>Marketing / Agency</option>
+          <option>Finance / Accounting</option><option>Food &amp; Beverage</option>
+          <option>Photography / Video</option><option>Other</option>
+        </select>
+      </div>
+      <div class="profile-form-field"><label class="field-label">Instagram Handle</label><input class="field-input" id="profile-ig" type="text" placeholder="@yourhandle" /></div>
+      <button class="btn-gold" onclick="saveProfile()" style="width:100%;font-size:18px;padding:13px;">Save Profile</button>
+    </div>
+    <div id="firebase-setup-card" style="display:none;"></div>
+    <div style="text-align:center;margin-top:20px;">
+      <button onclick="handleLogout()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:10px 24px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Sign Out</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottomnav" id="bottomnav" style="display:none;">
+  <button class="nav-item active" onclick="navTo('feed',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Feed
+  </button>
+  <button class="nav-item" onclick="navTo('announcements',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    Updates
+  </button>
+  <button class="nav-item" onclick="navTo('resources',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    Resources
+  </button>
+  <button class="nav-item" onclick="navTo('tracker',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Tracker
+  </button>
+  <button class="nav-item" onclick="navTo('directory',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Members
+  </button>
+  <button class="nav-item" onclick="navTo('profile',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Profile
+  </button>
+  <button class="nav-item" id="nav-reports" style="display:none;" onclick="navTo('reports',this);loadTrackerReport();">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+    Reports
+  </button>
+</nav>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="install-text"><strong>Add SMAC to your home screen</strong>Access the community like an app</div>
+  <button id="install-btn">Install</button>
+  <button id="install-dismiss" onclick="document.getElementById('install-banner').style.display='none'">✕</button>
+</div>
+
+<!-- RESOURCE MODAL -->
+<div class="res-modal-overlay" id="res-modal-overlay" onclick="closeResModal(event)">
+  <div class="res-modal" id="res-modal">
+    <div class="res-modal-header">
+      <button class="res-modal-close" onclick="closeResModalDirect()">✕</button>
+      <div class="res-modal-icon" id="rmd-icon"></div>
+      <div class="res-modal-title" id="rmd-title"></div>
+      <div class="res-modal-tags" id="rmd-tags"></div>
+      <div class="res-modal-divider"></div>
+    </div>
+    <div class="res-modal-body" id="rmd-body"></div>
+    <div class="res-modal-footer" id="rmd-footer"></div>
+  </div>
+</div>
+
+<!-- FIREBASE + APP LOGIC -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, doc, getDoc, setDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ─────────────────────────────────────────────
+//  🔧 FIREBASE CONFIG  (replace with your values)
+// ─────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAbYkFUpf1_C9_r2oKAF0I_CqK86aWlWMs",
+  authDomain: "smac-2026.firebaseapp.com",
+  projectId: "smac-2026",
+  storageBucket: "smac-2026.firebasestorage.app",
+  messagingSenderId: "533376960532",
+  appId: "1:533376960532:web:3c969a34e05dd26b30bf01"
+};
+
+// ─────────────────────────────────────────────
+//  🔑 PASSCODES  (change before going live!)
+// ─────────────────────────────────────────────
+const MEMBER_PASS = "smac26r2";
+const ADMIN_PASS  = "shotsbyNate9!";
+const CURRENT_ROUND = "R2"; // ← Change to "R3", "R4" etc. at the start of each new Round
+
+// ─────────────────────────────────────────────
+//  SCHEDULE
+// ─────────────────────────────────────────────
+const WEEKS = [
+  {id:"w1", label:"Week 1",  dates:"Mar 1–7",   month:"March", required:1},
+  {id:"w2", label:"Week 2",  dates:"Mar 8–14",  month:"March", required:1},
+  {id:"w3", label:"Week 3",  dates:"Mar 15–21", month:"March", required:1},
+  {id:"w4", label:"Week 4",  dates:"Mar 22–31", month:"March", required:1},
+  {id:"w5", label:"Week 1",  dates:"Apr 1–7",   month:"April", required:2},
+  {id:"w6", label:"Week 2",  dates:"Apr 8–14",  month:"April", required:2},
+  {id:"w7", label:"Week 3",  dates:"Apr 15–21", month:"April", required:2},
+  {id:"w8", label:"Week 4",  dates:"Apr 22–30", month:"April", required:2},
+  {id:"w9", label:"Week 1",  dates:"May 1–7",   month:"May",   required:3},
+  {id:"w10",label:"Week 2",  dates:"May 8–14",  month:"May",   required:3},
+  {id:"w11",label:"Week 3",  dates:"May 15–21", month:"May",   required:3},
+  {id:"w12",label:"Week 4",  dates:"May 22–31", month:"May",   required:3},
+];
+const MONTHS=["March","April","May"];
+const MONTH_REQS={"March":"1 post/week","April":"2 posts/week","May":"3 posts/week"};
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let db=null, currentUser=null, useLocalFallback=false, activeFilter="All";
+
+function initFirebase(){
+  try {
+    if(FIREBASE_CONFIG.apiKey==="YOUR_API_KEY"){useLocalFallback=true;return;}
+    const app=initializeApp(FIREBASE_CONFIG);
+    db=getFirestore(app);
+  } catch(e){useLocalFallback=true;}
+}
+const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch{return null;}};
+const lsSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const lsPush=(k,i)=>{const a=lsGet(k)||[];a.unshift(i);lsSet(k,a);return a;};
+const esc=s=>{if(!s)return"";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");};
+const timeAgo=ts=>{const m=Math.floor((Date.now()-ts)/60000);if(m<1)return"Just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";const d=Math.floor(h/24);if(d<7)return d+"d ago";return new Date(ts).toLocaleDateString("en-US",{month:"short",day:"numeric"});};
+function showToast(msg){const t=document.createElement("div");t.style.cssText="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;font-family:DM Sans,sans-serif;white-space:nowrap;max-width:90vw;text-align:center;";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+
+// ─────────────────────────────────────────────
+//  AUTH
+// ─────────────────────────────────────────────
+window.handleLogin=function(){
+  const name=document.getElementById("name-input").value.trim();
+  const pass=document.getElementById("pass-input").value.trim();
+  const err=document.getElementById("auth-error");
+  if(!name){err.style.display="block";err.textContent="Please enter your name.";return;}
+  let isAdmin=false;
+  if(pass===ADMIN_PASS)isAdmin=true;
+  else if(pass!==MEMBER_PASS){err.style.display="block";err.textContent="Incorrect passcode. Check with Nate.";return;}
+  err.style.display="none";
+  const normalize=s=>s.toLowerCase().replace(/[^a-z0-9]/g,"");
+  // Check registry enrollment for non-admins
+  if(!isAdmin){
+    const registry=lsGet("smac_registry")||[];
+    // Match on normalized name — prevents spacing/punctuation tricks
+    const member=registry.find(m=>normalize(m.name)===normalize(name));
+    if(!member){
+      err.style.display="block";
+      err.textContent="Name not found in registry. Make sure it matches exactly what Nate entered.";
+      return;
+    }
+    const enrolled=(member.rounds||[]).includes(CURRENT_ROUND)||member.isFounder;
+    if(!enrolled){
+      err.style.display="block";
+      err.textContent=`You\'re not enrolled in Round ${CURRENT_ROUND.replace("R","")} yet. Contact Nate.`;
+      return;
+    }
+    // Always build session from registry record — member cannot influence their own uid/flags
+    currentUser={name:member.name,isAdmin:false,uid:member.uid,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false};
+  } else {
+    const uid=name.toLowerCase().replace(/\s+/g,"-");
+    currentUser={name,isAdmin:true,uid};
+  }
+  lsSet("smac_session",currentUser);
+  bootApp();
+};
+window.handleLogout=function(){
+  localStorage.removeItem("smac_session");currentUser=null;
+  document.getElementById("app").style.display="none";
+  document.getElementById("auth-screen").style.display="flex";
+  document.getElementById("bottomnav").style.display="none";
+};
+function bootApp(){
+  document.getElementById("auth-screen").style.display="none";
+  document.getElementById("app").style.display="block";
+  document.getElementById("bottomnav").style.display="flex";
+  document.getElementById("topnav-username").innerHTML=`<strong>${currentUser.name}</strong>${currentUser.isAdmin?" 🔐":""}`;
+  if(currentUser.isAdmin){
+    document.getElementById("admin-compose").style.display="block";
+    document.getElementById("admin-resource-compose").style.display="block";
+    document.getElementById("nav-reports").style.display="flex";
+    showFirebaseSetupCard();
+  }
+  loadFeed();loadAnnouncements();loadResources();buildTracker();loadProfile();loadDirectory();
+}
+
+// ─────────────────────────────────────────────
+//  NAV
+// ─────────────────────────────────────────────
+window.navTo=function(page,el){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("page-"+page).classList.add("active");
+  if(el)el.classList.add("active");
+  window.scrollTo(0,0);
+  if(page==="directory")loadDirectory();
+};
+
+// ─────────────────────────────────────────────
+//  FEED
+// ─────────────────────────────────────────────
+window.submitPost=async function(){
+  const text=document.getElementById("compose-text").value.trim();
+  const link=document.getElementById("compose-link").value.trim();
+  if(!text)return;
+  const post={author:currentUser.name,uid:currentUser.uid,text,link,ts:Date.now(),likes:0,likedBy:[],props:0,propsBy:[],propsNames:[]};
+  if(!useLocalFallback&&db)await addDoc(collection(db,"posts"),post);
+  else lsPush("smac_posts",{...post,id:Date.now().toString()});
+  document.getElementById("compose-text").value="";
+  document.getElementById("compose-link").value="";
+  if(useLocalFallback)loadFeed();
+};
+async function loadFeed(){
+  if(!useLocalFallback&&db){
+    const q=query(collection(db,"posts"),orderBy("ts","desc"));
+    onSnapshot(q,snap=>renderFeed(snap.docs.map(d=>({id:d.id,...d.data()}))));
+  } else renderFeed(lsGet("smac_posts")||[]);
+}
+function renderFeed(posts){
+  const list=document.getElementById("feed-list");
+  if(!posts.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✍️</div><div class="empty-title">No posts yet</div><div class="empty-desc">Be the first to share with the group!</div></div>`;return;}
+  list.innerHTML=posts.map(p=>{
+    const initials=p.author.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    const likedByMe=(p.likedBy||[]).includes(currentUser.uid);
+    const propsGiven=(p.propsBy||[]).includes(currentUser.uid);
+    const hasLink=!!p.link;
+    const isMine=p.uid===currentUser.uid;
+    // Props button logic
+    let propsBtn="";
+    if(!hasLink){
+      propsBtn=`<button class="react-btn locked" disabled title="Post needs a link for Props">🙌 ${p.props||0} Props</button>`;
+    } else if(isMine){
+      propsBtn=`<button class="react-btn locked" disabled>🙌 ${p.props||0} Props</button>`;
+    } else if(propsGiven){
+      propsBtn=`<button class="react-btn active" disabled>🙌 Props given!</button>`;
+    } else {
+      propsBtn=`<button class="react-btn" onclick="giveProps('${p.id}','${esc(p.link)}','${esc(p.author)}')">🙌 Give Props</button>`;
+    }
+    // Props count + expandable who-gave-props list
+    const propsCount=p.props||0;
+    const propsNames=p.propsNames||[];
+    const propsRowId=`props-list-${p.id}`;
+    const propsRow=propsCount>0
+      ? `<div class="props-summary">
+           <button class="props-count-btn" onclick="togglePropsList('${propsRowId}')">
+             🙌 ${propsCount} ${propsCount===1?"person":"people"} gave Props &mdash; <span class="props-see">See who</span>
+           </button>
+           <div class="props-list" id="${propsRowId}" style="display:none;">
+             ${propsNames.map(n=>`<span class="props-name-pill">${esc(n)}</span>`).join("")}
+           </div>
+         </div>`
+      : "";
+    return `<div class="card">
+      <div class="card-meta">
+        <div class="avatar">${initials}</div>
+        <div><div class="card-author">${esc(p.author)}</div><div class="card-time">${timeAgo(p.ts)}</div></div>
+      </div>
+      <div class="card-body">${esc(p.text)}</div>
+      ${hasLink?`<a class="card-link" href="${esc(p.link)}" target="_blank" rel="noopener">View Post ↗</a>`:""}
+      <div class="card-actions">
+        <button class="react-btn ${likedByMe?"active":""}" onclick="toggleLike('${p.id}')">♥ ${p.likes||0}</button>
+        ${propsBtn}
+        ${currentUser.isAdmin?`<button class="react-btn" onclick="deletePost('${p.id}')">🗑</button>`:""}
+      </div>
+      ${propsRow}
+    </div>`;
+  }).join("");
+}
+
+// Props: open IG link → confirm button appears after redirect
+window.giveProps=function(postId,link,authorName){
+  window.open(link,"_blank","noopener");
+  showToast(`Opening their post... come back to confirm Props for ${authorName.split(" ")[0]}!`);
+  // After 1.5s, swap button to confirm state
+  setTimeout(()=>{
+    const btn=document.querySelector(`[onclick*="giveProps('${postId}'"]`);
+    if(!btn)return;
+    btn.textContent=`🙌 Confirm Props for ${authorName.split(" ")[0]}`;
+    btn.classList.add("active");
+    btn.setAttribute("onclick","");
+    btn.addEventListener("click",()=>confirmProps(postId,authorName),{once:true});
+  },1500);
+};
+window.confirmProps=async function(postId,authorName){
+  if(!useLocalFallback&&db){
+    const ref=doc(db,"posts",postId);
+    const snap=await getDoc(ref);
+    if(!snap.exists())return;
+    const d=snap.data();
+    const propsBy=d.propsBy||[];
+    if(propsBy.includes(currentUser.uid))return;
+    await updateDoc(ref,{props:(d.props||0)+1,propsBy:[...propsBy,currentUser.uid],propsNames:[...(d.propsNames||[]),currentUser.name]});
+  } else {
+    const posts=lsGet("smac_posts")||[];
+    const p=posts.find(x=>x.id===postId);
+    if(!p||(p.propsBy||[]).includes(currentUser.uid))return;
+    p.props=(p.props||0)+1;
+    p.propsBy=[...(p.propsBy||[]),currentUser.uid];
+    p.propsNames=[...(p.propsNames||[]),currentUser.name];
+    lsSet("smac_posts",posts);
+    loadFeed();
+  }
+  showToast(`Props given to ${authorName.split(" ")[0]}! 🙌`);
+};
+window.togglePropsList=function(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.style.display=el.style.display==="none"?"flex":"none";
+  const btn=el.previousElementSibling;
+  if(btn){
+    const span=btn.querySelector(".props-see");
+    if(span)span.textContent=el.style.display==="none"?"See who":"Hide";
+  }
+};
+window.toggleLike=async function(id){
+  if(!useLocalFallback&&db){
+    const ref=doc(db,"posts",id);const snap=await getDoc(ref);if(!snap.exists())return;
+    const d=snap.data();const likedBy=d.likedBy||[];const has=likedBy.includes(currentUser.uid);
+    await updateDoc(ref,{likes:has?(d.likes||1)-1:(d.likes||0)+1,likedBy:has?likedBy.filter(u=>u!==currentUser.uid):[...likedBy,currentUser.uid]});
+  } else {
+    const posts=lsGet("smac_posts")||[];const p=posts.find(x=>x.id===id);if(!p)return;
+    const has=(p.likedBy||[]).includes(currentUser.uid);
+    p.likes=has?(p.likes||1)-1:(p.likes||0)+1;
+    p.likedBy=has?(p.likedBy||[]).filter(u=>u!==currentUser.uid):[...(p.likedBy||[]),currentUser.uid];
+    lsSet("smac_posts",posts);loadFeed();
+  }
+};
+window.deletePost=async function(id){
+  if(!confirm("Delete this post?"))return;
+  if(!useLocalFallback&&db)await deleteDoc(doc(db,"posts",id));
+  else{lsSet("smac_posts",(lsGet("smac_posts")||[]).filter(p=>p.id!==id));loadFeed();}
+};
+
+// ─────────────────────────────────────────────
+//  ANNOUNCEMENTS
+// ─────────────────────────────────────────────
+window.submitAnnouncement=async function(){
+  const title=document.getElementById("ann-title").value.trim();
+  const body=document.getElementById("ann-body").value.trim();
+  if(!title||!body)return;
+  const item={title,body,ts:Date.now(),author:"Nate Templeton"};
+  if(!useLocalFallback&&db)await addDoc(collection(db,"announcements"),item);
+  else lsPush("smac_announcements",{...item,id:Date.now().toString()});
+  document.getElementById("ann-title").value="";document.getElementById("ann-body").value="";
+  if(useLocalFallback)loadAnnouncements();
+};
+async function loadAnnouncements(){
+  if(!useLocalFallback&&db){
+    onSnapshot(query(collection(db,"announcements"),orderBy("ts","desc")),snap=>renderAnnouncements(snap.docs.map(d=>({id:d.id,...d.data()}))));
+  } else renderAnnouncements(lsGet("smac_announcements")||[]);
+}
+function renderAnnouncements(items){
+  const list=document.getElementById("announcements-list");
+  if(!items.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">📢</div><div class="empty-title">No Announcements Yet</div><div class="empty-desc">Nate will post updates here.</div></div>`;return;}
+  list.innerHTML=items.map(a=>`
+    <div class="card announcement-card">
+      <span class="announcement-tag">Announcement</span>
+      <div style="font-weight:700;font-size:16px;margin-bottom:8px;">${esc(a.title)}</div>
+      <div class="card-body">${esc(a.body)}</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-muted);">Nate Templeton · ${timeAgo(a.ts)}</div>
+      ${currentUser.isAdmin?`<div class="card-actions"><button class="react-btn" onclick="deleteAnn('${a.id}')">🗑 Delete</button></div>`:""}
+    </div>`).join("");
+}
+window.deleteAnn=async function(id){
+  if(!confirm("Delete?"))return;
+  if(!useLocalFallback&&db)await deleteDoc(doc(db,"announcements",id));
+  else{lsSet("smac_announcements",(lsGet("smac_announcements")||[]).filter(a=>a.id!==id));loadAnnouncements();}
+};
+
+// ─────────────────────────────────────────────
+//  RESOURCES
+// ─────────────────────────────────────────────
+const DEFAULT_RESOURCES=[
+  {id:"r1",title:"Content Batching Guide",desc:"Plan and batch a month of content in one sitting",source:"Later — How to Batch Content for Social Media",sourceUrl:"https://later.com/blog/batch-content-for-social-media/",body:`Content batching is one of the highest-leverage habits you can build as a solopreneur.\n\nInstead of scrambling each day to figure out what to post, you block a single session — typically 2–3 hours — to plan, write, and schedule content for the entire week or month ahead.\n\nWhy it works:\nYour brain operates differently in "creation mode" vs "execution mode." Batching keeps you in creation mode longer, which produces better content with less mental fatigue.\n\nThe SMAC Batching Framework:\n1. Pick one day per week as your content day (Sunday works well)\n2. Review your content pillars and upcoming week events\n3. Write all captions in one sitting — don't edit yet\n4. Take or curate all visuals in a second sitting\n5. Edit and schedule everything before Monday\n\nTools that help:\nLater, Buffer, or Meta Business Suite for scheduling. Notion or a Google Doc for caption drafts.`,url:"#",urlLabel:"",emoji:"📋",tags:["Strategy","Workflow"]},
+  {id:"r2",title:"Caption Formula Templates",desc:"Proven caption structures that drive engagement",source:"Hootsuite — Instagram Caption Formulas",sourceUrl:"https://blog.hootsuite.com/instagram-captions/",body:`Strong captions follow patterns. Here are 5 proven formulas you can rotate through:\n\n1. The Hook + Story + CTA\nOpen with a bold statement or question. Tell a quick story (3–5 sentences). End with a call to action.\n\n2. The List Post\n"3 things I wish I knew before [X]:" — then number each point clearly. Easy to scan, high save rate.\n\n3. The Contrast\n"Most people do X. I do Y instead. Here's why:" — positions you as a contrarian expert.\n\n4. The Behind the Scenes\nShare your process, your desk, your mistakes. Authenticity drives comments.\n\n5. The Question-First\nStart with a question your audience is already asking themselves. Then answer it in the caption.\n\nThe golden rule: Your first line determines if anyone reads the rest. Write it last, after you know what the post is about.`,url:"#",urlLabel:"",emoji:"✍️",tags:["Captions","Engagement"]},
+  {id:"r3",title:"Hashtag Strategy 2026",desc:"Updated hashtag research and stacking approach",source:"Sprout Social — Hashtag Strategy Guide",sourceUrl:"https://sproutsocial.com/insights/instagram-hashtags/",body:`Hashtags in 2026 are less about reach and more about content categorization for the algorithm.\n\nInstagram's own guidance suggests using 3–5 highly relevant hashtags rather than 30 generic ones.\n\nRecommended stack structure:\n- 2 niche-specific tags (very targeted, lower volume)\n- 2 topic tags (medium volume, directly relevant)\n- 1 community tag (your industry or audience)\n\nFinding good hashtags:\nSearch a tag and check the "Recent" feed. If posts are hours old, it's active. If they're days old, the tag is too slow.\n\nWhat to avoid:\n- Tags over 50M posts (too competitive)\n- Tags under 1K posts (too slow)\n- Generic tags like #entrepreneur or #smallbusiness\n\nTip for SMAC members: Create a tag for your content niche and use it consistently. Over time, you'll own that tag in your audience's feed.`,url:"#",urlLabel:"",emoji:"#️⃣",tags:["Hashtags","Reach"]},
+  {id:"r4",title:"Content Pillar Worksheet",desc:"Define your 3–5 core content pillars",source:"Buffer — How To Create Content Pillars For Social Media",sourceUrl:"https://buffer.com/resources/content-pillars-for-social-media/",body:`Content pillars are the 3–5 recurring themes your account posts about. They create consistency, make content planning faster, and help your audience know what to expect from you.\n\nHow to choose your pillars:\nAsk yourself: What do I know? What does my audience need? What do I enjoy creating? The overlap of those three answers = your pillars.\n\nExample pillar sets:\n- Business coach: Mindset | Client stories | Strategy tips | Behind the scenes | Personal life\n- Real estate agent: Market updates | Home tours | Buyer/seller tips | Community | Lifestyle\n- Designer: Client work | Process | Design education | Tools | Inspiration\n\nThe rule of thirds:\nRoughly split your content across: educate, entertain, and convert. Your pillars should naturally cover all three.\n\nYour action step: Write down 3–5 pillars and a sample post idea for each. Share them in the Community Feed this week!`,url:"#",urlLabel:"",emoji:"🏛️",tags:["Strategy","Planning"]},
+  {id:"r5",title:"The 5-3-1 Content Rule",desc:"Balance your content to educate, connect, and convert",source:"Sprout Social — Social Media Content Strategy",sourceUrl:"https://sproutsocial.com/insights/social-media-content-strategy/",body:`The 5-3-1 rule is a content mix framework that keeps your feed balanced so you never feel like an ad account, but you're still moving people toward becoming clients.
+
+The breakdown:
+5 posts Educate or Entertain
+3 posts Build Connection
+1 post Sells or Promotes
+
+Why it works:
+Most people unfollow accounts that feel like ads. The 5-3-1 rule builds trust first, so when you do make an offer your audience is already warm. It also gives you a clear answer every time you sit down to plan content.
+
+5 — Educate or Entertain:
+Tips, how-tos, myths vs facts, industry insights, relatable humor. These get saves and shares — the highest-value engagement signals.
+
+3 — Build Connection:
+Behind the scenes, personal stories, your why, client wins, day-in-the-life. These get comments and DMs. They make people feel like they know you.
+
+1 — Sell or Promote:
+A direct offer, a link to book, a product launch, a limited-time thing. Because you've earned trust with the other 8 posts, this one lands.
+
+How to use it in SMAC:
+Before you batch your content for the week, count your posts by type. Posting 3x this week: 2 educate/entertain, 1 connection. Posting 9x this month: 5 educate, 3 connection, 1 sell. Scale the ratio, not the rule.`,url:"#",urlLabel:"",emoji:"5️⃣",tags:["Strategy","Engagement"]}
+  ,{id:"r6",title:"AI Social Media Planner",desc:"A ready-to-use Claude prompt to plan your week of content",source:"Anthropic — Claude (claude.ai)",sourceUrl:"https://claude.ai",body:`This is a ready-to-use prompt you can copy into Claude (claude.ai) to plan a full week of content in minutes.
+
+Why Claude over ChatGPT:
+Claude handles long-form strategic thinking better and produces less generic output. It follows nuanced instructions more consistently — important when you want content that actually sounds like you.
+
+HOW TO USE IT:
+1. Go to claude.ai (free account works)
+2. Copy the prompt below
+3. Fill in the [BRACKETS] with your details
+4. Paste into Claude and hit send
+5. Ask it to adjust tone, swap formats, or rewrite any hook that doesn't feel right
+
+--- COPY THIS PROMPT ---
+
+You are a social media strategist helping a solopreneur plan their weekly Instagram content.
+
+My details:
+- Name/Brand: [your name or brand]
+- Business type: [e.g. health coach, real estate agent, graphic designer]
+- Target audience: [e.g. women 30-45 who want to lose weight without dieting]
+- Content pillars: [list your 3-5 pillars]
+- Posting goal this week: [e.g. 2 posts per the SMAC challenge]
+- Tone: [e.g. warm and motivational / direct and no-fluff / educational and calm]
+
+Please create [NUMBER] Instagram posts using the 5-3-1 content mix. For each post provide:
+1. Content type (Educate / Connect / Sell)
+2. Format recommendation (Reel, Carousel, or Single Image)
+3. Hook — first line of caption, scroll-stopping
+4. Full caption (150-300 words with a CTA)
+5. 3-5 suggested hashtags
+
+After the posts, give me a brief note on why you chose this mix for my audience.
+
+--- END PROMPT ---
+
+TIPS FOR BETTER RESULTS:
+- The more specific your audience description, the better the output
+- Ask: "Make post 2 more personal and less tips-focused"
+- Ask it to rewrite any hook that doesn't feel like you
+- Save your filled-in prompt for next week — just update the posting goal`,url:"https://claude.ai",urlLabel:"Open Claude",emoji:"🤖",tags:["AI","Planning","Strategy"]}
+  ,{id:"r7",title:"Hook Writing 101",desc:"The first two lines of your caption determine everything",source:"Hootsuite — How to Write for Social Media",sourceUrl:"https://blog.hootsuite.com/writing-for-social-media/",body:`Instagram shows only the first 1-2 lines of your caption before the "more" cutoff. If those lines don't stop the scroll, nothing else matters.
+
+The goal of a hook is one thing: make them tap "more."
+
+7 Hook Formulas That Work:
+
+1. The Bold Claim
+"Most Instagram advice is wrong."
+Lead with something that challenges what they think they know.
+
+2. The Specific Number
+"3 things I stopped doing that doubled my engagement."
+Numbers create curiosity and signal a clear payoff.
+
+3. The Relatable Struggle
+"I used to spend 2 hours writing one caption."
+If they've felt it, they'll keep reading.
+
+4. The Direct Question
+"Are you posting consistently but still not growing?"
+Speaks to a pain point they're already thinking about.
+
+5. The Counterintuitive Truth
+"Posting less actually helped me grow faster."
+Surprises them enough to want the explanation.
+
+6. The Story Opener
+"Last Tuesday I almost quit posting entirely."
+Story hooks are the hardest to scroll past.
+
+7. The List Promise
+"5 caption formulas I use every week (steal these):"
+Sets up a clear payoff — people love free frameworks.
+
+Rules for writing hooks:
+- Write the hook LAST, after you know what the post is about
+- Keep it under 125 characters so it doesn't get cut off mid-thought
+- Never start with "I" — lead with the value or the tension
+- Read it out loud — if it sounds like a blog post, rewrite it
+- Write 2 options and pick whichever would make YOU tap more`,url:"#",urlLabel:"",emoji:"🪝",tags:["Captions","Engagement"]}
+  ,{id:"r8",title:"Reels vs. Carousels vs. Static",desc:"Which format to use and when for the algorithm in 2026",source:"Hootsuite — Instagram Algorithm Guide",sourceUrl:"https://blog.hootsuite.com/instagram-algorithm/",body:`Format choice is one of the most under-discussed levers in Instagram growth. Each format serves a different goal and gets distributed differently by the algorithm.
+
+REELS
+Best for: Reach, new audience, top-of-funnel growth
+The algorithm still prioritizes Reels for distribution to non-followers. If your goal is to reach people who don't follow you yet, Reels is your primary tool.
+When to use: Tips, behind the scenes, personality content, trending audio
+Length sweet spot: 7-15 seconds for entertainment, 30-60 seconds for education
+Weakness: Lower save rate, shorter shelf life
+
+CAROUSELS
+Best for: Saves, shares, deeper engagement, education
+Carousels get reshown to followers who didn't engage on the first pass. They also generate the most saves of any format — a strong algorithm signal.
+When to use: Step-by-step guides, before/after, list posts, storytelling across slides
+Slide count sweet spot: 5-9 slides
+First slide rule: Treat it like a hook — it determines if they swipe
+Weakness: Takes longer to create, lower reach to non-followers
+
+SINGLE IMAGE
+Best for: Brand aesthetic, quotes, announcements, connection posts
+Single images get the least algorithmic boost but they're fast to make and keep your posting cadence consistent.
+When to use: Quotes, personal photos, simple announcements
+Weakness: Weakest reach and engagement of the three formats
+
+The SMAC Format Strategy:
+For each week of required posts, aim for at least 1 Carousel (saves) and 1 Reel (reach). Single images fill the rest. This covers all three algorithm goals — reach, saves, and consistency — within your posting requirement.`,url:"#",urlLabel:"",emoji:"📱",tags:["Strategy","Reach"]}
+];
+
+window.submitResource=async function(){
+  const title=document.getElementById("res-title").value.trim();
+  const desc=document.getElementById("res-desc").value.trim();
+  const body=document.getElementById("res-body").value.trim();
+  const url=document.getElementById("res-url").value.trim();
+  const urlLabel=document.getElementById("res-url-label").value.trim();
+  const tagsRaw=document.getElementById("res-tags").value.trim();
+  const source=document.getElementById("res-source").value.trim();
+  const sourceUrl=document.getElementById("res-source-url").value.trim();
+  const emoji=document.getElementById("res-emoji").value.trim()||"📄";
+  if(!title)return;
+  const tags=tagsRaw?tagsRaw.split(",").map(t=>t.trim()).filter(Boolean):[];
+  const item={id:Date.now().toString(),title,desc,body,url,urlLabel,source,sourceUrl,emoji,tags,ts:Date.now()};
+  if(!useLocalFallback&&db)await addDoc(collection(db,"resources"),item);
+  else lsPush("smac_resources",item);
+  ["res-title","res-desc","res-body","res-url","res-url-label","res-tags","res-source","res-source-url","res-emoji"].forEach(id=>document.getElementById(id).value="");
+  loadResources();
+};
+async function loadResources(){
+  if(!useLocalFallback&&db){
+    onSnapshot(query(collection(db,"resources"),orderBy("ts","desc")),snap=>{
+      renderResources([...snap.docs.map(d=>({id:d.id,...d.data()})),...DEFAULT_RESOURCES]);
+    });
+  } else renderResources([...(lsGet("smac_resources")||[]),...DEFAULT_RESOURCES]);
+}
+function getAllTags(items){const s=new Set(["All"]);items.forEach(r=>(r.tags||[]).forEach(t=>s.add(t)));return[...s];}
+function renderResources(items){
+  const allTags=getAllTags(items);
+  document.getElementById("resource-filter").innerHTML=allTags.map(t=>`<button class="filter-btn ${t===activeFilter?"active":""}" onclick="setFilter('${t}')">${t}</button>`).join("");
+  const filtered=activeFilter==="All"?items:items.filter(r=>(r.tags||[]).includes(activeFilter));
+  document.getElementById("resource-grid").innerHTML=filtered.map(r=>`
+    <div class="resource-card" onclick='openResModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
+      <div class="resource-icon">${r.emoji||"📄"}</div>
+      <div class="resource-title">${esc(r.title)}</div>
+      <div class="resource-desc">${esc(r.desc||"")}</div>
+      ${(r.tags||[]).length?`<div class="resource-tags">${r.tags.map(t=>`<span class="res-tag">${esc(t)}</span>`).join("")}</div>`:""}
+    </div>`).join("");
+}
+window.setFilter=function(tag){activeFilter=tag;const items=[...(lsGet("smac_resources")||[]),...DEFAULT_RESOURCES];renderResources(items);};
+window.openResModal=function(r){
+  document.getElementById("rmd-icon").textContent=r.emoji||"📄";
+  document.getElementById("rmd-title").textContent=r.title;
+  document.getElementById("rmd-tags").innerHTML=(r.tags||[]).map(t=>`<span class="res-tag">${esc(t)}</span>`).join("");
+  document.getElementById("rmd-body").textContent=r.body||r.desc||"";
+  const footer=document.getElementById("rmd-footer");
+  let footerHtml="";
+  if(r.url&&r.url!=="#") footerHtml+=`<a class="res-modal-btn" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.urlLabel||"Open Resource")} ↗</a>`;
+  if(r.source||r.sourceUrl){
+    const srcLink=r.sourceUrl?`<a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:underline;">${esc(r.source||r.sourceUrl)}</a>`:esc(r.source);
+    footerHtml+=`<div style="margin-top:${r.url&&r.url!=="#"?"16px":"0"};font-size:12px;color:var(--text-muted);">Source: ${srcLink}</div>`;
+  }
+  footer.innerHTML=footerHtml;
+  document.getElementById("res-modal-overlay").classList.add("open");
+  document.body.style.overflow="hidden";
+};
+window.closeResModal=function(e){if(e.target===document.getElementById("res-modal-overlay"))closeResModalDirect();};
+window.closeResModalDirect=function(){document.getElementById("res-modal-overlay").classList.remove("open");document.body.style.overflow="";};
+
+// ─────────────────────────────────────────────
+//  TRACKER
+// ─────────────────────────────────────────────
+function buildTracker(){
+  const key=`smac_tracker_${currentUser.uid}`;
+  const tracked=lsGet(key)||{};
+  let html="";
+  MONTHS.forEach(month=>{
+    const weeks=WEEKS.filter(w=>w.month===month);
+    html+=`<div class="month-section"><div class="month-title">${month} <span class="month-req">${MONTH_REQS[month]}</span></div>`;
+    weeks.forEach(w=>{
+      const checks=tracked[w.id]||[];
+      const done=checks.filter(Boolean).length;
+      let cls="status-upcoming",lbl="Upcoming";
+      if(done>=w.required){cls="status-met";lbl="✓ Met";}
+      else if(done>0){cls="status-partial";lbl=`${done}/${w.required}`;}
+      let boxes="";
+      for(let i=0;i<w.required;i++){
+        const chk=checks[i]?"checked":"";
+        boxes+=`<div class="check-box ${chk}" onclick="toggleCheck('${w.id}',${i})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+      }
+      html+=`<div class="week-row"><div><div class="week-label">${w.label}</div><div class="week-sublabel">${w.dates}</div></div><div class="week-checks">${boxes}</div><div class="week-status ${cls}">${lbl}</div></div>`;
+    });
+    html+="</div>";
+  });
+  document.getElementById("tracker-weeks").innerHTML=html;
+  const total=WEEKS.reduce((s,w)=>s+w.required,0);
+  let done=0;WEEKS.forEach(w=>{const c=tracked[w.id]||[];done+=c.filter(Boolean).length;});
+  document.getElementById("tracker-progress-label").textContent=`${done} of ${total} posts completed`;
+  document.getElementById("tracker-bar").style.width=Math.round((done/total)*100)+"%";
+}
+window.toggleCheck=async function(wid,idx){
+  const key=`smac_tracker_${currentUser.uid}`;
+  const tracked=lsGet(key)||{};
+  const c=tracked[wid]||[];c[idx]=!c[idx];tracked[wid]=c;lsSet(key,tracked);
+  // Also sync to Firebase when connected so admin report works across devices
+  if(!useLocalFallback&&db){
+    try{
+      await setDoc(doc(db,"trackers",currentUser.uid),{name:currentUser.name,uid:currentUser.uid,tracked,updatedAt:Date.now()},{merge:true});
+    }catch(e){console.warn("Tracker sync failed:",e);}
+  }
+  buildTracker();
+};
+
+// ─────────────────────────────────────────────
+//  MEMBER REGISTRY  (persistent across Rounds)
+// ─────────────────────────────────────────────
+function getRegistryForCurrentRound(){
+  const registry=lsGet("smac_registry")||[];
+  return registry.filter(m=>m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND));
+}
+function loadDirectory(){
+  // Admin compose section — show/hide
+  const adminDirCompose=document.getElementById("admin-dir-compose");
+  if(adminDirCompose)adminDirCompose.style.display=currentUser.isAdmin?"block":"none";
+
+  const list=document.getElementById("directory-list");
+  const registry=lsGet("smac_registry")||[];
+
+  if(currentUser.isAdmin){
+    // Admin sees full registry with controls
+    renderAdminRegistry(registry, list);
+  } else {
+    // Members see only current Round enrollees
+    const members=getRegistryForCurrentRound();
+    if(!members.length){
+      list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
+</div></div>`;
+      return;
+    }
+    renderMemberGrid(members, list, false);
+  }
+}
+
+function renderAdminRegistry(registry, list){
+  if(!registry.length){
+    list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Registry Empty</div><div class="empty-desc">Add your first member above.</div></div>`;
+    renderEngagementReport([]);
+    return;
+  }
+  const sorted=[...registry].sort((a,b)=>a.name.localeCompare(b.name));
+  list.innerHTML=`
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;color:var(--text-muted);margin:16px 0 10px;text-transform:uppercase;">
+      Registry — ${registry.length} member${registry.length!==1?"s":""} · Round ${CURRENT_ROUND.replace("R","")} active
+    </div>
+    <div class="member-grid">${sorted.map((m,i)=>{
+    const realIdx=registry.indexOf(m);
+    const initials=m.name.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";
+    const enrolledNow=m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND);
+    return `<div class="member-card" style="${!enrolledNow?"opacity:0.55;":""}">
+      <div class="member-card-top">
+        <div class="member-avatar-sm">${initials}</div>
+        <div><div class="member-name">${esc(m.name)}</div>${m.business?`<div class="member-biz">${esc(m.business)}</div>`:""}</div>
+      </div>
+      <div style="margin-bottom:4px;">
+        ${m.isFounder?`<span class="member-founder-badge">🏅 Founder</span>`:""}
+        ${m.isVIP?`<span class="member-vip-badge">⚡ VIP</span>`:""}
+        ${m.isAllStar?`<div class="member-allstar-badge">⭐ All-Star</div>`:""}
+      </div>
+      ${m.type?`<span class="member-type-tag">${esc(m.type)}</span>`:""}
+      <div style="font-size:11px;color:var(--text-muted);margin:6px 0 4px;">
+        Rounds: ${["R2","R3","R4"].map(r=>`<span style="padding:1px 5px;border-radius:4px;background:${(m.rounds||[]).includes(r)||m.isFounder?"var(--gold)":"var(--border)"};color:${(m.rounds||[]).includes(r)||m.isFounder?"#000":"var(--text-muted)"};font-weight:600;margin-right:2px;">${r}</span>`).join("")}
+      </div>
+      ${igUrl?`<a class="member-ig-btn" href="${igUrl}" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${esc(m.ig)}</a>`:""}
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound(${realIdx},'R2')">R2 ${(m.rounds||[]).includes("R2")||m.isFounder?"✓":""}</button>
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound(${realIdx},'R3')">R3 ${(m.rounds||[]).includes("R3")||m.isFounder?"✓":""}</button>
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound(${realIdx},'R4')">R4 ${(m.rounds||[]).includes("R4")||m.isFounder?"✓":""}</button>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryFlag(${realIdx},'isFounder')">${m.isFounder?"Remove Founder":"🏅 Founder"}</button>
+          <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryFlag(${realIdx},'isVIP')">${m.isVIP?"Remove VIP":"⚡ VIP"}</button>
+        </div>
+        <button class="react-btn" style="width:100%;justify-content:center;" onclick="toggleRegistryFlag(${realIdx},'isAllStar')">${m.isAllStar?"Remove All-Star":"⭐ All-Star"}</button>
+        <button class="react-btn" style="width:100%;justify-content:center;" onclick="removeRegistryMember(${realIdx})">🗑 Remove from Registry</button>
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+  renderEngagementReport(sorted);
+}
+
+function renderMemberGrid(members, list, isAdmin){
+  const sorted=[...members].sort((a,b)=>{
+    if(a.isAllStar&&!b.isAllStar)return -1;
+    if(!a.isAllStar&&b.isAllStar)return 1;
+    return a.name.localeCompare(b.name);
+  });
+  list.innerHTML=`<div class="member-grid">${sorted.map(m=>{
+    const initials=m.name.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";
+    return `<div class="member-card">
+      <div class="member-card-top">
+        <div class="member-avatar-sm">${initials}</div>
+        <div><div class="member-name">${esc(m.name)}</div>${m.business?`<div class="member-biz">${esc(m.business)}</div>`:""}</div>
+      </div>
+      <div style="margin-bottom:4px;">
+        ${m.isFounder?`<span class="member-founder-badge">🏅 Founder</span>`:""}
+        ${m.isVIP?`<span class="member-vip-badge">⚡ VIP</span>`:""}
+        ${m.isAllStar?`<div class="member-allstar-badge">⭐ All-Star</div>`:""}
+      </div>
+      ${m.type?`<span class="member-type-tag">${esc(m.type)}</span>`:""}
+      ${igUrl?`<a class="member-ig-btn" href="${igUrl}" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${esc(m.ig)}</a>`:`<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:6px 0;">No Instagram linked yet</div>`}
+    </div>`;
+  }).join("")}</div>`;
+}
+// ─────────────────────────────────────────────
+//  TRACKER REPORT  (admin only, separate tab)
+// ─────────────────────────────────────────────
+async function loadTrackerReport(){
+  const page = document.getElementById("page-reports");
+  if(!page || !currentUser.isAdmin) return;
+
+  const isFirebaseConnected = !useLocalFallback && db;
+
+  if(!isFirebaseConnected){
+    document.getElementById("tracker-report-body").innerHTML = `
+      <div class="card" style="border-color:var(--gold);text-align:center;padding:40px 24px;">
+        <div style="font-size:40px;margin-bottom:16px;">🔧</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:8px;">Firebase Required</div>
+        <div style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:340px;margin:0 auto;">
+          The Tracker Report pulls live data from all members across devices. It activates automatically once you connect Firebase.<br><br>
+          Head to <strong>Profile → Firebase Setup</strong> for step-by-step instructions.
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Firebase is connected — load all tracker docs
+  document.getElementById("tracker-report-body").innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading...</div>`;
+
+  try {
+    const { getDocs, collection: col } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await getDocs(col(db, "trackers"));
+    const trackerDocs = snap.docs.map(d => d.data());
+
+    if(!trackerDocs.length){
+      document.getElementById("tracker-report-body").innerHTML = `
+        <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No Data Yet</div><div class="empty-desc">Tracker data will appear here once members start logging posts.</div></div>`;
+      return;
+    }
+
+    // Build month breakdown per member
+    const months = ["March","April","May"];
+    const rows = trackerDocs.map(d => {
+      const tracked = d.tracked || {};
+      const monthStats = months.map(month => {
+        const weeks = WEEKS.filter(w => w.month === month);
+        const required = weeks.reduce((s,w) => s + w.required, 0);
+        const completed = weeks.reduce((s,w) => {
+          const c = tracked[w.id] || [];
+          return s + c.filter(Boolean).length;
+        }, 0);
+        const weeksMet = weeks.filter(w => {
+          const c = tracked[w.id] || [];
+          return c.filter(Boolean).length >= w.required;
+        }).length;
+        return { month, required, completed, weeksMet, totalWeeks: weeks.length };
+      });
+      const isAllStar = WEEKS.every(w => {
+        const c = tracked[w.id] || [];
+        return c.filter(Boolean).length >= w.required;
+      });
+      return { name: d.name || d.uid, monthStats, isAllStar };
+    });
+
+    // Sort alpha
+    rows.sort((a,b) => a.name.localeCompare(b.name));
+
+    document.getElementById("tracker-report-body").innerHTML = `
+      <div class="card" style="border-color:var(--gold);">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:4px;">📋 Tracker Report</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Live data from all members — Round 2 posting progress by month</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="border-bottom:2px solid var(--border);">
+                <th style="text-align:left;padding:8px 10px 8px 0;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Member</th>
+                <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">March<br><span style="font-weight:400;text-transform:none;letter-spacing:0;">1/wk · 4 req</span></th>
+                <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">April<br><span style="font-weight:400;text-transform:none;letter-spacing:0;">2/wk · 8 req</span></th>
+                <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">May<br><span style="font-weight:400;text-transform:none;letter-spacing:0;">3/wk · 12 req</span></th>
+                <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">All-Star</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:12px 10px 12px 0;font-weight:500;">${esc(r.name)}</td>
+                  ${r.monthStats.map(ms => {
+                    const pct = Math.round((ms.completed / ms.required) * 100);
+                    const color = ms.completed >= ms.required ? "#2ecc71" : ms.completed > 0 ? "var(--gold)" : "var(--text-muted)";
+                    return `<td style="text-align:center;padding:12px 8px;">
+                      <div style="font-weight:700;font-size:15px;color:${color};">${ms.completed}<span style="font-size:11px;font-weight:400;color:var(--text-muted);">/${ms.required}</span></div>
+                      <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${ms.weeksMet}/${ms.totalWeeks} wks</div>
+                    </td>`;
+                  }).join("")}
+                  <td style="text-align:center;padding:12px 8px;font-size:18px;">${r.isAllStar ? "⭐" : "—"}</td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch(e) {
+    document.getElementById("tracker-report-body").innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load</div><div class="empty-desc">${e.message}</div></div>`;
+  }
+}
+function renderEngagementReport(members){
+  // Get all posts from localStorage
+  const posts=lsGet("smac_posts")||[];
+  // Build per-member props stats
+  const stats=members.map(m=>{
+    const given=posts.reduce((n,p)=>(p.propsBy||[]).includes(m.name.toLowerCase().replace(/\s+/g,"-"))?n+1:n,0);
+    const received=posts.reduce((n,p)=>(p.propsNames||[]).includes(m.name)?n+(p.propsBy||[]).length:n,0);
+    // Count posts by this member
+    const postCount=posts.filter(p=>p.author===m.name).length;
+    // Props given: count how many posts they've propped
+    const propsGiven=posts.filter(p=>(p.propsNames||[]).includes(m.name)).length;
+    // Props received: total props on their posts
+    const propsReceived=posts.filter(p=>p.author===m.name).reduce((n,p)=>n+(p.props||0),0);
+    return{name:m.name,postCount,propsGiven,propsReceived};
+  });
+  // Render
+  let el=document.getElementById("engagement-report");
+  if(!el){el=document.createElement("div");el.id="engagement-report";document.getElementById("directory-list").after(el);}
+  if(!stats.length){el.innerHTML="";return;}
+  el.innerHTML=`
+    <div class="card" style="margin-top:24px;border-color:var(--gold);">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:4px;">📊 Engagement Report</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Admin only — who's posting and giving Props</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);">
+              <th style="text-align:left;padding:8px 10px 8px 0;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Member</th>
+              <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Posts</th>
+              <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Props Given</th>
+              <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Props Received</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${stats.map(s=>{
+              const activeGiver=s.propsGiven>0;
+              return `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:10px 10px 10px 0;font-weight:500;">${esc(s.name)}</td>
+                <td style="text-align:center;padding:10px 8px;">${s.postCount||"—"}</td>
+                <td style="text-align:center;padding:10px 8px;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;${activeGiver?"color:var(--gold);font-weight:600;":"color:var(--text-muted);"}">
+                    ${activeGiver?"🙌":""} ${s.propsGiven||"—"}
+                  </span>
+                </td>
+                <td style="text-align:center;padding:10px 8px;font-weight:${s.propsReceived>0?"600":"400"};color:${s.propsReceived>0?"var(--text)":"var(--text-muted)"};">${s.propsReceived||"—"}</td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:12px;">Props Given = posts they've propped. Props Received = total props across their posts.</div>
+    </div>`;
+}
+window.addRegistryMember=function(){
+  const name=document.getElementById("dir-name").value.trim();
+  const business=document.getElementById("dir-business").value.trim();
+  const type=document.getElementById("dir-type").value;
+  const ig=document.getElementById("dir-ig").value.trim();
+  const isFounder=document.getElementById("dir-founder").checked;
+  const isVIP=document.getElementById("dir-vip").checked;
+  if(!name)return;
+  const rounds=["R2","R3","R4"].filter(r=>document.getElementById("dir-"+r.toLowerCase()).checked);
+  // Founders auto-enroll in R2, R3, R4
+  const finalRounds=isFounder?["R2","R3","R4"]:rounds;
+  const registry=lsGet("smac_registry")||[];
+  const uid=name.toLowerCase().replace(/\s+/g,"-");
+  if(registry.find(m=>m.uid===uid)){showToast(`${name} is already in the registry.`);return;}
+  registry.push({name,business,type,ig,uid,isFounder,isVIP,isAllStar:false,rounds:finalRounds,addedAt:Date.now()});
+  lsSet("smac_registry",registry);
+  ["dir-name","dir-business","dir-ig"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("dir-type").value="";
+  ["dir-r2","dir-r3","dir-r4","dir-founder","dir-vip"].forEach(id=>document.getElementById(id).checked=false);
+  loadDirectory();
+  showToast(`${name} added to the registry!`);
+};
+window.toggleRegistryRound=function(idx,round){
+  const registry=lsGet("smac_registry")||[];
+  if(!registry[idx])return;
+  if(registry[idx].isFounder){showToast("Founders are auto-enrolled in all Rounds.");return;}
+  const rounds=registry[idx].rounds||[];
+  registry[idx].rounds=rounds.includes(round)?rounds.filter(r=>r!==round):[...rounds,round];
+  lsSet("smac_registry",registry);
+  loadDirectory();
+};
+window.toggleRegistryFlag=function(idx,flag){
+  const registry=lsGet("smac_registry")||[];
+  if(!registry[idx])return;
+  registry[idx][flag]=!registry[idx][flag];
+  // If toggling Founder on, auto-enroll in all rounds
+  if(flag==="isFounder"&&registry[idx].isFounder){
+    registry[idx].rounds=["R2","R3","R4"];
+  }
+  lsSet("smac_registry",registry);
+  loadDirectory();
+};
+window.removeRegistryMember=function(idx){
+  if(!confirm("Remove this member from the registry? This cannot be undone."))return;
+  const registry=lsGet("smac_registry")||[];
+  registry.splice(idx,1);
+  lsSet("smac_registry",registry);
+  loadDirectory();
+  showToast("Member removed from registry.");
+};
+// Legacy aliases (keep for any old calls)
+window.toggleAllStar=function(idx){toggleRegistryFlag(idx,"isAllStar");};
+window.removeMember=function(idx){removeRegistryMember(idx);};
+
+// ─────────────────────────────────────────────
+//  PROFILE
+// ─────────────────────────────────────────────
+function loadProfile(){
+  const prof=lsGet(`smac_profile_${currentUser.uid}`)||{name:currentUser.name,business:"",type:"",ig:"",visible:"yes"};
+  document.getElementById("profile-name").value=prof.name||currentUser.name;
+  document.getElementById("profile-business").value=prof.business||"";
+  document.getElementById("profile-type").value=prof.type||"";
+  document.getElementById("profile-ig").value=prof.ig||"";
+
+  renderProfileHero(prof);
+}
+function renderProfileHero(prof){
+  const initials=(prof.name||currentUser.name).split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+  const tracked=lsGet(`smac_tracker_${currentUser.uid}`)||{};
+  const isAllStar=WEEKS.every(w=>{const c=tracked[w.id]||[];return c.filter(Boolean).length>=w.required;});
+  document.getElementById("profile-hero").innerHTML=`
+    <div class="profile-avatar">${initials}</div>
+    <div class="profile-name">${esc(prof.name||currentUser.name)}</div>
+    <div class="profile-business">${esc(prof.business||"SMAC Member")}</div>
+    <div class="profile-badges">
+      <span class="badge badge-round">Round 2 · 2026</span>
+      ${isAllStar?`<span class="badge badge-allstar">⭐ All-Star</span>`:""}
+      ${currentUser.isAdmin?`<span class="badge" style="background:#1a1a1a;color:#fff;">Admin</span>`:""}
+    </div>`;
+}
+window.saveProfile=function(){
+  const prof={
+    name:currentUser.name, // always registry name — not editable
+    business:document.getElementById("profile-business").value.trim(),
+    type:document.getElementById("profile-type").value,
+    ig:document.getElementById("profile-ig").value.trim(),
+  };
+  lsSet(`smac_profile_${currentUser.uid}`,prof);
+  // Sync ig back to registry so directory stays current
+  if(!currentUser.isAdmin){
+    const registry=lsGet("smac_registry")||[];
+    const idx=registry.findIndex(m=>m.uid===currentUser.uid);
+    if(idx>-1){registry[idx].ig=prof.ig;lsSet("smac_registry",registry);}
+  }
+  document.getElementById("topnav-username").innerHTML=`<strong>${prof.name}</strong>${currentUser.isAdmin?" 🔐":""}`;
+  renderProfileHero(prof);
+  showToast("Profile saved!");
+};
+
+// ─────────────────────────────────────────────
+//  FIREBASE SETUP CARD
+// ─────────────────────────────────────────────
+function showFirebaseSetupCard(){
+  const card=document.getElementById("firebase-setup-card");
+  const ok=FIREBASE_CONFIG.apiKey!=="YOUR_API_KEY";
+  card.style.display="block";
+  card.innerHTML=`<div class="card" style="border-color:var(--gold);">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:12px;">🔧 Firebase Setup ${ok?"✅":"(Not Connected)"}</div>
+    ${ok?`<p style="font-size:14px;color:var(--text-muted);">Firebase is connected. All data syncs in real time.</p>`
+    :`<div class="firebase-notice"><strong>Action needed: Connect Firebase for real-time sync</strong>Without this, data is only visible on your own device.</div>
+    <div class="setup-steps">
+      <div class="setup-step"><div class="setup-step-content">Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--gold);">console.firebase.google.com</a> → create a free project</div></div>
+      <div class="setup-step"><div class="setup-step-content">Click <strong>Firestore Database</strong> → Create database → <strong>test mode</strong></div></div>
+      <div class="setup-step"><div class="setup-step-content">Project Settings (gear) → Your apps → Add Web app → copy the <code>firebaseConfig</code></div></div>
+      <div class="setup-step"><div class="setup-step-content">Open <code>index.html</code> in a text editor, paste values into <code>FIREBASE_CONFIG</code> at the top of the script</div></div>
+      <div class="setup-step"><div class="setup-step-content">Re-upload to GitHub Pages. Done!</div></div>
+    </div>`}
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+//  PWA INSTALL
+// ─────────────────────────────────────────────
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;document.getElementById("install-banner").style.display="flex";});
+document.getElementById("install-btn").addEventListener("click",async()=>{
+  if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;}
+  document.getElementById("install-banner").style.display="none";
+});
+
+// ─────────────────────────────────────────────
+//  BOOT
+// ─────────────────────────────────────────────
+initFirebase();
+const saved=lsGet("smac_session");
+if(saved?.name){currentUser=saved;bootApp();}
+else document.getElementById("auth-screen").style.display="flex";
+</script>
+
+<script>
+if("serviceWorker"in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").catch(()=>{});});}
+</script>
+</body>
+</html>
