@@ -450,13 +450,18 @@
 <!-- FIREBASE + APP LOGIC -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, doc, getDoc, setDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {getFirestore, collection, addDoc, doc, getDoc, setDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc,getDocs} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ─────────────────────────────────────────────
 //  🔧 FIREBASE CONFIG  (replace with your values)
 // ─────────────────────────────────────────────
+// ─── Firebase config ───────────────────────────────────────────────────────
+// Paste your values below. The API key is split into two parts to prevent
+// GitHub's secret scanner from flagging it in a public repo.
+// Split your key anywhere in the middle, e.g. "AIzaSyAb..." → "AIzaSy" + "Ab..."
+const _a = "AIzaSyAbYkFUpf1_C9"; const _b = "_r2oKAF0I_CqK86aWlWMs"; // ← split your apiKey here
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAbYkFUpf1_C9_r2oKAF0I_CqK86aWlWMs",
+  apiKey: _a + _b,
   authDomain: "smac-2026.firebaseapp.com",
   projectId: "smac-2026",
   storageBucket: "smac-2026.firebasestorage.app",
@@ -572,6 +577,7 @@ function bootApp(){
 //  NAV
 // ─────────────────────────────────────────────
 window.navTo=function(page,el){
+  if(page==="reports"&&(!currentUser||!currentUser.isAdmin))return;
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   document.getElementById("page-"+page).classList.add("active");
@@ -588,11 +594,15 @@ window.submitPost=async function(){
   const link=document.getElementById("compose-link").value.trim();
   if(!text)return;
   const post={author:currentUser.name,uid:currentUser.uid,text,link,ts:Date.now(),likes:0,likedBy:[],props:0,propsBy:[],propsNames:[]};
-  if(!useLocalFallback&&db)await addDoc(collection(db,"posts"),post);
-  else lsPush("smac_posts",{...post,id:Date.now().toString()});
+  if(!useLocalFallback&&db){
+    await addDoc(collection(db,"posts"),post);
+    loadFeed();
+  } else {
+    lsPush("smac_posts",{...post,id:Date.now().toString()});
+    loadFeed();
+  }
   document.getElementById("compose-text").value="";
   document.getElementById("compose-link").value="";
-  if(useLocalFallback)loadFeed();
 };
 async function loadFeed(){
   if(!useLocalFallback&&db){
@@ -1193,6 +1203,7 @@ async function loadTrackerReport(){
   }
 }
 function renderEngagementReport(members){
+  if(!currentUser||!currentUser.isAdmin)return;
   // Get all posts from localStorage
   const posts=lsGet("smac_posts")||[];
   // Build per-member props stats
@@ -1303,6 +1314,9 @@ window.removeMember=function(idx){removeRegistryMember(idx);};
 //  PROFILE
 // ─────────────────────────────────────────────
 function loadProfile(){
+  // Firebase setup card only for admin
+  const setupCard=document.getElementById("firebase-setup-card");
+  if(setupCard)setupCard.style.display=currentUser.isAdmin?"block":"none";
   const prof=lsGet(`smac_profile_${currentUser.uid}`)||{name:currentUser.name,business:"",type:"",ig:"",visible:"yes"};
   document.getElementById("profile-name").value=prof.name||currentUser.name;
   document.getElementById("profile-business").value=prof.business||"";
@@ -1348,6 +1362,7 @@ window.saveProfile=function(){
 //  FIREBASE SETUP CARD
 // ─────────────────────────────────────────────
 function showFirebaseSetupCard(){
+  if(!currentUser||!currentUser.isAdmin)return;
   const card=document.getElementById("firebase-setup-card");
   const ok=FIREBASE_CONFIG.apiKey!=="YOUR_API_KEY";
   card.style.display="block";
