@@ -451,6 +451,7 @@
 <!-- FIREBASE + APP LOGIC -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js";
 import {getFirestore, collection, addDoc, doc, getDoc, setDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc,getDocs} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {getAuth, signInAnonymously, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -461,21 +462,21 @@ import {getAuth, signInAnonymously, onAuthStateChanged} from "https://www.gstati
 // Paste your values below. The API key is split into two parts to prevent
 // GitHub's secret scanner from flagging it in a public repo.
 // Split your key anywhere in the middle, e.g. "AIzaSyAb..." → "AIzaSy" + "Ab..."
-const _a = "AIzaSyAbYkFUpf1_C9"; const _b = "_r2oKAF0I_CqK86aWlWMs"; // ← split your apiKey here
+const _a = "YOUR_API"; const _b = "_KEY_PART2"; // ← split your apiKey here
 const FIREBASE_CONFIG = {
   apiKey: _a + _b,
-  authDomain: "smac-2026.firebaseapp.com",
-  projectId: "smac-2026",
-  storageBucket: "smac-2026.firebasestorage.app",
-  messagingSenderId: "533376960532",
-  appId: "1:533376960532:web:3c969a34e05dd26b30bf01",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // ─────────────────────────────────────────────
 //  🔑 PASSCODES  (change before going live!)
 // ─────────────────────────────────────────────
-const MEMBER_PASS = "smac26r2";
-const ADMIN_PASS  = "shotsbyNate9!";
+const MEMBER_PASS = "smac2026";
+const ADMIN_PASS  = "nate-admin";
 const CURRENT_ROUND = "R2"; // ← Change to "R3", "R4" etc. at the start of each new Round
 
 // ─────────────────────────────────────────────
@@ -507,6 +508,7 @@ function initFirebase(){
   try {
     if(_a==="YOUR_API"||!_a||_b==="_KEY_PART2"){useLocalFallback=true;return;}
     const app=initializeApp(FIREBASE_CONFIG);
+    initializeAppCheck(app,{provider:new ReCaptchaV3Provider("6LckJIIsAAAAAAeZgBkwlWasy3IG1Mo1x13fsrIp"),isTokenAutoRefreshEnabled:true});
     db=getFirestore(app);
     auth=getAuth(app);
   } catch(e){useLocalFallback=true;}
