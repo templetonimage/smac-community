@@ -619,17 +619,21 @@ window.navTo=function(page,el){
 window.submitPost=async function(){
   const text=document.getElementById("compose-text").value.trim();
   const link=document.getElementById("compose-link").value.trim();
-  if(!text)return;
+  if(!text){showToast("Write something first!");return;}
   const post={author:currentUser.name,uid:currentUser.uid,text,link,ts:Date.now(),likes:0,likedBy:[],props:0,propsBy:[],propsNames:[]};
-  if(!useLocalFallback&&db){
-    await addDoc(collection(db,"posts"),post);
+  try{
+    if(!useLocalFallback&&db){
+      await addDoc(collection(db,"posts"),post);
+    } else {
+      lsPush("smac_posts",{...post,id:Date.now().toString()});
+    }
+    document.getElementById("compose-text").value="";
+    document.getElementById("compose-link").value="";
     loadFeed();
-  } else {
-    lsPush("smac_posts",{...post,id:Date.now().toString()});
-    loadFeed();
+  } catch(e){
+    console.error("Post failed:",e);
+    showToast("Post failed: "+e.message);
   }
-  document.getElementById("compose-text").value="";
-  document.getElementById("compose-link").value="";
 };
 async function loadFeed(){
   if(!useLocalFallback&&db){
@@ -1099,6 +1103,7 @@ function renderAdminRegistry(registry, list){
           <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryFlag('${docId}','isVIP')">${m.isVIP?"Remove VIP":"⚡ VIP"}</button>
         </div>
         <button class="react-btn" style="width:100%;justify-content:center;" onclick="toggleRegistryFlag('${docId}','isAllStar')">${m.isAllStar?"Remove All-Star":"⭐ All-Star"}</button>
+        <button class="react-btn" style="width:100%;justify-content:center;" onclick="editRegistryEmail('${docId}','${esc(m.email||'')}')" >✏️ Edit Email</button>
         <button class="react-btn" style="width:100%;justify-content:center;" onclick="removeRegistryMember('${docId}')">🗑 Remove from Registry</button>
       </div>
     </div>`;
@@ -1380,6 +1385,32 @@ window.removeRegistryMember=async function(docId){
 // Legacy aliases (keep for any old calls)
 window.toggleAllStar=function(idx){toggleRegistryFlag(idx,"isAllStar");};
 window.removeMember=function(idx){removeRegistryMember(idx);};
+
+window.editRegistryEmail=async function(docId, currentEmail){
+  const newEmail=window.prompt("Edit email address for this member:",currentEmail);
+  if(!newEmail||newEmail.trim()===currentEmail)return;
+  const cleaned=newEmail.trim().toLowerCase();
+  if(!cleaned.includes("@")){showToast("Invalid email address.");return;}
+  if(!useLocalFallback&&db){
+    try{
+      const {updateDoc,doc:docRef,getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      // Check no other member already has this email
+      const existing=await getDocs(q(col(db,"smac_registry"),where("email","==",cleaned)));
+      if(!existing.empty&&existing.docs[0].id!==docId){showToast("That email is already in the registry.");return;}
+      await updateDoc(docRef(db,"smac_registry",docId),{email:cleaned});
+      showToast("Email updated successfully.");
+      loadDirectory();
+    }catch(e){console.error(e);showToast("Error updating email.");}
+  } else {
+    const registry=lsGet("smac_registry")||[];
+    const idx=registry.findIndex(m=>m.uid===docId);
+    if(idx<0)return;
+    registry[idx].email=cleaned;
+    lsSet("smac_registry",registry);
+    showToast("Email updated successfully.");
+    loadDirectory();
+  }
+};
 
 // ─────────────────────────────────────────────
 //  PROFILE
