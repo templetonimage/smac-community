@@ -210,7 +210,7 @@
     <div class="auth-round-badge">Round 2 · March–May 2026</div>
     <label class="auth-label" for="name-input">Email Address</label>
     <input class="auth-input" id="name-input" type="email" placeholder="e.g. jane@example.com" autocomplete="email" />
-    <label class="auth-label" for="pass-input">Member Passcode</label>
+    <label class="auth-label" for="pass-input">Password</label>
     <div style="position:relative;margin-bottom:16px;">
       <input class="auth-input" id="pass-input" type="password" placeholder="Enter your passcode" autocomplete="current-password" style="margin-bottom:0;padding-right:48px;" />
       <button type="button" onclick="togglePassVisibility()" id="pass-eye" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;padding:0;line-height:1;">👁</button>
@@ -218,7 +218,7 @@
     <button class="btn-gold" onclick="handleLogin()">Enter Community</button>
     <div class="auth-error" id="auth-error"></div>
     <div style="margin-top:16px;font-size:13px;color:var(--text-muted);">
-      Forgot your passcode? <a href="mailto:nate@natethempleton.com?subject=SMAC%20Passcode%20Help" style="color:var(--gold);font-weight:600;text-decoration:none;">Contact Nate</a>
+      Forgot your password? <a href="#" onclick="handleForgotPassword()" style="color:var(--gold);font-weight:600;text-decoration:none;">Reset it</a>
     </div>
   </div>
 </div>
@@ -393,6 +393,19 @@
       <button class="btn-gold" onclick="saveProfile()" style="width:100%;font-size:18px;padding:13px;">Save Profile</button>
     </div>
     <div id="firebase-setup-card" style="display:none;"></div>
+    <div class="card" id="change-password-card" style="margin-top:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Change Password</div>
+      <div class="profile-form-field">
+        <label class="field-label">New Password</label>
+        <input class="field-input" id="new-password" type="password" placeholder="At least 6 characters" />
+      </div>
+      <div class="profile-form-field">
+        <label class="field-label">Confirm New Password</label>
+        <input class="field-input" id="confirm-password" type="password" placeholder="Repeat new password" />
+      </div>
+      <div id="password-change-msg" style="font-size:13px;margin-bottom:12px;min-height:18px;"></div>
+      <button class="btn-gold" onclick="changePassword()" style="width:100%;font-size:16px;padding:12px;">Update Password</button>
+    </div>
     <div style="text-align:center;margin-top:20px;">
       <button onclick="handleLogout()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:10px 24px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Sign Out</button>
     </div>
@@ -457,9 +470,8 @@
 <!-- FIREBASE + APP LOGIC -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js";
 import {getFirestore, collection, addDoc, doc, getDoc, setDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc,getDocs} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import {getAuth, signInAnonymously, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getAuth, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updatePassword, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ─────────────────────────────────────────────
 //  🔧 FIREBASE CONFIG  (replace with your values)
@@ -481,8 +493,10 @@ const FIREBASE_CONFIG = {
 // ─────────────────────────────────────────────
 //  🔑 PASSCODES  (change before going live!)
 // ─────────────────────────────────────────────
-const MEMBER_PASS = "smac26r2";
-const ADMIN_PASS  = "shotsbyNate9!";
+// Passcodes removed — auth handled by Firebase Authentication
+// Admin account: nate@templetonimage.com (set password in Firebase Auth console)
+// Members: created via Zapier with auto-generated passwords sent by email
+const ADMIN_EMAIL = "nate@templetonimage.com";
 const CURRENT_ROUND = "R2"; // ← Change to "R3", "R4" etc. at the start of each new Round
 
 // ─────────────────────────────────────────────
@@ -514,7 +528,6 @@ function initFirebase(){
   try {
     if(_a==="YOUR_API"||!_a||_b==="_KEY_PART2"){useLocalFallback=true;return;}
     const app=initializeApp(FIREBASE_CONFIG);
-    initializeAppCheck(app,{provider:new ReCaptchaV3Provider("6LckJIIsAAAAAAeZgBkwlWasy3IG1Mo1x13fsrIp"),isTokenAutoRefreshEnabled:true});
     db=getFirestore(app);
     auth=getAuth(app);
   } catch(e){useLocalFallback=true;}
@@ -524,12 +537,12 @@ const lsSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const lsPush=(k,i)=>{const a=lsGet(k)||[];a.unshift(i);lsSet(k,a);return a;};
 const esc=s=>{if(!s)return"";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");};
 const timeAgo=ts=>{const m=Math.floor((Date.now()-ts)/60000);if(m<1)return"Just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";const d=Math.floor(h/24);if(d<7)return d+"d ago";return new Date(ts).toLocaleDateString("en-US",{month:"short",day:"numeric"});};
-function togglePassVisibility(){
+window.togglePassVisibility=function(){
   const input=document.getElementById("pass-input");
   const eye=document.getElementById("pass-eye");
   if(input.type==="password"){input.type="text";eye.textContent="🙈";}
   else{input.type="password";eye.textContent="👁";}
-}
+};
 function showToast(msg){const t=document.createElement("div");t.style.cssText="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;font-family:DM Sans,sans-serif;white-space:nowrap;max-width:90vw;text-align:center;";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
 
 // ─────────────────────────────────────────────
@@ -541,60 +554,59 @@ window.handleLogin=async function(){
   const err=document.getElementById("auth-error");
   const btn=document.querySelector(".btn-gold");
   if(!emailRaw){err.style.display="block";err.textContent="Please enter your email address.";return;}
-  let isAdmin=false;
-  if(pass===ADMIN_PASS)isAdmin=true;
-  else if(pass!==MEMBER_PASS){err.style.display="block";err.textContent="Incorrect passcode. Check with Nate.";return;}
+  if(!pass){err.style.display="block";err.textContent="Please enter your password.";return;}
   err.style.display="none";
+  btn.textContent="Signing in...";btn.disabled=true;
   const email=emailRaw.toLowerCase();
-  if(!isAdmin){
-    btn.textContent="Checking...";btn.disabled=true;
-    try{
-      let member=null;
-      if(!useLocalFallback&&db){
-        const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-        const snap=await getDocs(q(col(db,"smac_registry"),where("email","==",email)));
-        if(!snap.empty)member={id:snap.docs[0].id,...snap.docs[0].data()};
-      } else {
-        const registry=lsGet("smac_registry")||[];
-        member=registry.find(m=>(m.email||"").toLowerCase()===email)||null;
-      }
-      if(!member){
+  try{
+    // Firebase Auth handles all login — admin and members alike
+    const userCred=await signInWithEmailAndPassword(auth,email,pass);
+    const firebaseUid=userCred.user.uid;
+    const isAdmin=email===ADMIN_EMAIL.toLowerCase();
+    if(isAdmin){
+      currentUser={name:"Nate",email,isAdmin:true,uid:firebaseUid};
+    } else {
+      // Look up member record in Firestore registry
+      const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap=await getDocs(q(col(db,"smac_registry"),where("email","==",email)));
+      if(snap.empty){
         err.style.display="block";
-        err.textContent="Email not found. Make sure you use the email you purchased with.";
+        err.textContent="Account not found in registry. Contact Nate.";
         btn.textContent="Enter Community";btn.disabled=false;
+        await signOut(auth);
         return;
       }
+      const member={id:snap.docs[0].id,...snap.docs[0].data()};
       const enrolled=(member.rounds||[]).includes(CURRENT_ROUND)||member.isFounder;
       if(!enrolled){
         err.style.display="block";
         err.textContent=`You\'re not enrolled in Round ${CURRENT_ROUND.replace("R","")} yet. Contact Nate.`;
         btn.textContent="Enter Community";btn.disabled=false;
+        await signOut(auth);
         return;
       }
-      currentUser={name:member.name,email:member.email,isAdmin:false,uid:member.id||email.replace(/[^a-z0-9]/g,"-"),isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false};
-    }catch(e){
-      err.style.display="block";err.textContent="Login error — please try again.";
-      btn.textContent="Enter Community";btn.disabled=false;
-      console.error(e);return;
+      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false};
     }
+    lsSet("smac_session",currentUser);
     btn.textContent="Enter Community";btn.disabled=false;
-  } else {
-    const uid="admin-"+email.replace(/[^a-z0-9]/g,"-");
-    currentUser={name:"Nate",email,isAdmin:true,uid};
-  }
-  lsSet("smac_session",currentUser);
-  if(!useLocalFallback&&auth){
-    // Wait for Firestore auth state to fully propagate before booting
-    const unsub=onAuthStateChanged(auth,user=>{
-      if(user){unsub();bootApp();}
-    });
-    signInAnonymously(auth).catch(e=>{console.warn("Auth warning:",e);unsub();bootApp();});
-  } else {
     bootApp();
+  } catch(e){
+    btn.textContent="Enter Community";btn.disabled=false;
+    if(e.code==="auth/invalid-credential"||e.code==="auth/wrong-password"||e.code==="auth/user-not-found"){
+      err.style.display="block";
+      err.textContent="Incorrect email or password. Check your welcome email or reset your password.";
+    } else if(e.code==="auth/too-many-requests"){
+      err.style.display="block";
+      err.textContent="Too many attempts — try again in a few minutes or reset your password.";
+    } else {
+      err.style.display="block";
+      err.textContent="Login error — please try again.";
+      console.error("Login error:",e);
+    }
   }
 };
-window.handleLogout=function(){
-  if(auth)auth.signOut().catch(()=>{});
+window.handleLogout=async function(){
+  try{if(auth)await signOut(auth);}catch(e){}
   localStorage.removeItem("smac_session");currentUser=null;
   document.getElementById("app").style.display="none";
   document.getElementById("auth-screen").style.display="flex";
@@ -1396,6 +1408,52 @@ window.removeRegistryMember=async function(docId){
   loadDirectory();
   showToast("Member removed from registry.");
 };
+// ─────────────────────────────────────────────
+//  PASSWORD MANAGEMENT
+// ─────────────────────────────────────────────
+window.handleForgotPassword=async function(){
+  const emailRaw=document.getElementById("name-input").value.trim();
+  const err=document.getElementById("auth-error");
+  if(!emailRaw){
+    err.style.display="block";
+    err.textContent="Enter your email address above first, then click Reset it.";
+    err.style.color="var(--gold)";
+    return;
+  }
+  try{
+    await sendPasswordResetEmail(auth,emailRaw.toLowerCase());
+    err.style.display="block";
+    err.style.color="green";
+    err.textContent="Password reset email sent! Check your inbox.";
+  }catch(e){
+    err.style.display="block";
+    err.style.color="#c0392b";
+    err.textContent="Could not send reset email. Check the address and try again.";
+  }
+};
+window.changePassword=async function(){
+  const newPass=document.getElementById("new-password").value.trim();
+  const confirm=document.getElementById("confirm-password").value.trim();
+  const msg=document.getElementById("password-change-msg");
+  if(!newPass||newPass.length<6){msg.style.color="#c0392b";msg.textContent="Password must be at least 6 characters.";return;}
+  if(newPass!==confirm){msg.style.color="#c0392b";msg.textContent="Passwords do not match.";return;}
+  try{
+    await updatePassword(auth.currentUser,newPass);
+    document.getElementById("new-password").value="";
+    document.getElementById("confirm-password").value="";
+    msg.style.color="green";msg.textContent="Password updated successfully!";
+    setTimeout(()=>{msg.textContent="";},3000);
+  }catch(e){
+    if(e.code==="auth/requires-recent-login"){
+      msg.style.color="#c0392b";
+      msg.textContent="For security, please sign out and sign back in before changing your password.";
+    } else {
+      msg.style.color="#c0392b";
+      msg.textContent="Error updating password. Please try again.";
+    }
+  }
+};
+
 // Legacy aliases (keep for any old calls)
 window.toggleAllStar=function(idx){toggleRegistryFlag(idx,"isAllStar");};
 window.removeMember=function(idx){removeRegistryMember(idx);};
@@ -1518,19 +1576,31 @@ document.getElementById("install-btn").addEventListener("click",async()=>{
 //  BOOT
 // ─────────────────────────────────────────────
 initFirebase();
-const saved=lsGet("smac_session");
-if(saved?.name){
-  currentUser=saved;
-  if(!useLocalFallback&&auth){
-    const unsub=onAuthStateChanged(auth,user=>{
-      if(user){unsub();bootApp();}
-    });
-    signInAnonymously(auth).catch(e=>{console.warn("Auth warning:",e);unsub();bootApp();});
-  } else {
-    bootApp();
-  }
+// Restore session via Firebase Auth state — single source of truth
+if(!useLocalFallback&&auth){
+  onAuthStateChanged(auth,async user=>{
+    if(user){
+      // Firebase says user is logged in — restore SMAC session
+      const saved=lsGet("smac_session");
+      if(saved?.name){
+        currentUser=saved;
+        bootApp();
+      } else {
+        // Auth exists but no SMAC session — send to login
+        await signOut(auth);
+        document.getElementById("auth-screen").style.display="flex";
+      }
+    } else {
+      // No Firebase auth session
+      localStorage.removeItem("smac_session");
+      document.getElementById("auth-screen").style.display="flex";
+    }
+  });
 } else {
-  document.getElementById("auth-screen").style.display="flex";
+  // localStorage fallback
+  const saved=lsGet("smac_session");
+  if(saved?.name){currentUser=saved;bootApp();}
+  else document.getElementById("auth-screen").style.display="flex";
 }
 </script>
 
