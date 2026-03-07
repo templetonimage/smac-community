@@ -250,7 +250,7 @@
 </div>
 
 <!-- APP -->
-<div id="app">
+<div id="app" style="display:none;">
   <nav class="topnav">
     <div class="topnav-logo">SMAC</div>
     <div class="topnav-right">
@@ -548,7 +548,7 @@ import {getAuth, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, up
 // Paste your values below. The API key is split into two parts to prevent
 // GitHub's secret scanner from flagging it in a public repo.
 // Split your key anywhere in the middle, e.g. "AIzaSyAb..." → "AIzaSy" + "Ab..."
-const _a = "AIzaSyAbYkFUpf1_C9"; const _b = "_r2oKAF0I_CqK86aWlWMs";
+const _a = "AIzaSyAbYkFUpf1_C9"; const _b = "_r2oKAF0I_CqK86aWlWMs"; // ← split your apiKey here
 const FIREBASE_CONFIG = {
   apiKey: _a + _b,
   authDomain: "smac-2026.firebaseapp.com",
@@ -784,7 +784,7 @@ window.submitPost=async function(){
 async function loadFeed(){
   if(!useLocalFallback&&db){
     const q=query(collection(db,"posts"),orderBy("ts","desc"));
-    onSnapshot(q,snap=>renderFeed(snap.docs.map(d=>({id:d.id,...d.data()}))));
+    onSnapshot(q,snap=>renderFeed(snap.docs.map(d=>({id:d.id,...d.data()}))),err=>{console.error("Feed error:",err);renderFeed([]);});
   } else renderFeed(lsGet("smac_posts")||[]);
 }
 function renderFeed(posts){
@@ -917,7 +917,7 @@ window.submitAnnouncement=async function(){
 };
 async function loadAnnouncements(){
   if(!useLocalFallback&&db){
-    onSnapshot(query(collection(db,"announcements"),orderBy("ts","desc")),snap=>renderAnnouncements(snap.docs.map(d=>({id:d.id,...d.data()}))));
+    onSnapshot(query(collection(db,"announcements"),orderBy("ts","desc")),snap=>renderAnnouncements(snap.docs.map(d=>({id:d.id,...d.data()}))),err=>{console.error("Announcements error:",err);renderAnnouncements([]);});
   } else renderAnnouncements(lsGet("smac_announcements")||[]);
 }
 function renderAnnouncements(items){
@@ -1096,7 +1096,7 @@ async function loadResources(){
   if(!useLocalFallback&&db){
     onSnapshot(query(collection(db,"resources"),orderBy("ts","desc")),snap=>{
       renderResources([...snap.docs.map(d=>({id:d.id,...d.data()})),...DEFAULT_RESOURCES]);
-    });
+    },err=>{console.error("Resources error:",err);renderResources(DEFAULT_RESOURCES);});
   } else renderResources([...(lsGet("smac_resources")||[]),...DEFAULT_RESOURCES]);
 }
 function getAllTags(items){const s=new Set(["All"]);items.forEach(r=>(r.tags||[]).forEach(t=>s.add(t)));return[...s];}
@@ -1764,9 +1764,16 @@ async function loadLeaderboard(){
   if(!useLocalFallback&&db){
     try{
       const {getDocs,collection:col,query:q,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      const snap=await getDocs(q(col(db,"smac_registry"),ob("points","desc")));
-      members=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.name);
-    }catch(e){el.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load leaderboard</div></div>';return;}
+      let snap;
+      try{
+        snap=await getDocs(q(col(db,"smac_registry"),ob("points","desc")));
+      }catch(indexErr){
+        // Index not ready — fall back to unordered fetch and sort client-side
+        console.warn("Leaderboard index not ready, sorting client-side:",indexErr.message);
+        snap=await getDocs(col(db,"smac_registry"));
+      }
+      members=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.name).sort((a,b)=>(b.points||0)-(a.points||0));
+    }catch(e){console.error("Leaderboard error:",e);el.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load leaderboard</div><div class="empty-desc">'+e.message+'</div></div>';return;}
   }
   if(!members.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">No scores yet</div><div class="empty-desc">Submit your first post to get on the board!</div></div>';return;}
   cachedLeaderboard=members;
