@@ -267,6 +267,20 @@
       <h1 class="page-title">Community Feed</h1>
       <p class="page-subtitle">Share your wins, posts, and progress</p>
     </div>
+    <!-- Admin: post announcements directly from feed -->
+    <div class="compose-box admin-compose" id="admin-compose" style="display:none;">
+      <div class="admin-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+        <span class="admin-banner-icon">🔐</span>
+        <div><div class="admin-banner-title">Post Announcement</div><div class="admin-banner-sub">Visible to all members at the top of the feed</div></div>
+      </div>
+      <input class="auth-input" id="ann-title" type="text" placeholder="Announcement title..." style="margin-bottom:10px;" />
+      <textarea class="compose-textarea" id="ann-body" placeholder="Write your announcement..." rows="3"></textarea>
+      <div class="compose-footer">
+        <span class="compose-hint">Posted as Nate Templeton</span>
+        <button class="btn-post" onclick="submitAnnouncement()">Post Announcement</button>
+      </div>
+    </div>
+    <div id="announcements-list" style="margin-bottom:8px;"></div>
     <div class="compose-box">
       <textarea class="compose-textarea" id="compose-text" placeholder="Share a post link, win, or update with the group..." rows="3"></textarea>
       <input class="auth-input" id="compose-link" type="url" placeholder="Instagram post URL (optional — required to receive Props)" style="margin-top:10px;margin-bottom:0;" />
@@ -355,27 +369,6 @@
         ⭐ All-Star: complete every weekly requirement all 12 weeks
       </div>
     </div>
-  </div>
-
-  <!-- ANNOUNCEMENTS -->
-  <div class="page" id="page-announcements">
-    <div class="page-header">
-      <h1 class="page-title">Announcements</h1>
-      <p class="page-subtitle">Updates from Nate</p>
-    </div>
-    <div class="compose-box admin-compose" id="admin-compose" style="display:none;">
-      <div class="admin-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:14px;">
-        <span class="admin-banner-icon">🔐</span>
-        <div><div class="admin-banner-title">Admin — Post Announcement</div><div class="admin-banner-sub">Visible to all members</div></div>
-      </div>
-      <input class="auth-input" id="ann-title" type="text" placeholder="Announcement title..." style="margin-bottom:10px;" />
-      <textarea class="compose-textarea" id="ann-body" placeholder="Write your announcement..." rows="4"></textarea>
-      <div class="compose-footer">
-        <span class="compose-hint">Posted as Nate Templeton</span>
-        <button class="btn-post" onclick="submitAnnouncement()">Post</button>
-      </div>
-    </div>
-    <div id="announcements-list"></div>
   </div>
 
   <!-- RESOURCES -->
@@ -526,9 +519,9 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     Feed
   </button>
-  <button class="nav-item" onclick="navTo('announcements',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-    Updates
+    <button class="nav-item" id="nav-submit" onclick="navTo('submit',this);loadSubmitPage();">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Submit
   </button>
   <button class="nav-item" onclick="navTo('resources',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -538,11 +531,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     Tracker
   </button>
-  <button class="nav-item" id="nav-submit" onclick="navTo('submit',this);loadSubmitPage();">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    Submit
-  </button>
-  <button class="nav-item" onclick="navTo('leaderboard',this);loadLeaderboard();">
+    <button class="nav-item" onclick="navTo('leaderboard',this);loadLeaderboard();">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
     Ranks
   </button>
