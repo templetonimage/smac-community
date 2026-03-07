@@ -275,25 +275,66 @@
         <button class="btn-post" onclick="submitPost()">Post</button>
       </div>
     </div>
-    <div class="submit-form" id="ig-submit-form">
-      <div class="submit-form-title">📸 Submit Your Instagram Post</div>
-      <input class="auth-input" id="submit-ig-url" type="url" placeholder="Paste your Instagram post URL" style="margin-bottom:10px;" />
+    <div id="feed-list"></div>
+  </div>
+
+  <!-- SUBMIT (members only) -->
+  <div class="page" id="page-submit">
+    <div class="page-header">
+      <h1 class="page-title">Submit</h1>
+      <p class="page-subtitle">Log your posts and engagement for points</p>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">📸 Submit Your Post</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Paste your Instagram link <strong>or</strong> upload a screenshot — date &amp; time must be visible.</div>
+      <input class="auth-input" id="submit-ig-url" type="url" placeholder="Instagram post URL (optional if uploading screenshot)" style="margin-bottom:8px;" />
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:var(--text-muted);">
+        <span style="font-size:22px;">🖼</span>
+        <span id="screenshot-label-text">Upload screenshot (date/time stamp must be visible)</span>
+        <input type="file" id="submit-screenshot" accept="image/*" style="display:none;" onchange="handleScreenshotSelect(event)" />
+      </label>
+      <div id="screenshot-preview" style="display:none;margin-bottom:12px;position:relative;">
+        <img id="screenshot-thumb" style="width:100%;border-radius:8px;border:1px solid var(--border);max-height:240px;object-fit:cover;" />
+        <button onclick="clearScreenshot()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.7);border:none;border-radius:50%;width:28px;height:28px;color:#fff;cursor:pointer;font-size:15px;line-height:1;">✕</button>
+      </div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Post format:</div>
       <div class="format-btns">
-        <button class="format-btn selected" id="fmt-static"  onclick="selectFormat('Static')">📷 Static</button>
-        <button class="format-btn"           id="fmt-reel"    onclick="selectFormat('Reel')">🎬 Reel +2pts</button>
-        <button class="format-btn"           id="fmt-carousel" onclick="selectFormat('Carousel')">🖼 Carousel +2pts</button>
+        <button class="format-btn selected" id="fmt-static"   onclick="selectFormat('Static')">📷 Static</button>
+        <button class="format-btn"          id="fmt-reel"     onclick="selectFormat('Reel')">🎬 Reel +2pts</button>
+        <button class="format-btn"          id="fmt-carousel" onclick="selectFormat('Carousel')">🖼 Carousel +2pts</button>
       </div>
-      <div class="pts-preview" id="pts-preview">You will earn <strong>10 pts</strong> for this on-time submission.</div>
+      <div class="pts-preview" id="pts-preview" style="margin:10px 0;">You will earn <strong>10 pts</strong> for this on-time submission.</div>
       <button class="btn-post" style="width:100%;" onclick="submitIgPost()">Submit Post for Points</button>
       <div id="submit-error" style="font-size:13px;color:#e74c3c;margin-top:8px;display:none;"></div>
     </div>
-    <div class="card" id="my-submissions-card" style="margin-bottom:24px;display:none;">
+    <div class="card" id="my-submissions-card" style="margin-bottom:16px;display:none;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">My Submissions</div>
       <div id="my-points-total" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;"></div>
       <div class="submission-history" id="my-submissions-list"></div>
     </div>
-    <div id="feed-list"></div>
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">🤝 Log Engagement</div>
+      <div id="eng-weekly-status" style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Upload screenshots of likes, comments, shares, or saves on other SMAC members' posts. +2 pts each, up to 3/week.</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Engagement type:</div>
+      <div class="format-btns" style="margin-bottom:12px;">
+        <button class="format-btn selected" id="eng-like"    onclick="selectEngType('Like')">❤️ Like</button>
+        <button class="format-btn"          id="eng-comment" onclick="selectEngType('Comment')">💬 Comment</button>
+        <button class="format-btn"          id="eng-share"   onclick="selectEngType('Share')">📤 Share</button>
+        <button class="format-btn"          id="eng-save"    onclick="selectEngType('Save')">🔖 Save</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:var(--text-muted);">
+        <span style="font-size:22px;">📷</span>
+        <span id="eng-label-text">Upload screenshot (date must be visible)</span>
+        <input type="file" id="eng-screenshot" accept="image/*" style="display:none;" onchange="handleEngScreenshot(event)" />
+      </label>
+      <div id="eng-preview" style="display:none;margin-bottom:12px;position:relative;">
+        <img id="eng-thumb" style="width:100%;border-radius:8px;border:1px solid var(--border);max-height:240px;object-fit:cover;" />
+        <button onclick="clearEngScreenshot()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.7);border:none;border-radius:50%;width:28px;height:28px;color:#fff;cursor:pointer;font-size:15px;line-height:1;">✕</button>
+      </div>
+      <button class="btn-post" style="width:100%;" id="eng-submit-btn" onclick="submitEngagement()">Submit Engagement +2 pts</button>
+      <div id="eng-error" style="font-size:13px;color:#e74c3c;margin-top:8px;display:none;"></div>
+      <div id="eng-history" style="margin-top:14px;"></div>
+    </div>
   </div>
 
   <!-- LEADERBOARD -->
@@ -496,6 +537,10 @@
   <button class="nav-item" onclick="navTo('tracker',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     Tracker
+  </button>
+  <button class="nav-item" id="nav-submit" onclick="navTo('submit',this);loadSubmitPage();">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Submit
   </button>
   <button class="nav-item" onclick="navTo('leaderboard',this);loadLeaderboard();">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
@@ -740,7 +785,7 @@ function bootApp(){
     document.getElementById("admin-compose").style.display="block";
     document.getElementById("admin-resource-compose").style.display="block";
     document.getElementById("nav-reports").style.display="flex";
-    document.getElementById("ig-submit-form").style.display="none";
+    document.getElementById("nav-submit").style.display="none";
     document.getElementById("change-password-card").style.display="none";
     showFirebaseSetupCard();
   }
@@ -759,6 +804,13 @@ window.navTo=function(page,el){
   window.scrollTo(0,0);
   if(page==="directory")loadDirectory();
   if(page==="leaderboard")loadLeaderboard();
+  if(page==="submit"&&!currentUser?.isAdmin){loadSubmitPage();}
+  if(page==="reports"&&currentUser?.isAdmin)loadTrackerReport();
+};
+window.loadSubmitPage=function(){
+  updatePtsPreview();
+  loadMySubmissions();
+  loadEngHistory();
 };
 
 // ─────────────────────────────────────────────
@@ -1610,12 +1662,92 @@ function updatePtsPreview(){
   }
 }
 
+function compressImage(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const maxW=900,scale=img.width>maxW?maxW/img.width:1;
+        const canvas=document.createElement("canvas");
+        canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);
+        canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+        resolve(canvas.toDataURL("image/jpeg",0.70));
+      };img.onerror=reject;img.src=e.target.result;
+    };reader.onerror=reject;reader.readAsDataURL(file);
+  });
+}
+let screenshotBase64=null;
+window.handleScreenshotSelect=async function(e){
+  const file=e.target.files[0];if(!file)return;
+  try{screenshotBase64=await compressImage(file);document.getElementById("screenshot-thumb").src=screenshotBase64;document.getElementById("screenshot-preview").style.display="block";document.getElementById("screenshot-label-text").textContent="Screenshot selected ✓ — tap to change";}catch(err){console.error(err);}
+};
+window.clearScreenshot=function(){
+  screenshotBase64=null;const inp=document.getElementById("submit-screenshot");if(inp)inp.value="";
+  document.getElementById("screenshot-preview").style.display="none";document.getElementById("screenshot-label-text").textContent="Upload screenshot (date/time stamp must be visible)";
+};
+let engScreenshotBase64=null,selectedEngType="Like";
+window.selectEngType=function(type){
+  selectedEngType=type;
+  ["Like","Comment","Share","Save"].forEach(t=>{const btn=document.getElementById("eng-"+t.toLowerCase());if(btn)btn.classList.toggle("selected",t===type);});
+};
+window.handleEngScreenshot=async function(e){
+  const file=e.target.files[0];if(!file)return;
+  try{engScreenshotBase64=await compressImage(file);document.getElementById("eng-thumb").src=engScreenshotBase64;document.getElementById("eng-preview").style.display="block";document.getElementById("eng-label-text").textContent="Screenshot selected ✓ — tap to change";}catch(err){console.error(err);}
+};
+window.clearEngScreenshot=function(){
+  engScreenshotBase64=null;const inp=document.getElementById("eng-screenshot");if(inp)inp.value="";
+  document.getElementById("eng-preview").style.display="none";document.getElementById("eng-label-text").textContent="Upload screenshot (date must be visible)";
+};
+async function getWeeklyEngCount(uid,weekIdx){
+  if(!useLocalFallback&&db){try{const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");const snap=await getDocs(q(col(db,"engagements"),where("uid","==",uid),where("weekIdx","==",weekIdx)));return snap.size;}catch(e){return 0;}}
+  return(lsGet("smac_engagements")||[]).filter(e=>e.uid===uid&&e.weekIdx===weekIdx).length;
+}
+async function loadEngHistory(){
+  const el=document.getElementById("eng-history");if(!el)return;
+  const weekIdx=getWeekIndex(Date.now());
+  let engs=[];
+  if(!useLocalFallback&&db){try{const {getDocs,collection:col,query:q,where,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");const snap=await getDocs(q(col(db,"engagements"),where("uid","==",currentUser.uid),ob("ts","desc")));engs=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(e){console.warn("Eng history:",e);}}
+  else{engs=(lsGet("smac_engagements")||[]).filter(e=>e.uid===currentUser.uid).sort((a,b)=>b.ts-a.ts);}
+  const thisWeek=engs.filter(e=>e.weekIdx===weekIdx);
+  const remaining=Math.max(0,MAX_ENG_PER_WEEK-thisWeek.length);
+  const statusEl=document.getElementById("eng-weekly-status");
+  if(statusEl)statusEl.innerHTML=remaining>0?`<span style="color:var(--gold);font-weight:600;">${remaining} upload${remaining!==1?"s":""} left this week</span> · +${PTS_ENGAGEMENT}pts each · max ${MAX_ENG_PER_WEEK}/week`:`<span style="color:#e74c3c;font-weight:600;">Weekly limit reached (${MAX_ENG_PER_WEEK}/${MAX_ENG_PER_WEEK}).</span> Resets next week.`;
+  const btn=document.getElementById("eng-submit-btn");
+  if(btn){btn.disabled=remaining===0;btn.style.opacity=remaining===0?"0.5":"1";}
+  if(!engs.length){el.innerHTML="";return;}
+  el.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Recent Engagements</div>`+engs.slice(0,9).map(e=>`
+    <div style="padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${e.screenshotBase64?"6px":"0"};">
+        <span style="font-size:13px;font-weight:600;color:var(--gold);">${e.type}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--text-muted);">Wk ${(e.weekIdx||0)+1} · ${new Date(e.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+          <span style="background:var(--gold);color:#000;font-weight:700;border-radius:4px;padding:2px 7px;font-size:11px;">+${PTS_ENGAGEMENT}</span>
+        </div>
+      </div>
+      ${e.screenshotBase64?`<img src="${e.screenshotBase64}" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover;border:1px solid var(--border);" />`:""}
+    </div>`).join("");
+}
+window.submitEngagement=async function(){
+  const errEl=document.getElementById("eng-error");errEl.style.display="none";
+  if(!engScreenshotBase64){errEl.style.display="block";errEl.textContent="Please upload a screenshot first.";return;}
+  const weekIdx=getWeekIndex(Date.now());
+  if(weekIdx<0){errEl.style.display="block";errEl.textContent="Round hasn't started yet.";return;}
+  const count=await getWeeklyEngCount(currentUser.uid,weekIdx);
+  if(count>=MAX_ENG_PER_WEEK){errEl.style.display="block";errEl.textContent=`Max ${MAX_ENG_PER_WEEK} uploads/week reached.`;return;}
+  const eng={uid:currentUser.uid,memberName:currentUser.name,type:selectedEngType,screenshotBase64:engScreenshotBase64,weekIdx,pts:PTS_ENGAGEMENT,ts:Date.now()};
+  if(!useLocalFallback&&db){
+    try{const {addDoc,collection:col,updateDoc,doc:docRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");await addDoc(col(db,"engagements"),eng);if(currentUser.registryId)await updateDoc(docRef(db,"smac_registry",currentUser.registryId),{points:increment(PTS_ENGAGEMENT)});}
+    catch(e){console.error(e);errEl.style.display="block";errEl.textContent="Error saving. Try again.";return;}
+  }else{lsPush("smac_engagements",{...eng,id:Date.now().toString()});}
+  clearEngScreenshot();showToast("Engagement logged! +"+PTS_ENGAGEMENT+" pts 🤝");loadEngHistory();loadLeaderboard();
+};
 window.submitIgPost=async function(){
   const url=document.getElementById("submit-ig-url").value.trim();
   const errEl=document.getElementById("submit-error");
   errEl.style.display="none";
-  if(!url){errEl.style.display="block";errEl.textContent="Please paste your Instagram post URL.";return;}
-  if(!url.includes("instagram.com")){errEl.style.display="block";errEl.textContent="URL must be an Instagram link.";return;}
+  if(!url&&!screenshotBase64){errEl.style.display="block";errEl.textContent="Paste your Instagram URL or upload a screenshot.";return;}
+  if(url&&!url.includes("instagram.com")&&!url.includes("instagr.am")){errEl.style.display="block";errEl.textContent="URL must be an Instagram link.";return;}
 
   const now=Date.now();
   const weekIdx=getWeekIndex(now);
@@ -1632,7 +1764,8 @@ window.submitIgPost=async function(){
   const submission={
     uid:currentUser.uid,
     memberName:currentUser.name,
-    url,
+    url:url||"",
+    screenshotBase64:screenshotBase64||"",
     format:selectedFormat,
     weekIdx,
     pts,
@@ -1661,6 +1794,7 @@ window.submitIgPost=async function(){
       await checkAllStar(currentUser.uid,currentUser.registryId);
 
       document.getElementById("submit-ig-url").value="";
+      clearScreenshot();
       selectFormat("Static");
       showToast(pts>0?`+${pts} pts earned! 🎉`:"Submitted (0 pts — window closed).");
       loadMySubmissions();
