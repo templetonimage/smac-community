@@ -264,7 +264,7 @@
   <!-- FEED -->
   <div class="page active" id="page-feed">
     <div class="page-header">
-      <h1 class="page-title">Community Feed</h1>
+      <h1 class="page-title">📢 Community Feed</h1>
       <p class="page-subtitle">Share your wins, posts, and progress</p>
     </div>
     <!-- Admin: post announcements directly from feed -->
@@ -774,7 +774,6 @@ function bootApp(){
     document.getElementById("admin-compose").style.display="block";
     document.getElementById("admin-resource-compose").style.display="block";
     document.getElementById("nav-reports").style.display="flex";
-    document.getElementById("nav-submit").style.display="none";
     document.getElementById("change-password-card").style.display="none";
     showFirebaseSetupCard();
   }
@@ -793,7 +792,7 @@ window.navTo=function(page,el){
   window.scrollTo(0,0);
   if(page==="directory")loadDirectory();
   if(page==="leaderboard")loadLeaderboard();
-  if(page==="submit"&&!currentUser?.isAdmin){loadSubmitPage();}
+  if(page==="submit"){loadSubmitPage();}
   if(page==="reports"&&currentUser?.isAdmin)loadTrackerReport();
 };
 window.loadSubmitPage=function(){
@@ -951,11 +950,19 @@ window.deletePost=async function(id){
 window.submitAnnouncement=async function(){
   const title=document.getElementById("ann-title").value.trim();
   const body=document.getElementById("ann-body").value.trim();
-  if(!title||!body)return;
+  if(!title||!body){showToast("Title and body are required.");return;}
   const item={title,body,ts:Date.now(),author:"Nate Templeton"};
-  if(!useLocalFallback&&db)await addDoc(collection(db,"announcements"),item);
-  else lsPush("smac_announcements",{...item,id:Date.now().toString()});
-  document.getElementById("ann-title").value="";document.getElementById("ann-body").value="";
+  if(!useLocalFallback&&db){
+    try{
+      const {addDoc,collection:col}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await addDoc(col(db,"announcements"),item);
+    }catch(e){console.error("Ann post error:",e);showToast("Error posting: "+e.message);return;}
+  } else {
+    lsPush("smac_announcements",{...item,id:Date.now().toString()});
+  }
+  document.getElementById("ann-title").value="";
+  document.getElementById("ann-body").value="";
+  showToast("Announcement posted!");
   loadAnnouncements();
 };
 async function loadAnnouncements(){
@@ -965,7 +972,7 @@ async function loadAnnouncements(){
 }
 function renderAnnouncements(items){
   const list=document.getElementById("announcements-list");
-  if(!items.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">📢</div><div class="empty-title">No Announcements Yet</div><div class="empty-desc">Nate will post updates here.</div></div>`;return;}
+  if(!items.length){list.innerHTML="";return;}
   list.innerHTML=items.map(a=>`
     <div class="card announcement-card">
       <span class="announcement-tag">Announcement</span>
@@ -1327,6 +1334,17 @@ function renderMemberGrid(members, list, isAdmin){
 // ─────────────────────────────────────────────
 //  TRACKER REPORT  (admin only, separate tab)
 // ─────────────────────────────────────────────
+window.removeFromReport=async function(docId){
+  if(!docId||!confirm("Remove this member from the tracker report?\n\nThis deletes their tracker data only — they stay in the member registry."))return;
+  if(!useLocalFallback&&db){
+    try{
+      const {deleteDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await deleteDoc(docRef(db,"trackers",docId));
+      showToast("Member removed from report.");
+      loadTrackerReport();
+    }catch(e){showToast("Error: "+e.message);}
+  }
+};
 async function loadTrackerReport(){
   const page = document.getElementById("page-reports");
   if(!page || !currentUser.isAdmin) return;
@@ -1381,7 +1399,7 @@ async function loadTrackerReport(){
         const c = tracked[w.id] || [];
         return c.filter(Boolean).length >= w.required;
       });
-      return { name: d.name || d.uid, monthStats, isAllStar };
+      return { name: d.name || d.uid, docId: docs[i].id, monthStats, isAllStar };
     });
 
     // Sort alpha
@@ -1405,7 +1423,10 @@ async function loadTrackerReport(){
             <tbody>
               ${rows.map(r => `
                 <tr style="border-bottom:1px solid var(--border);">
-                  <td style="padding:12px 10px 12px 0;font-weight:500;">${esc(r.name)}</td>
+                  <td style="padding:12px 10px 12px 0;font-weight:500;">
+                    ${esc(r.name)}
+                    <button onclick="removeFromReport('${r.docId}')" style="margin-left:8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:10px;cursor:pointer;padding:2px 6px;vertical-align:middle;">✕</button>
+                  </td>
                   ${r.monthStats.map(ms => {
                     const pct = Math.round((ms.completed / ms.required) * 100);
                     const color = ms.completed >= ms.required ? "#2ecc71" : ms.completed > 0 ? "var(--gold)" : "var(--text-muted)";
