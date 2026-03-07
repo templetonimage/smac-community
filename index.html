@@ -213,10 +213,7 @@
     .empty-icon{font-size:40px;margin-bottom:12px;}
     .empty-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);margin-bottom:6px;}
     .empty-desc{font-size:14px;line-height:1.5;}
-    #install-banner{display:none;position:fixed;bottom:76px;left:12px;right:12px;z-index:200;background:var(--surface);border:1.5px solid var(--gold);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow-lg);align-items:center;gap:12px;}
-    .install-text{flex:1;font-size:13px;line-height:1.4;}
-    .install-text strong{display:block;font-size:14px;}
-    #install-btn{padding:8px 16px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;cursor:pointer;white-space:nowrap;}
+
     #install-dismiss{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);padding:0 4px;}
     .firebase-notice{background:#fff8e6;border:1px solid var(--gold-light);border-radius:var(--radius);padding:16px;font-size:13px;line-height:1.6;margin-bottom:20px;}
     .firebase-notice strong{display:block;margin-bottom:4px;color:var(--gold-dark);}
@@ -264,7 +261,7 @@
   <!-- FEED -->
   <div class="page active" id="page-feed">
     <div class="page-header">
-      <h1 class="page-title">📢 Community Feed</h1>
+      <h1 class="page-title">Community Feed</h1>
       <p class="page-subtitle">Share your wins, posts, and progress</p>
     </div>
     <!-- Admin: post announcements directly from feed -->
@@ -492,6 +489,13 @@
       <div class="profile-form-field"><label class="field-label">Instagram Handle</label><input class="field-input" id="profile-ig" type="text" placeholder="@yourhandle" /></div>
       <button class="btn-gold" onclick="saveProfile()" style="width:100%;font-size:18px;padding:13px;">Save Profile</button>
     </div>
+
+    <!-- Add to Home Screen card -->
+    <div class="card" id="install-card" style="margin-top:16px;display:none;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">📲 Add SMAC to Your Home Screen</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;">Access the community like a native app — one tap from your home screen, no browser bar.</div>
+      <button class="btn-gold" id="install-profile-btn" style="width:100%;font-size:16px;padding:11px;">Install App</button>
+    </div>
     <div id="firebase-setup-card" style="display:none;"></div>
     <div class="card" id="change-password-card" style="margin-top:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Change Password</div>
@@ -550,11 +554,7 @@
 </nav>
 
 <!-- INSTALL BANNER -->
-<div id="install-banner">
-  <div class="install-text"><strong>Add SMAC to your home screen</strong>Access the community like an app</div>
-  <button id="install-btn">Install</button>
-  <button id="install-dismiss" onclick="document.getElementById('install-banner').style.display='none'">✕</button>
-</div>
+
 
 <!-- RESOURCE MODAL -->
 <div class="res-modal-overlay" id="res-modal-overlay" onclick="closeResModal(event)">
@@ -2055,12 +2055,6 @@ function showFirebaseSetupCard(){
 // ─────────────────────────────────────────────
 //  PWA INSTALL
 // ─────────────────────────────────────────────
-let deferredPrompt;
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;document.getElementById("install-banner").style.display="flex";});
-document.getElementById("install-btn").addEventListener("click",async()=>{
-  if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;}
-  document.getElementById("install-banner").style.display="none";
-});
 
 // ─────────────────────────────────────────────
 //  BOOT
@@ -2098,6 +2092,28 @@ if(!useLocalFallback&&auth){
 
 <script>
 if("serviceWorker"in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").catch(()=>{});});}
+
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  const card=document.getElementById("install-card");
+  if(card)card.style.display="block";
+});
+const installProfileBtn=document.getElementById("install-profile-btn");
+if(installProfileBtn){
+  installProfileBtn.addEventListener("click",async()=>{
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      const {outcome}=await deferredPrompt.userChoice;
+      deferredPrompt=null;
+      if(outcome==="accepted"){
+        const card=document.getElementById("install-card");
+        if(card)card.style.display="none";
+      }
+    }
+  });
+}
 </script>
 </body>
 </html>
