@@ -548,14 +548,14 @@ import {getAuth, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, up
 // Paste your values below. The API key is split into two parts to prevent
 // GitHub's secret scanner from flagging it in a public repo.
 // Split your key anywhere in the middle, e.g. "AIzaSyAb..." → "AIzaSy" + "Ab..."
-const _a = "AIzaSyAbYkFUpf1_C9"; const _b = "_r2oKAF0I_CqK86aWlWMs"; // ← split your apiKey here
+const _a = "AIzaSyAbYkFUpf1_C9"; const _b = "_r2oKAF0I_CqK86aWlWMs";
 const FIREBASE_CONFIG = {
   apiKey: _a + _b,
   authDomain: "smac-2026.firebaseapp.com",
   projectId: "smac-2026",
   storageBucket: "smac-2026.firebasestorage.app",
   messagingSenderId: "533376960532",
-  appId: "1:533376960532:web:3c969a34e05dd26b30bf01",
+  appId: "1:533376960532:web:3c969a34e05dd26b30bf01"
 };
 
 // ─────────────────────────────────────────────
@@ -705,6 +705,7 @@ window.handleLogin=async function(){
     }
     lsSet("smac_session",currentUser);
     btn.textContent="Enter Community";btn.disabled=false;
+    _booted = true;
     bootApp();
   } catch(e){
     btn.textContent="Enter Community";btn.disabled=false;
@@ -1916,30 +1917,32 @@ document.getElementById("install-btn").addEventListener("click",async()=>{
 //  BOOT
 // ─────────────────────────────────────────────
 initFirebase();
-// Restore session via Firebase Auth state — single source of truth
+// IMPORTANT: onAuthStateChanged fires during signInWithEmailAndPassword.
+// We must NEVER call signOut here — it kills the auth token mid-login.
+// This listener is ONLY for page-refresh restoration.
+// handleLogin() calls bootApp() directly after successful sign-in.
+let _booted = false;
 if(!useLocalFallback&&auth){
-  onAuthStateChanged(auth,async user=>{
+  onAuthStateChanged(auth, user => {
+    if(_booted) return; // handleLogin already booted — ignore
     if(user){
-      // Firebase says user is logged in — restore SMAC session
-      const saved=lsGet("smac_session");
+      const saved = lsGet("smac_session");
       if(saved?.name){
-        currentUser=saved;
+        currentUser = saved;
+        _booted = true;
         bootApp();
       } else {
-        // Auth exists but no SMAC session — send to login
-        await signOut(auth);
+        // No SMAC session — show login (do NOT signOut)
         document.getElementById("auth-screen").style.display="flex";
       }
     } else {
-      // No Firebase auth session
       localStorage.removeItem("smac_session");
       document.getElementById("auth-screen").style.display="flex";
     }
   });
 } else {
-  // localStorage fallback
-  const saved=lsGet("smac_session");
-  if(saved?.name){currentUser=saved;bootApp();}
+  const saved = lsGet("smac_session");
+  if(saved?.name){ currentUser=saved; bootApp(); }
   else document.getElementById("auth-screen").style.display="flex";
 }
 </script>
