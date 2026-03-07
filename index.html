@@ -305,11 +305,11 @@
     <div class="card" id="leaderboard-list"><div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">Loading...</div></div></div>
     <div class="card" style="margin-top:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:10px;">How Points Work</div>
-      <div style="font-size:13px;color:var(--text-muted);line-height:1.7;">
-        ✅ On-time post submission: <strong>10 pts</strong><br>
-        ⏰ Late (within 24hrs): <strong>5 pts</strong><br>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.9;">
+        ✅ On-time submission (link or screenshot): <strong>10 pts</strong><br>
         🎬 Reel bonus: <strong>+2 pts</strong><br>
         🖼 Carousel bonus: <strong>+2 pts</strong><br>
+        🤝 Engagement screenshot (like/comment/share/save): <strong>+2 pts</strong> · max 3/week<br>
         🔥 4-week perfect streak: <strong>+25 pts</strong><br>
         ⭐ All-Star: complete every weekly requirement all 12 weeks
       </div>
@@ -1747,19 +1747,22 @@ async function loadMySubmissions(){
   const milestones=getMilestoneBadges(subs.length);
   total.innerHTML=`<strong>${totalPts} total pts</strong> · ${subs.length} posts ${milestones}`;
   list.innerHTML=subs.slice(0,10).map(s=>`
-    <div class="sub-item">
-      <div style="flex:1;">
-        <a href="${esc(s.url)}" target="_blank" style="color:var(--gold);font-size:12px;">View post ↗</a>
-        <div style="font-size:11px;color:var(--text-muted);">Week ${s.weekIdx+1} · ${s.format} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
-      </div>
-      <div>
-        ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
-        <span class="sub-pts">+${s.pts}</span>
+    <div class="sub-item" style="flex-direction:column;align-items:stretch;">
+      ${s.screenshotBase64?`<img src="${s.screenshotBase64}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:140px;object-fit:cover;border:1px solid var(--border);" />`:""}
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;">
+          ${s.url?`<a href="${esc(s.url)}" target="_blank" style="color:var(--gold);font-size:12px;">View post ↗</a>`:`<span style="font-size:12px;color:var(--text-muted);">Screenshot only</span>`}
+          <div style="font-size:11px;color:var(--text-muted);">Week ${s.weekIdx+1} · ${s.format} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+        </div>
+        <div>
+          ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
+          <span class="sub-pts">+${s.pts}</span>
+        </div>
       </div>
     </div>`).join("");
 }
 
-async function loadLeaderboard(){
+window.loadLeaderboard=async function(){
   const el=document.getElementById("leaderboard-list");
   if(!el)return;
   let members=[];
