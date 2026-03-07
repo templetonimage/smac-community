@@ -25,6 +25,8 @@
 
     /* AUTH */
     #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+    #auth-screen.hidden{display:none!important;}
+    #app.visible{display:block!important;}
     .auth-card{background:var(--surface);border-radius:20px;padding:48px 40px;width:100%;max-width:400px;box-shadow:var(--shadow-lg);border:1px solid var(--border);text-align:center;}
     .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:72px;letter-spacing:0.08em;color:var(--gold);line-height:1;margin-bottom:4px;}
     .auth-subtitle{font-size:13px;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:40px;}
@@ -725,13 +727,13 @@ window.handleLogin=async function(){
 window.handleLogout=async function(){
   try{if(auth)await signOut(auth);}catch(e){}
   localStorage.removeItem("smac_session");currentUser=null;
-  document.getElementById("app").style.display="none";
-  document.getElementById("auth-screen").style.display="flex";
+  document.getElementById("app").classList.remove("visible");
+  document.getElementById("auth-screen").classList.remove("hidden");
   document.getElementById("bottomnav").style.display="none";
 };
 function bootApp(){
-  document.getElementById("auth-screen").style.display="none";
-  document.getElementById("app").style.display="block";
+  document.getElementById("auth-screen").classList.add("hidden");
+  document.getElementById("app").classList.add("visible");
   document.getElementById("bottomnav").style.display="flex";
   document.getElementById("topnav-username").innerHTML=`<strong>${currentUser.name}</strong>${currentUser.isAdmin?" 🔐":""}`;
   if(currentUser.isAdmin){
@@ -1933,17 +1935,17 @@ if(!useLocalFallback&&auth){
         bootApp();
       } else {
         // No SMAC session — show login (do NOT signOut)
-        document.getElementById("auth-screen").style.display="flex";
+        document.getElementById("auth-screen").classList.remove("hidden");
       }
     } else {
       localStorage.removeItem("smac_session");
-      document.getElementById("auth-screen").style.display="flex";
+      document.getElementById("auth-screen").classList.remove("hidden");
     }
   });
 } else {
   const saved = lsGet("smac_session");
   if(saved?.name){ currentUser=saved; bootApp(); }
-  else document.getElementById("auth-screen").style.display="flex";
+  else document.getElementById("auth-screen").classList.remove("hidden");
 }
 </script>
 
