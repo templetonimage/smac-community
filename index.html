@@ -1266,8 +1266,31 @@ function loadDirectory(){
   if(adminDirCompose)adminDirCompose.style.display=currentUser.isAdmin?"block":"none";
 
   const list=document.getElementById("directory-list");
-  const registry=lsGet("smac_registry")||[];
 
+  if(!useLocalFallback&&db){
+    // Load from Firestore
+    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDocs,collection:col,query:q,orderBy:ob})=>{
+      getDocs(col(db,"smac_registry")).then(snap=>{
+        const registry=snap.docs.map(d=>({id:d.id,...d.data()}));
+        // Sync to localStorage for admin tools
+        lsSet("smac_registry",registry);
+        if(currentUser.isAdmin){
+          renderAdminRegistry(registry,list);
+        } else {
+          const members=registry.filter(m=>m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND));
+          if(!members.length){
+            list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
+</div></div>`;
+            return;
+          }
+          renderMemberGrid(members,list,false);
+        }
+      }).catch(e=>console.error("Directory load error:",e));
+    });
+    return;
+  }
+
+  const registry=lsGet("smac_registry")||[];
   if(currentUser.isAdmin){
     // Admin sees full registry with controls
     renderAdminRegistry(registry, list);
@@ -2085,7 +2108,7 @@ window.loadLeaderboard=async function(){
         console.warn("Leaderboard index not ready, sorting client-side:",indexErr.message);
         snap=await getDocs(col(db,"smac_registry"));
       }
-      members=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.name).sort((a,b)=>(b.points||0)-(a.points||0));
+      members=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.name&&(m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND))).sort((a,b)=>(b.points||0)-(a.points||0));
     }catch(e){console.error("Leaderboard error:",e);el.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load leaderboard</div><div class="empty-desc">'+e.message+'</div></div>';return;}
   }
   if(!members.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">No scores yet</div><div class="empty-desc">Submit your first post to get on the board!</div></div>';return;}
