@@ -635,7 +635,6 @@ const FIREBASE_CONFIG = {
   appId: "1:533376960532:web:3c969a34e05dd26b30bf01"
 };
 
-
 // ─────────────────────────────────────────────
 //  🔑 PASSCODES  (change before going live!)
 // ─────────────────────────────────────────────
@@ -2151,13 +2150,45 @@ async function loadMySubmissions(){
           ${s.url?`<a href="${esc(s.url)}" target="_blank" style="color:var(--gold);font-size:12px;">View post ↗</a>`:`<span style="font-size:12px;color:var(--text-muted);">Screenshot only</span>`}
           <div style="font-size:11px;color:var(--text-muted);">Week ${s.weekIdx+1} · ${s.format} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
         </div>
-        <div>
-          ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
-          <span class="sub-pts">+${s.pts}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div>
+            ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
+            <span class="sub-pts">+${s.pts}</span>
+          </div>
+          <button onclick="deleteSubmission('${s.id}',${s.pts})" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text-muted);cursor:pointer;" title="Delete submission">🗑</button>
         </div>
       </div>
     </div>`).join("");
 }
+
+window.deleteSubmission=async function(subId, pts){
+  if(!confirm("Delete this submission? Your points will be adjusted accordingly."))return;
+  if(!useLocalFallback&&db){
+    try{
+      const {deleteDoc,doc:docRef,updateDoc,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      // Delete submission doc
+      await deleteDoc(docRef(db,"submissions",subId));
+      // Deduct points and totalPosts from registry
+      if(currentUser.registryId){
+        const update={totalPosts:increment(-1)};
+        if(pts>0)update.points=increment(-pts);
+        await updateDoc(docRef(db,"smac_registry",currentUser.registryId),update);
+      }
+      showToast(pts>0?`Submission deleted. -${pts} pts removed.`:"Submission deleted.");
+      loadMySubmissions();
+      loadLeaderboard();
+    }catch(e){
+      console.error(e);
+      showToast("Error deleting submission: "+e.message);
+    }
+  } else {
+    // Local fallback
+    const subs=(lsGet("smac_submissions")||[]).filter(s=>s.id!==subId);
+    lsSet("smac_submissions",subs);
+    showToast(pts>0?`Submission deleted. -${pts} pts removed.`:"Submission deleted.");
+    loadMySubmissions();
+  }
+};
 
 window.loadLeaderboard=async function(){
   const el=document.getElementById("leaderboard-list");
