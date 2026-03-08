@@ -325,7 +325,7 @@
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">🤝 Log Engagement</div>
-      <div id="eng-weekly-status" style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Upload screenshots of likes, comments, shares, or saves on other SMAC members' posts. +2 pts each, up to 3/week.</div>
+      <div id="eng-weekly-status" style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Upload screenshots of likes, comments, shares, or saves on other SMAC members' posts. +2 pts each, up to 5/week.</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Engagement type:</div>
       <div class="format-btns" style="margin-bottom:12px;">
         <button class="format-btn selected" id="eng-like"    onclick="selectEngType('Like')">❤️ Like</button>
@@ -361,7 +361,7 @@
         ✅ On-time submission (link or screenshot): <strong>10 pts</strong><br>
         🎬 Reel bonus: <strong>+2 pts</strong><br>
         🖼 Carousel bonus: <strong>+2 pts</strong><br>
-        🤝 Engagement screenshot (like/comment/share/save): <strong>+2 pts</strong> · max 3/week<br>
+        🤝 Engagement screenshot (like/comment/share/save): <strong>+2 pts</strong> · max 5/week<br>
         🔥 4-week perfect streak: <strong>+25 pts</strong><br>
         ⭐ All-Star: complete every weekly requirement all 12 weeks
       </div>
@@ -505,7 +505,6 @@
         <label class="field-label">Business Type</label>
         <select class="field-select" id="profile-type">
           <option value="">Select...</option>
-          <option id="founder-option" style="display:none;">Founder of SMAC</option>
           <option>Coaching / Consulting</option><option>Creative / Design</option>
           <option>E-Commerce / Products</option><option>Health &amp; Wellness</option>
           <option>Real Estate</option><option>Marketing / Agency</option>
@@ -651,6 +650,8 @@ const PTS_LATE_24H  = 5;
 const PTS_REEL      = 2;
 const PTS_CAROUSEL  = 2;
 const PTS_STREAK    = 25; // bonus for 4-week perfect streak
+const PTS_ENGAGEMENT = 2;
+const MAX_ENG_PER_WEEK = 5; // max engagement submissions per week
 
 // Fixed calendar schedule for Round 2 (ET = UTC-5 in March/April, UTC-4 in May)
 // Each entry: [start, end] as UTC timestamps matching ET midnight boundaries
@@ -757,7 +758,7 @@ window.handleLogin=async function(){
     const firebaseUid=userCred.user.uid;
     const isAdmin=email===ADMIN_EMAIL.toLowerCase();
     if(isAdmin){
-      currentUser={name:"Nate",email,isAdmin:true,uid:firebaseUid};
+      currentUser={name:"Nate Templeton",email,isAdmin:true,uid:firebaseUid};
     } else {
       // Look up member record in Firestore registry
       const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
@@ -2333,9 +2334,6 @@ function loadProfile(){
   // Firebase setup card only for admin
   const setupCard=document.getElementById("firebase-setup-card");
   if(setupCard)setupCard.style.display=currentUser.isAdmin?"block":"none";
-  // Show Founder of SMAC option only for admin
-  const founderOpt=document.getElementById("founder-option");
-  if(founderOpt)founderOpt.style.display=currentUser.isAdmin?"block":"none";
   const prof=lsGet(`smac_profile_${currentUser.uid}`)||{name:currentUser.name,business:"",type:"",ig:"",visible:"yes"};
   document.getElementById("profile-name").value=prof.name||currentUser.name;
   document.getElementById("profile-business").value=prof.business||"";
@@ -2351,7 +2349,7 @@ function renderProfileHero(prof){
   document.getElementById("profile-hero").innerHTML=`
     <div class="profile-avatar">${initials}</div>
     <div class="profile-name">${esc(prof.name||currentUser.name)}</div>
-    <div class="profile-business">${esc(prof.business||"SMAC Member")}</div>
+    <div class="profile-business">${esc(prof.business||(currentUser.isAdmin?"Founder of SMAC":"SMAC Member"))}</div>
     <div class="profile-badges">
       <span class="badge badge-round">Round 2 · 2026</span>
       ${isAllStar?`<span class="badge badge-allstar">⭐ All-Star</span>`:""}
