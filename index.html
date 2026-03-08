@@ -505,6 +505,7 @@
         <label class="field-label">Business Type</label>
         <select class="field-select" id="profile-type">
           <option value="">Select...</option>
+          <option id="founder-option" style="display:none;">Founder of SMAC</option>
           <option>Coaching / Consulting</option><option>Creative / Design</option>
           <option>E-Commerce / Products</option><option>Health &amp; Wellness</option>
           <option>Real Estate</option><option>Marketing / Agency</option>
@@ -610,14 +611,14 @@ import {getAuth, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, up
 // Paste your values below. The API key is split into two parts to prevent
 // GitHub's secret scanner from flagging it in a public repo.
 // Split your key anywhere in the middle, e.g. "AIzaSyAb..." → "AIzaSy" + "Ab..."
-const _a = "AIzaSyAbYkFUpf1_C9"; const _b = "_r2oKAF0I_CqK86aWlWMs";
+const _a = "YOUR_API"; const _b = "_KEY_PART2"; // ← split your apiKey here
 const FIREBASE_CONFIG = {
   apiKey: _a + _b,
-  authDomain: "smac-2026.firebaseapp.com",
-  projectId: "smac-2026",
-  storageBucket: "smac-2026.firebasestorage.app",
-  messagingSenderId: "533376960532",
-  appId: "1:533376960532:web:3c969a34e05dd26b30bf01"
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // ─────────────────────────────────────────────
@@ -799,8 +800,12 @@ function bootApp(){
   if(currentUser.isAdmin){
     document.getElementById("admin-compose").style.display="block";
     document.getElementById("admin-resource-compose").style.display="block";
-    document.getElementById("change-password-card").style.display="none";
+    document.getElementById("change-password-card").style.display="block";
     showFirebaseSetupCard();
+  } else {
+    document.getElementById("admin-compose").style.display="none";
+    document.getElementById("admin-resource-compose").style.display="none";
+    document.getElementById("change-password-card").style.display="block";
   }
   loadFeed();loadAnnouncements();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();
   if(currentUser.isAdmin)setTimeout(initPasswordField,500);
@@ -1808,19 +1813,36 @@ window.changePassword=async function(){
   const msg=document.getElementById("password-change-msg");
   if(!newPass||newPass.length<6){msg.style.color="#c0392b";msg.textContent="Password must be at least 6 characters.";return;}
   if(newPass!==confirm){msg.style.color="#c0392b";msg.textContent="Passwords do not match.";return;}
+  msg.style.color="var(--text-muted)";msg.textContent="Updating...";
   try{
-    await updatePassword(auth.currentUser,newPass);
+    const {updatePassword:fbUpdatePassword,reauthenticateWithCredential,EmailAuthProvider}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+    const firebaseUser=auth.currentUser;
+    if(!firebaseUser){msg.style.color="#c0392b";msg.textContent="Not logged in. Please sign out and sign back in.";return;}
+    await fbUpdatePassword(firebaseUser,newPass);
     document.getElementById("new-password").value="";
     document.getElementById("confirm-password").value="";
     msg.style.color="green";msg.textContent="Password updated successfully!";
     setTimeout(()=>{msg.textContent="";},3000);
   }catch(e){
     if(e.code==="auth/requires-recent-login"){
-      msg.style.color="#c0392b";
-      msg.textContent="For security, please sign out and sign back in before changing your password.";
+      // Auto re-authenticate using current session credentials
+      const currentPass=window.prompt("For security, please confirm your current password:");
+      if(!currentPass){msg.style.color="#c0392b";msg.textContent="Password change cancelled.";return;}
+      try{
+        const {reauthenticateWithCredential,EmailAuthProvider,updatePassword:fbUpdatePassword2}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+        const credential=EmailAuthProvider.credential(auth.currentUser.email,currentPass);
+        await reauthenticateWithCredential(auth.currentUser,credential);
+        await fbUpdatePassword2(auth.currentUser,newPass);
+        document.getElementById("new-password").value="";
+        document.getElementById("confirm-password").value="";
+        msg.style.color="green";msg.textContent="Password updated successfully!";
+        setTimeout(()=>{msg.textContent="";},3000);
+      }catch(e2){
+        msg.style.color="#c0392b";msg.textContent="Current password incorrect. Please try again.";
+      }
     } else {
       msg.style.color="#c0392b";
-      msg.textContent="Error updating password. Please try again.";
+      msg.textContent="Error: "+e.message;
     }
   }
 };
@@ -2168,6 +2190,9 @@ function loadProfile(){
   // Firebase setup card only for admin
   const setupCard=document.getElementById("firebase-setup-card");
   if(setupCard)setupCard.style.display=currentUser.isAdmin?"block":"none";
+  // Show Founder of SMAC option only for admin
+  const founderOpt=document.getElementById("founder-option");
+  if(founderOpt)founderOpt.style.display=currentUser.isAdmin?"block":"none";
   const prof=lsGet(`smac_profile_${currentUser.uid}`)||{name:currentUser.name,business:"",type:"",ig:"",visible:"yes"};
   document.getElementById("profile-name").value=prof.name||currentUser.name;
   document.getElementById("profile-business").value=prof.business||"";
@@ -2257,12 +2282,14 @@ if(!useLocalFallback&&auth){
     if(_booted) return; // handleLogin already booted — ignore
     if(user){
       const saved = lsGet("smac_session");
-      if(saved?.name){
+      // CRITICAL: validate saved session belongs to the currently logged-in Firebase user
+      if(saved?.name && saved?.email && saved.email.toLowerCase()===user.email.toLowerCase()){
         currentUser = saved;
         _booted = true;
         bootApp();
       } else {
-        // No SMAC session — show login (do NOT signOut)
+        // Stale or mismatched session — clear it and show login
+        localStorage.removeItem("smac_session");
         document.getElementById("auth-screen").classList.remove("hidden");
       }
     } else {
