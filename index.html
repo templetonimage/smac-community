@@ -579,6 +579,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
     Ranks
   </button>
+  <button class="nav-item" id="nav-reports" onclick="navTo('reports',this);loadTrackerReport();">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+    Reports
+  </button>
   <button class="nav-item" onclick="navTo('directory',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     Members
@@ -586,10 +590,6 @@
   <button class="nav-item" onclick="navTo('profile',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     Profile
-  </button>
-  <button class="nav-item" id="nav-reports" onclick="navTo('reports',this);loadTrackerReport();">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-    Reports
   </button>
 </nav>
 
@@ -729,6 +729,8 @@ function initFirebase(){
 const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch{return null;}};
 const lsSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const lsPush=(k,i)=>{const a=lsGet(k)||[];a.unshift(i);lsSet(k,a);return a;};
+// Migrate stale admin session: clear if name is old short value
+(()=>{try{const s=lsGet("smac_session");if(s&&s.isAdmin&&s.name==="Nate"){localStorage.removeItem("smac_session");}}catch(e){}})();
 const esc=s=>{if(!s)return"";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");};
 const timeAgo=ts=>{const m=Math.floor((Date.now()-ts)/60000);if(m<1)return"Just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";const d=Math.floor(h/24);if(d<7)return d+"d ago";return new Date(ts).toLocaleDateString("en-US",{month:"short",day:"numeric"});};
 window.togglePassVisibility=function(){
@@ -2038,8 +2040,13 @@ window.submitIgPost=async function(){
 
   if(!useLocalFallback&&db){
     try{
-      // Check for duplicate URL this week
+      // Check weekly post submission limit (matches WEEKS required: 1 March, 2 April, 3 May)
       const {addDoc,collection:col,getDocs,query:q,where,orderBy:ob,updateDoc,doc:docRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const weekDef=WEEKS[weekIdx];
+      const weekLimit=weekDef?weekDef.required:1;
+      const weekCountSnap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx)));
+      if(weekCountSnap.size>=weekLimit){errEl.style.display="block";errEl.textContent=`Weekly limit reached — max ${weekLimit} post${weekLimit!==1?"s":""} this week.`;return;}
+      // Check for duplicate URL this week
       const dupCheck=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx),where("url","==",url)));
       if(!dupCheck.empty){errEl.style.display="block";errEl.textContent="You already submitted this post.";return;}
 
