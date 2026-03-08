@@ -187,7 +187,7 @@
     /* MEMBER DIRECTORY */
     .member-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
     @media(max-width:440px){.member-grid{grid-template-columns:1fr;}}
-    .member-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);transition:all .15s;}
+    .member-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);transition:all .15s;cursor:pointer;}
     .member-card:hover{border-color:var(--gold);transform:translateY(-1px);}
     .member-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
     .member-avatar-sm{width:40px;height:40px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;flex-shrink:0;}
@@ -213,6 +213,54 @@
     .field-input:focus,.field-select:focus{border-color:var(--gold);}
 
     /* MISC */
+
+    /* WELCOME MODAL */
+    .welcome-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;align-items:center;justify-content:center;padding:20px;}
+    .welcome-overlay.open{display:flex;}
+    .welcome-modal{background:var(--surface);border-radius:20px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.25);}
+    .welcome-modal-header{background:linear-gradient(135deg,var(--gold),var(--gold-dark));padding:32px 28px 24px;text-align:center;color:#fff;}
+    .welcome-modal-logo{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:0.08em;line-height:1;}
+    .welcome-modal-tagline{font-size:13px;opacity:.85;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;}
+    .welcome-modal-body{padding:24px 28px;}
+    .welcome-modal-body h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:16px;}
+    .welcome-step{display:flex;gap:14px;margin-bottom:16px;align-items:flex-start;}
+    .welcome-step-icon{font-size:22px;flex-shrink:0;margin-top:1px;}
+    .welcome-step-text{font-size:14px;line-height:1.5;}
+    .welcome-step-text strong{display:block;font-size:15px;margin-bottom:2px;}
+    .welcome-modal-footer{padding:0 28px 28px;}
+
+    /* MEMBER PROFILE MODAL */
+    .member-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:flex-end;justify-content:center;}
+    .member-modal-overlay.open{display:flex;}
+    .member-modal{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:80vh;overflow-y:auto;padding:28px 24px 40px;}
+    .member-modal-close{float:right;background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-muted);}
+    .member-modal-avatar{width:64px;height:64px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;margin:12px auto;}
+    .member-modal-name{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;text-align:center;}
+    .member-modal-biz{font-size:13px;color:var(--text-muted);text-align:center;margin-top:2px;}
+    .member-modal-badges{display:flex;gap:8px;justify-content:center;margin:12px 0;}
+    .member-modal-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 0;}
+    .member-stat{background:var(--surface2);border-radius:10px;padding:12px;text-align:center;}
+    .member-stat-val{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);}
+    .member-stat-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+    .member-modal-tracker{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:16px 0;}
+    .member-tracker-dot{height:10px;border-radius:3px;background:var(--border);}
+    .member-tracker-dot.done{background:var(--gold);}
+
+    /* ROUND ENDED BANNER */
+    .round-ended-banner{background:linear-gradient(135deg,#2d1a1a,#3d2020);border:1.5px solid #e74c3c;border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;color:#fff;}
+    .round-ended-icon{font-size:24px;flex-shrink:0;}
+    .round-ended-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;}
+    .round-ended-sub{font-size:12px;opacity:.7;margin-top:2px;}
+
+    /* PUSH NOTIFICATION CARD */
+    .notif-card{background:linear-gradient(135deg,#fffbf0,#fdf5e0);border:1.5px solid var(--gold-light);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;}
+    .notif-card-icon{font-size:28px;flex-shrink:0;}
+    .notif-card-text{flex:1;}
+    .notif-card-title{font-weight:600;font-size:14px;margin-bottom:2px;}
+    .notif-card-desc{font-size:12px;color:var(--text-muted);line-height:1.4;}
+    .notif-btn{padding:8px 16px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.04em;cursor:pointer;white-space:nowrap;}
+    .notif-btn:disabled{opacity:.5;cursor:default;}
+
     .empty-state{text-align:center;padding:48px 24px;color:var(--text-muted);}
     .empty-icon{font-size:40px;margin-bottom:12px;}
     .empty-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);margin-bottom:6px;}
@@ -296,6 +344,10 @@
 
   <!-- SUBMIT (members only) -->
   <div class="page" id="page-submit">
+    <div id="round-ended-banner" style="display:none;" class="round-ended-banner">
+      <div class="round-ended-icon">🏁</div>
+      <div><div class="round-ended-title">Round 2 Has Ended</div><div class="round-ended-sub">Submissions are closed. Thanks for an amazing 90 days!</div></div>
+    </div>
     <div class="page-header">
       <h1 class="page-title">Submit</h1>
       <p class="page-subtitle">Log your posts and engagement for points</p>
@@ -521,6 +573,16 @@
       <button class="btn-gold" onclick="saveProfile()" style="width:100%;font-size:18px;padding:13px;">Save Profile</button>
     </div>
 
+    <!-- Push Notifications card -->
+    <div class="notif-card" id="push-notif-card" style="display:none;margin-top:16px;">
+      <div class="notif-card-icon">🔔</div>
+      <div class="notif-card-text">
+        <div class="notif-card-title">Weekly Reminders</div>
+        <div class="notif-card-desc">Get notified before each week's deadline so you never miss a submission.</div>
+      </div>
+      <button class="notif-btn" id="enable-notif-btn" onclick="requestPushPermission()">Enable</button>
+    </div>
+
     <!-- Add to Home Screen card -->
     <div class="card" id="install-card" style="margin-top:16px;display:none;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">📲 Add SMAC to Your Home Screen</div>
@@ -600,6 +662,50 @@
 <!-- INSTALL BANNER -->
 
 
+
+<!-- WELCOME MODAL -->
+<div class="welcome-overlay" id="welcome-overlay">
+  <div class="welcome-modal">
+    <div class="welcome-modal-header">
+      <div class="welcome-modal-logo">SMAC</div>
+      <div class="welcome-modal-tagline">Social Media Accountability Challenge</div>
+    </div>
+    <div class="welcome-modal-body">
+      <h3>Welcome to Round 2! 👋</h3>
+      <div class="welcome-step">
+        <div class="welcome-step-icon">📸</div>
+        <div class="welcome-step-text"><strong>Submit your posts</strong>Hit Submit each week after you post on Instagram. March = 1/week, April = 2/week, May = 3/week.</div>
+      </div>
+      <div class="welcome-step">
+        <div class="welcome-step-icon">✅</div>
+        <div class="welcome-step-text"><strong>Check your Tracker</strong>Mark off each week as complete. Hit the 4-week streak bonus for +25 pts.</div>
+      </div>
+      <div class="welcome-step">
+        <div class="welcome-step-icon">🤝</div>
+        <div class="welcome-step-text"><strong>Engage with members</strong>Like, comment, share, or save other members' posts and log it for +2 pts each (max 5/week).</div>
+      </div>
+      <div class="welcome-step">
+        <div class="welcome-step-icon">⭐</div>
+        <div class="welcome-step-text"><strong>Earn All-Star status</strong>Complete every weekly requirement across all 12 weeks — 24 total posts — to become a SMAC All-Star.</div>
+      </div>
+    </div>
+    <div class="welcome-modal-footer">
+      <button class="btn-gold" onclick="closeWelcomeModal()" style="font-size:18px;padding:13px;">Let's Go! 🚀</button>
+      <div style="text-align:center;margin-top:12px;">
+        <button onclick="closeWelcomeModal()" style="background:none;border:none;font-size:12px;color:var(--text-muted);cursor:pointer;">Don't show this again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MEMBER PROFILE MODAL -->
+<div class="member-modal-overlay" id="member-modal-overlay" onclick="closeMemberModal(event)">
+  <div class="member-modal" id="member-modal-content">
+    <button class="member-modal-close" onclick="closeMemberModalDirect()">✕</button>
+    <div id="member-modal-body"></div>
+  </div>
+</div>
+
 <!-- RESOURCE MODAL -->
 <div class="res-modal-overlay" id="res-modal-overlay" onclick="closeResModal(event)">
   <div class="res-modal" id="res-modal">
@@ -637,6 +743,8 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "533376960532",
   appId: "1:533376960532:web:3c969a34e05dd26b30bf01"
 };
+
+
 
 // ─────────────────────────────────────────────
 //  🔑 PASSCODES  (change before going live!)
@@ -830,6 +938,10 @@ function bootApp(){
   }
   loadFeed();loadAnnouncements();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();
   if(currentUser.isAdmin)setTimeout(initPasswordField,500);
+  // New features
+  setTimeout(showWelcomeModal, 600);
+  setTimeout(initPushNotifications, 1000);
+  setTimeout(checkRoundEnd, 300);
 }
 
 // ─────────────────────────────────────────────
@@ -841,7 +953,7 @@ window.navTo=function(page,el){
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   document.getElementById("page-"+page).classList.add("active");
   if(el)el.classList.add("active");
-  window.scrollTo(0,0);
+  const scroller=document.getElementById("app-scroll");if(scroller)scroller.scrollTop=0;
   if(page==="directory")loadDirectory();
   if(page==="leaderboard")loadLeaderboard();
   if(page==="submit"){loadSubmitPage();}
@@ -1390,7 +1502,7 @@ function renderAdminRegistry(registry, list){
       <div style="font-size:11px;color:var(--text-muted);margin:6px 0 4px;">
         Rounds: ${["R2","R3","R4"].map(r=>`<span style="padding:1px 5px;border-radius:4px;background:${(m.rounds||[]).includes(r)||m.isFounder?"var(--gold)":"var(--border)"};color:${(m.rounds||[]).includes(r)||m.isFounder?"#000":"var(--text-muted)"};font-weight:600;margin-right:2px;">${r}</span>`).join("")}
       </div>
-      ${igUrl?`<a class="member-ig-btn" href="${igUrl}" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${esc(m.ig)}</a>`:""}
+      ${igUrl?`<a class="member-ig-btn" href="${igUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${esc(m.ig)}</a>`:""}
       <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
         <div style="display:flex;gap:4px;flex-wrap:wrap;">
           <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryRound('${docId}','R2')">R2 ${(m.rounds||[]).includes("R2")||m.isFounder?"✓":""}</button>
@@ -1410,16 +1522,18 @@ function renderAdminRegistry(registry, list){
   renderEngagementReport(sorted);
 }
 
+let _memberMap={};
 function renderMemberGrid(members, list, isAdmin){
   const sorted=[...members].sort((a,b)=>{
     if(a.isAllStar&&!b.isAllStar)return -1;
     if(!a.isAllStar&&b.isAllStar)return 1;
     return a.name.localeCompare(b.name);
   });
+  sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; });
   list.innerHTML=`<div class="member-grid">${sorted.map(m=>{
     const initials=m.name.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
-    const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";
-    return `<div class="member-card">
+    const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";const mapKey=m.id||m.uid||m.name;
+    return `<div class="member-card" data-member-key="${mapKey}" onclick="handleMemberCardClick(this)">
       <div class="member-card-top">
         <div class="member-avatar-sm">${initials}</div>
         <div><div class="member-name">${esc(m.name)}</div>${m.business?`<div class="member-biz">${esc(m.business)}</div>`:""}</div>
@@ -1430,7 +1544,7 @@ function renderMemberGrid(members, list, isAdmin){
         ${m.isAllStar?`<div class="member-allstar-badge">⭐ All-Star</div>`:""}
       </div>
       ${m.type?`<span class="member-type-tag">${esc(m.type)}</span>`:""}
-      ${igUrl?`<a class="member-ig-btn" href="${igUrl}" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${esc(m.ig)}</a>`:`<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:6px 0;">No Instagram linked yet</div>`}
+      ${igUrl?`<a class="member-ig-btn" href="${igUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${esc(m.ig)}</a>`:`<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:6px 0;">No Instagram linked yet</div>`}
     </div>`;
   }).join("")}</div>`;
 }
@@ -1723,7 +1837,7 @@ window.createMemberAccount=async function(){
       const existing=await getDocs(q(col(db,"smac_registry"),where("email","==",email)));
       if(!existing.empty){errEl.style.display="block";errEl.textContent=email+" already exists in the registry. Auth user was created — use the password shown for their login.";btn.disabled=false;btn.textContent="Create Account";return;}
       await aDoc(col(db,"smac_registry"),member);
-    }catch(e){errEl.style.display="block";errEl.textContent="Auth user created but Firestore failed: "+e.message;btn.disabled=false;btn.textContent="Create Account";return;}
+    }catch(e){errEl.style.display="block";errEl.textContent="Auth user created but Firestore failed: "+e.message;logPlatformError("createMemberAccount_firestore",e.message);btn.disabled=false;btn.textContent="Create Account";return;}
   }else{const reg=lsGet("smac_registry")||[];reg.push({...member,id:uid});lsSet("smac_registry",reg);}
   // Step 3: Show result
   _lastCreatedMember={name,email,password};
@@ -2437,6 +2551,174 @@ initFirebase();
 // IMPORTANT: onAuthStateChanged fires during signInWithEmailAndPassword.
 // We must NEVER call signOut here — it kills the auth token mid-login.
 // This listener is ONLY for page-refresh restoration.
+
+// ─────────────────────────────────────────────
+//  ROUND END DETECTION
+// ─────────────────────────────────────────────
+const ROUND_END_TS = Date.UTC(2026,5,1,3,59,59,999); // Jun 1 00:00 ET = Jun 1 03:59:59 UTC (May 31 end)
+function isRoundOver(){ return Date.now() > ROUND_END_TS; }
+function checkRoundEnd(){
+  if(!isRoundOver()) return;
+  const banner = document.getElementById("round-ended-banner");
+  if(banner) banner.style.display = "flex";
+  // Disable submit buttons
+  const submitBtn = document.querySelector('#page-submit .btn-post');
+  if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = "Round Ended"; submitBtn.style.opacity = "0.5"; }
+  const engBtn = document.getElementById("eng-submit-btn");
+  if(engBtn){ engBtn.disabled = true; engBtn.textContent = "Round Ended"; engBtn.style.opacity = "0.5"; }
+}
+
+// ─────────────────────────────────────────────
+//  WELCOME MODAL
+// ─────────────────────────────────────────────
+function showWelcomeModal(){
+  const key = "smac_welcomed_" + (currentUser?.uid||"");
+  if(localStorage.getItem(key)) return;
+  document.getElementById("welcome-overlay").classList.add("open");
+}
+window.closeWelcomeModal = function(){
+  document.getElementById("welcome-overlay").classList.remove("open");
+  const key = "smac_welcomed_" + (currentUser?.uid||"");
+  localStorage.setItem(key, "1");
+};
+
+// ─────────────────────────────────────────────
+//  PUSH NOTIFICATIONS
+// ─────────────────────────────────────────────
+function initPushNotifications(){
+  if(!("Notification" in window) || !("serviceWorker" in navigator)) return;
+  const card = document.getElementById("push-notif-card");
+  const btn = document.getElementById("enable-notif-btn");
+  if(!card || !btn) return;
+  if(Notification.permission === "granted"){
+    card.style.display = "none"; // Already enabled — hide card
+    schedulePushReminders();
+    return;
+  }
+  if(Notification.permission !== "denied"){
+    card.style.display = "flex";
+  }
+}
+window.requestPushPermission = async function(){
+  const btn = document.getElementById("enable-notif-btn");
+  if(btn){ btn.disabled = true; btn.textContent = "Enabling..."; }
+  try {
+    const permission = await Notification.requestPermission();
+    if(permission === "granted"){
+      showToast("🔔 Reminders enabled!");
+      schedulePushReminders();
+      const card = document.getElementById("push-notif-card");
+      if(card) card.style.display = "none";
+    } else {
+      showToast("Notifications blocked — enable in browser settings");
+      if(btn){ btn.disabled = false; btn.textContent = "Enable"; }
+    }
+  } catch(e){
+    if(btn){ btn.disabled = false; btn.textContent = "Enable"; }
+  }
+};
+function schedulePushReminders(){
+  // Schedule a local notification for each week's deadline (24h before)
+  WEEK_SCHEDULE.forEach(([start, end], i) => {
+    const reminderTime = end - (24 * 60 * 60 * 1000); // 24h before deadline
+    const now = Date.now();
+    if(reminderTime <= now) return; // Past — skip
+    const delay = reminderTime - now;
+    if(delay > 2147483647) return; // setTimeout max ~24.8 days — skip distant weeks
+    setTimeout(() => {
+      if(Notification.permission === "granted"){
+        const w = WEEKS[i];
+        new Notification("⏰ SMAC Deadline Tomorrow", {
+          body: `${w.month} ${w.label} ends tomorrow — don't forget to submit your post!`,
+          icon: "./icon-192.png",
+          badge: "./icon-192.png",
+          tag: "smac-reminder-w" + i
+        });
+      }
+    }, delay);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  MEMBER PROFILE MODAL
+// ─────────────────────────────────────────────
+window.openMemberProfile = async function(uid, name, data){
+  const overlay = document.getElementById("member-modal-overlay");
+  const body = document.getElementById("member-modal-body");
+  overlay.classList.add("open");
+  body.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Loading...</div></div>';
+
+  try {
+    // Load tracker
+    let trackerData = {};
+    let submissionCount = data.totalPosts || 0;
+    if(db && !useLocalFallback){
+      const {getDoc: gd, doc: dc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const tSnap = await gd(dc(db, "trackers", uid));
+      if(tSnap.exists()) trackerData = tSnap.data();
+    }
+
+    const initials = (name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    const pts = data.points || 0;
+    const ig = data.ig || "";
+    const biz = data.business || "";
+    const badges = `${data.isAllStar?"<span class='badge badge-allstar'>⭐ All-Star</span>":""}${data.isFounder?"<span class='badge badge-round'>🏅 Founder</span>":""}${data.isVIP?"<span class='badge badge-round'>⚡ VIP</span>":""}`;
+
+    const trackerDots = WEEKS.map(w => {
+      const done = trackerData[w.id] === true;
+      return `<div class="member-tracker-dot${done?" done":""}" title="${w.label} ${w.dates}"></div>`;
+    }).join("");
+
+    const completedWeeks = WEEKS.filter(w => trackerData[w.id] === true).length;
+
+    body.innerHTML = `
+      <div class="member-modal-avatar">${initials}</div>
+      <div class="member-modal-name">${esc(name)}</div>
+      <div class="member-modal-biz">${esc(biz)}</div>
+      <div class="member-modal-badges">${badges}</div>
+      <div class="member-modal-stats">
+        <div class="member-stat"><div class="member-stat-val">${pts}</div><div class="member-stat-label">Points</div></div>
+        <div class="member-stat"><div class="member-stat-val">${submissionCount}</div><div class="member-stat-label">Posts</div></div>
+        <div class="member-stat"><div class="member-stat-val">${completedWeeks}/12</div><div class="member-stat-label">Weeks</div></div>
+      </div>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:8px;">12-Week Progress</div>
+      <div class="member-modal-tracker">${trackerDots}</div>
+      ${ig ? `<a href="https://instagram.com/${esc(ig.replace('@',''))}" target="_blank" class="card-link" style="display:flex;justify-content:center;margin-top:8px;">📸 @${esc(ig.replace('@',''))}</a>` : ""}
+    `;
+  } catch(e){
+    body.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load profile</div></div>';
+  }
+};
+window.closeMemberModal = function(e){
+  if(e && e.target !== document.getElementById("member-modal-overlay")) return;
+  document.getElementById("member-modal-overlay").classList.remove("open");
+};
+window.handleMemberCardClick = function(card){
+  // Don't trigger if user clicked the IG link inside the card
+  const key = card.getAttribute("data-member-key");
+  const m = _memberMap[key];
+  if(!m) return;
+  openMemberProfile(m.id||m.uid||key, m.name, m);
+};
+window.closeMemberModalDirect = function(){
+  document.getElementById("member-modal-overlay").classList.remove("open");
+};
+
+// ─────────────────────────────────────────────
+//  MAKE ERROR ALERTING (Admin self-notify)
+// ─────────────────────────────────────────────
+// Called from createMemberAccount on failure — logs to Firestore errors collection
+async function logPlatformError(context, message){
+  try {
+    if(!db || useLocalFallback) return;
+    const {addDoc: ad, collection: col} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await ad(col(db, "platform_errors"), {
+      context, message, timestamp: Date.now(),
+      reportedBy: currentUser?.email || "system"
+    });
+  } catch(e){ console.error("logPlatformError failed:", e); }
+}
+
 // handleLogin() calls bootApp() directly after successful sign-in.
 let _booted = false;
 if(!useLocalFallback&&auth){
