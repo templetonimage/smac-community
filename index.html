@@ -744,8 +744,6 @@ const FIREBASE_CONFIG = {
   appId: "1:533376960532:web:3c969a34e05dd26b30bf01"
 };
 
-
-
 // ─────────────────────────────────────────────
 //  🔑 PASSCODES  (change before going live!)
 // ─────────────────────────────────────────────
@@ -832,7 +830,7 @@ let db=null, auth=null, currentUser=null, useLocalFallback=false, activeFilter="
 
 function initFirebase(){
   try {
-    if(_a==="YOUR_API"||!_a||_b==="_KEY_PART2"){useLocalFallback=true;return;}
+    if(!_a||!_b){useLocalFallback=true;return;}
     const app=initializeApp(FIREBASE_CONFIG);
     db=getFirestore(app);
     auth=getAuth(app);
@@ -1444,12 +1442,16 @@ function loadDirectory(){
           renderAdminRegistry(registry,list);
         } else {
           const members=registry.filter(m=>m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND));
-          if(!members.length){
+          // Inject admin as first entry in member directory
+          const prof=lsGet(`smac_profile_${currentUser.uid}`)||{};
+          const adminEntry={id:"admin",uid:"admin",name:"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
+          const membersWithAdmin=[adminEntry,...members];
+          if(!membersWithAdmin.length){
             list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
 </div></div>`;
             return;
           }
-          renderMemberGrid(members,list,false);
+          renderMemberGrid(membersWithAdmin,list,false);
         }
       }).catch(e=>console.error("Directory load error:",e));
     });
@@ -1463,12 +1465,15 @@ function loadDirectory(){
   } else {
     // Members see only current Round enrollees
     const members=getRegistryForCurrentRound();
-    if(!members.length){
+    const prof=lsGet(`smac_profile_${currentUser.uid}`)||{};
+    const adminEntry={id:"admin",uid:"admin",name:"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
+    const membersWithAdmin=[adminEntry,...members];
+    if(!membersWithAdmin.length){
       list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
 </div></div>`;
       return;
     }
-    renderMemberGrid(members, list, false);
+    renderMemberGrid(membersWithAdmin, list, false);
   }
 }
 
@@ -1533,18 +1538,20 @@ function renderMemberGrid(members, list, isAdmin){
   list.innerHTML=`<div class="member-grid">${sorted.map(m=>{
     const initials=m.name.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
     const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";const mapKey=m.id||m.uid||m.name;
-    return `<div class="member-card" data-member-key="${mapKey}" onclick="handleMemberCardClick(this)">
+    const isAdminCard=m._isAdmin===true;
+    return `<div class="member-card" data-member-key="${mapKey}" onclick="handleMemberCardClick(this)" style="${isAdminCard?"border-color:var(--gold);background:linear-gradient(135deg,#fffbf0,#fdf5e0);":""}">
       <div class="member-card-top">
-        <div class="member-avatar-sm">${initials}</div>
+        <div class="member-avatar-sm" style="${isAdminCard?"background:linear-gradient(135deg,var(--gold),var(--gold-dark));":""}">${initials}</div>
         <div><div class="member-name">${esc(m.name)}</div>${m.business?`<div class="member-biz">${esc(m.business)}</div>`:""}</div>
       </div>
       <div style="margin-bottom:4px;">
+        ${isAdminCard?`<span class="member-type-tag" style="background:var(--gold);color:#fff;margin-bottom:4px;display:inline-block;">🔐 Admin</span><br>`:""}
         ${m.isFounder?`<span class="member-founder-badge">🏅 Founder</span>`:""}
         ${m.isVIP?`<span class="member-vip-badge">⚡ VIP</span>`:""}
         ${m.isAllStar?`<div class="member-allstar-badge">⭐ All-Star</div>`:""}
       </div>
-      ${m.type?`<span class="member-type-tag">${esc(m.type)}</span>`:""}
-      ${igUrl?`<a class="member-ig-btn" href="${igUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${esc(m.ig)}</a>`:`<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:6px 0;">No Instagram linked yet</div>`}
+      ${!isAdminCard&&m.type?`<span class="member-type-tag">${esc(m.type)}</span>`:""}
+      ${igUrl?`<a class="member-ig-btn" href="${igUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${esc(m.ig)}</a>`:`<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:6px 0;">${isAdminCard?"SMAC Founder":"No Instagram linked yet"}</div>`}
     </div>`;
   }).join("")}</div>`;
 }
@@ -2477,10 +2484,24 @@ function loadProfile(){
 
   renderProfileHero(prof);
 }
-function renderProfileHero(prof){
+async function renderProfileHero(prof){
   const initials=(prof.name||currentUser.name).split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
   const tracked=lsGet(`smac_tracker_${currentUser.uid}`)||{};
   const isAllStar=WEEKS.every(w=>{const c=tracked[w.id]||[];return c.filter(Boolean).length>=w.required;});
+
+  // Pull live points + totalPosts from Firestore registry
+  let pts=0, totalPosts=0;
+  if(currentUser.isAdmin){
+    pts=parseInt(localStorage.getItem("smac_admin_pts")||"0",10);
+    totalPosts=0;
+  } else if(!useLocalFallback&&db&&currentUser.registryId){
+    try{
+      const {getDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap=await getDoc(dc(db,"smac_registry",currentUser.registryId));
+      if(snap.exists()){const d=snap.data();pts=d.points||0;totalPosts=d.totalPosts||0;}
+    }catch(e){}
+  }
+
   document.getElementById("profile-hero").innerHTML=`
     <div class="profile-avatar">${initials}</div>
     <div class="profile-name">${esc(prof.name||currentUser.name)}</div>
@@ -2489,6 +2510,16 @@ function renderProfileHero(prof){
       <span class="badge badge-round">Round 2 · 2026</span>
       ${isAllStar?`<span class="badge badge-allstar">⭐ All-Star</span>`:""}
       ${currentUser.isAdmin?`<span class="badge" style="background:#1a1a1a;color:#fff;">Admin</span>`:""}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1;">${pts}</div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;">Points</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1;">${totalPosts}</div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;">Posts</div>
+      </div>
     </div>`;
 }
 window.saveProfile=function(){
@@ -2647,6 +2678,21 @@ window.openMemberProfile = async function(uid, name, data){
   const body = document.getElementById("member-modal-body");
   overlay.classList.add("open");
   body.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Loading...</div></div>';
+
+  // Admin synthetic card — show static profile, no Firestore lookup needed
+  if(data && data._isAdmin){
+    const igHandle=(data.ig||"").trim().replace(/^@+/,"");
+    const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";
+    body.innerHTML=`
+      <div class="member-modal-avatar" style="background:linear-gradient(135deg,var(--gold),var(--gold-dark));">NT</div>
+      <div class="member-modal-name">Nate Templeton</div>
+      <div class="member-modal-biz">Founder of SMAC</div>
+      <div class="member-modal-badges"><span class="badge badge-round">🔐 Admin</span><span class="badge badge-round">🏅 Founder</span></div>
+      <div style="font-size:13px;color:var(--text-muted);text-align:center;margin:16px 0;line-height:1.5;">Running the show behind the scenes. Questions? Reach out via Instagram or email.</div>
+      ${igUrl?`<a href="${igUrl}" target="_blank" class="card-link" style="display:flex;justify-content:center;margin-top:8px;" onclick="event.stopPropagation()">📸 ${esc(data.ig)}</a>`:""}
+    `;
+    return;
+  }
 
   try {
     // Load tracker
