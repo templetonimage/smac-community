@@ -20,13 +20,14 @@
       --radius:12px;--shadow:0 2px 16px rgba(0,0,0,0.07);--shadow-lg:0 8px 40px rgba(0,0,0,0.12);
     }
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    html{height:100%;height:100dvh;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100%;height:100dvh;-webkit-font-smoothing:antialiased;overflow:hidden;}
     h1,h2,h3{font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em;}
 
     /* AUTH */
-    #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+    #auth-screen{height:100%;display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
     #auth-screen.hidden{display:none!important;}
-    #app.visible{display:block!important;}
+    #app.visible{display:flex!important;}
     .auth-card{background:var(--surface);border-radius:20px;padding:48px 40px;width:100%;max-width:400px;box-shadow:var(--shadow-lg);border:1px solid var(--border);text-align:center;}
     .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:72px;letter-spacing:0.08em;color:var(--gold);line-height:1;margin-bottom:4px;}
     .auth-subtitle{font-size:13px;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:40px;}
@@ -40,7 +41,7 @@
     .auth-round-badge{display:inline-block;background:var(--gold);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.1em;padding:4px 12px;border-radius:20px;margin-bottom:32px;}
 
     /* APP */
-    #app{display:none;min-height:100vh;min-height:100dvh;padding-bottom:80px;-webkit-overflow-scrolling:touch;}
+    #app{display:none;position:fixed;inset:0;flex-direction:column;overflow:hidden;}
     .topnav{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:60px;}
     .topnav-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);letter-spacing:0.06em;}
     .topnav-right{display:flex;align-items:center;gap:12px;}
@@ -50,13 +51,16 @@
     .btn-sm:hover{border-color:var(--gold);color:var(--gold);}
 
     /* BOTTOM NAV */
-    .bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;height:68px;padding-bottom:env(safe-area-inset-bottom);will-change:transform;transform:translateZ(0);-webkit-transform:translateZ(0);}
+    .bottomnav{position:relative;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;min-height:68px;height:calc(68px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);flex-shrink:0;}
     .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;color:var(--text-muted);font-size:9px;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.03em;transition:color .15s;padding:8px 2px;}
     .nav-item svg{width:20px;height:20px;}
     .nav-item.active{color:var(--gold);}
 
+    /* SCROLL WRAPPER */
+    #app-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+
     /* PAGES */
-    .page{display:none;padding:20px;max-width:680px;margin:0 auto;}
+    .page{display:none;padding:20px;max-width:680px;margin:0 auto;padding-bottom:20px;}
     .page.active{display:block;}
     .page-header{margin-bottom:24px;}
     .page-title{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:0.04em;line-height:1;}
@@ -250,6 +254,7 @@
 
 <!-- APP -->
 <div id="app" style="display:none;">
+  <div id="app-scroll">
   <nav class="topnav">
     <div class="topnav-logo">SMAC</div>
     <div class="topnav-right">
@@ -555,10 +560,8 @@
     </div>
   </div>
 </div>
-</div><!-- /app -->
-
-<!-- BOTTOM NAV -->
-<nav class="bottomnav" id="bottomnav" style="display:none;">
+  </div><!-- /app-scroll -->
+  <nav class="bottomnav" id="bottomnav" style="display:none;">
   <button class="nav-item active" onclick="navTo('feed',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     Feed
@@ -591,7 +594,8 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     Profile
   </button>
-</nav>
+  </nav>
+</div><!-- /app -->
 
 <!-- INSTALL BANNER -->
 
@@ -2214,6 +2218,16 @@ window.loadLeaderboard=async function(){
         snap=await getDocs(col(db,"smac_registry"));
       }
       members=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.name&&(m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND))).sort((a,b)=>(b.points||0)-(a.points||0));
+      // Inject admin as a synthetic leaderboard entry if not already in registry
+      if(currentUser&&currentUser.isAdmin){
+        const adminInRegistry=members.some(m=>m.email===currentUser.email);
+        if(!adminInRegistry){
+          const adminPts=parseInt(localStorage.getItem("smac_admin_pts")||"0",10);
+          const prof=lsGet(`smac_profile_${currentUser.uid}`)||{};
+          members.push({name:currentUser.name,email:currentUser.email,points:adminPts,totalPosts:0,ig:prof.ig||"",isFounder:true,isVIP:false,isAllStar:false,_isAdminSynthetic:true});
+          members.sort((a,b)=>(b.points||0)-(a.points||0));
+        }
+      }
     }catch(e){console.error("Leaderboard error:",e);el.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load leaderboard</div><div class="empty-desc">'+e.message+'</div></div>';return;}
   }
   if(!members.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">No scores yet</div><div class="empty-desc">Submit your first post to get on the board!</div></div>';return;}
