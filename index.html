@@ -27,7 +27,7 @@
     /* AUTH */
     #auth-screen{height:100%;display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
     #auth-screen.hidden{display:none!important;}
-    #app.visible{display:block!important;}
+    #app.visible{display:block!important;} /* app-scroll handles positioning */
     .auth-card{background:var(--surface);border-radius:20px;padding:48px 40px;width:100%;max-width:400px;box-shadow:var(--shadow-lg);border:1px solid var(--border);text-align:center;}
     .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:72px;letter-spacing:0.08em;color:var(--gold);line-height:1;margin-bottom:4px;}
     .auth-subtitle{font-size:13px;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:40px;}
@@ -41,7 +41,7 @@
     .auth-round-badge{display:inline-block;background:var(--gold);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.1em;padding:4px 12px;border-radius:20px;margin-bottom:32px;}
 
     /* APP */
-    #app{display:none;position:fixed;inset:0;}
+    #app{display:none;}
     .topnav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:60px;}
     .topnav-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);letter-spacing:0.06em;}
     .topnav-right{display:flex;align-items:center;gap:12px;}
@@ -359,9 +359,8 @@
   </div>
 </div>
 
-<!-- APP -->
-<div id="app">
-  <nav class="topnav">
+<!-- FIXED NAV BARS — outside #app so display:none on #app doesn't affect them -->
+<nav class="topnav" id="topnav" style="display:none;">
     <div class="topnav-logo" onclick="navTo('feed',document.getElementById('nav-feed'))" style="cursor:pointer;">SMAC</div>
     <div class="topnav-right">
       <span class="topnav-user" id="topnav-username"></span>
@@ -371,6 +370,9 @@
       </button>
     </div>
   </nav>
+
+<!-- APP -->
+<div id="app">
   <div id="app-scroll">
 
   <!-- FEED -->
@@ -740,8 +742,9 @@
       </div>
     </div>
   </div><!-- /app-scroll -->
+</div><!-- /app -->
 
-  <nav class="bottomnav" id="bottomnav" style="display:none;">
+<nav class="bottomnav" id="bottomnav" style="display:none;">
   <button class="nav-item active" id="nav-feed" onclick="navTo('feed',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     Feed
@@ -776,7 +779,6 @@
     Members
   </button>
   </nav>
-</div><!-- /app -->
 
 <!-- INSTALL BANNER -->
 
@@ -1064,13 +1066,13 @@ window.handleLogin=async function(){
 window.handleLogout=async function(){
   try{if(auth)await signOut(auth);}catch(e){}
   localStorage.removeItem("smac_session");currentUser=null;
-  document.getElementById("app").classList.remove("visible");
+  document.getElementById("app").classList.remove("visible");document.getElementById("topnav").style.display="none";
   document.getElementById("auth-screen").classList.remove("hidden");
   document.getElementById("bottomnav").style.display="none";
 };
 function bootApp(){
   document.getElementById("auth-screen").classList.add("hidden");
-  const _appEl=document.getElementById("app");_appEl.removeAttribute("style");_appEl.classList.add("visible");
+  const _appEl=document.getElementById("app");_appEl.removeAttribute("style");_appEl.classList.add("visible");document.getElementById("topnav").style.display="flex";
   document.getElementById("bottomnav").style.display="flex";
   document.getElementById("topnav-username").innerHTML=`<strong>${currentUser.name}</strong>${currentUser.isAdmin?" 🔐":""}`;
   // Show topnav profile avatar
