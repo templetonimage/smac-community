@@ -57,10 +57,10 @@
     .nav-item.active{color:var(--gold);}
 
     /* SCROLL WRAPPER */
-    #app-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+    #app-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;}
 
     /* PAGES */
-    .page{display:none;padding:20px;max-width:680px;margin:0 auto;padding-bottom:20px;}
+    .page{display:none;padding:20px;max-width:680px;margin:0 auto;padding-bottom:20px;min-height:100%;box-sizing:border-box;}
     .page.active{display:block;}
     .page-header{margin-bottom:24px;}
     .page-title{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:0.04em;line-height:1;}
@@ -947,6 +947,7 @@ const MONTH_REQS={"March":"1 post/week","April":"2 posts/week","May":"3 posts/we
 // ─────────────────────────────────────────────
 let db=null, auth=null, currentUser=null, useLocalFallback=false, activeFilter="All", cachedResources=[], cachedLeaderboard=[];
 let _photoCache={}; // uid -> photoURL, populated from registry on load
+let _trackerCache={}; // uid -> tracker doc, populated on boot
 
 // Returns an avatar div — shows photo if available, else initials
 function avatarHTML(name, uid, cssClass, extraStyle=""){
@@ -963,12 +964,13 @@ function primePhotoCache(registryDocs){
   registryDocs.forEach(m=>{ if(m.photoURL&&m.uid) _photoCache[m.uid]=m.photoURL; });
 }
 
+let _firebaseApp=null;
 function initFirebase(){
   try {
     if(!_a||!_b){useLocalFallback=true;return;}
-    const app=initializeApp(FIREBASE_CONFIG);
-    db=getFirestore(app);
-    auth=getAuth(app);
+    _firebaseApp=initializeApp(FIREBASE_CONFIG);
+    db=getFirestore(_firebaseApp);
+    auth=getAuth(_firebaseApp);
   } catch(e){useLocalFallback=true;}
 }
 const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch{return null;}};
@@ -1095,11 +1097,14 @@ function bootApp(){
   if(!useLocalFallback&&db){
     import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({getDocs,collection:col})=>{
       try{
-        const snap=await getDocs(col(db,"smac_registry"));
-        primePhotoCache(snap.docs.map(d=>({uid:d.id,...d.data()})));
-        // Also store current user's own photoURL
+        const [regSnap,trackerSnap]=await Promise.all([
+          getDocs(col(db,"smac_registry")),
+          getDocs(col(db,"trackers"))
+        ]);
+        primePhotoCache(regSnap.docs.map(d=>({uid:d.id,...d.data()})));
+        trackerSnap.docs.forEach(d=>{ _trackerCache[d.id]=d.data(); });
         if(!currentUser.isAdmin){
-          const me=snap.docs.find(d=>d.id===currentUser.uid);
+          const me=regSnap.docs.find(d=>d.id===currentUser.uid);
           if(me&&me.data().photoURL)currentUser.photoURL=me.data().photoURL;
         }
       }catch(e){}
@@ -1740,6 +1745,7 @@ window.toggleCheck=async function(wid,idx){
     try{
       // Sync tracker doc
       await setDoc(doc(db,"trackers",currentUser.uid),{name:currentUser.name,uid:currentUser.uid,tracked,updatedAt:Date.now()},{merge:true});
+      _trackerCache[currentUser.uid]={name:currentUser.name,uid:currentUser.uid,tracked,updatedAt:Date.now()};
       // Sync totalPosts to registry so Profile + Reports stay in sync
       if(currentUser.registryId){
         const {updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
@@ -2730,7 +2736,10 @@ window.loadLeaderboard=async function(){
   cachedLeaderboard=members;
   el.innerHTML=members.map((m,i)=>{
     const pts=m.points||0;
-    const posts=m.totalPosts||0;
+    // Use tracker-based post count (same source as Reports/Profile)
+    const trackerDoc=_trackerCache[m.id||m.uid||""]||{};
+    const trackerPosts=WEEKS.reduce((s,w)=>{const c=(trackerDoc.tracked||{})[w.id]||[];return s+c.filter(Boolean).length;},0);
+    const posts=trackerPosts||m.totalPosts||0;
     const milestones=getMilestoneBadges(posts);
     const badges=`${m.isAllStar?"⭐":""}${m.isFounder?"🏅":""}${m.isVIP?"⚡":""}${milestones}`;
     return`<div class="leaderboard-row">
@@ -3336,7 +3345,7 @@ window.removeProfilePhoto=async function(){
 async function uploadProfilePhoto(uid, dataUrl){
   try{
     const {getStorage,ref,uploadString,getDownloadURL}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
-    const storage=getStorage();
+    const storage=getStorage(_firebaseApp);
     const storageRef=ref(storage,`profile_photos/${uid}.jpg`);
     await uploadString(storageRef,dataUrl,"data_url");
     const url=await getDownloadURL(storageRef);
@@ -3351,7 +3360,7 @@ async function uploadProfilePhoto(uid, dataUrl){
 async function deleteProfilePhoto(uid){
   try{
     const {getStorage,ref,deleteObject}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
-    const storage=getStorage();
+    const storage=getStorage(_firebaseApp);
     const storageRef=ref(storage,`profile_photos/${uid}.jpg`);
     await deleteObject(storageRef).catch(()=>{});
   }catch(e){}
