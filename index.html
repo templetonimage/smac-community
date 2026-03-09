@@ -41,7 +41,7 @@
     .auth-round-badge{display:inline-block;background:var(--gold);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.1em;padding:4px 12px;border-radius:20px;margin-bottom:32px;}
 
     /* APP */
-    #app{display:none!important;position:fixed;inset:0;flex-direction:column;overflow:hidden;}
+    #app{display:none;position:fixed;inset:0;flex-direction:column;overflow:hidden;}
     .topnav{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:60px;}
     .topnav-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);letter-spacing:0.06em;}
     .topnav-right{display:flex;align-items:center;gap:12px;}
@@ -51,16 +51,16 @@
     .btn-sm:hover{border-color:var(--gold);color:var(--gold);}
 
     /* BOTTOM NAV */
-    .bottomnav{position:sticky;bottom:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;min-height:68px;height:calc(68px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);flex-shrink:0;}
+    .bottomnav{position:relative;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;min-height:68px;height:calc(68px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);flex-shrink:0;}
     .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;color:var(--text-muted);font-size:9px;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.03em;transition:color .15s;padding:8px 2px;}
     .nav-item svg{width:20px;height:20px;}
     .nav-item.active{color:var(--gold);}
 
     /* SCROLL WRAPPER */
-    #app-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;}
+    #app-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 
     /* PAGES */
-    .page{display:none;padding:20px;max-width:680px;margin:0 auto;padding-bottom:20px;min-height:100%;box-sizing:border-box;}
+    .page{display:none;padding:20px;max-width:680px;margin:0 auto;padding-bottom:20px;}
     .page.active{display:block;}
     .page-header{margin-bottom:24px;}
     .page-title{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:0.04em;line-height:1;}
