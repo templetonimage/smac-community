@@ -159,6 +159,11 @@
     .res-modal-footer{padding:4px 24px 32px;}
     .res-modal-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;background:var(--gold);color:#fff;border:none;border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;cursor:pointer;text-decoration:none;transition:background .15s;}
     .res-modal-btn:hover{background:var(--gold-dark);}
+    .res-admin-btns{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:2;}
+    .res-edit-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text);transition:background .15s;}
+    .res-edit-btn:hover{background:var(--gold);color:#fff;border-color:var(--gold);}
+    .res-delete-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-size:11px;cursor:pointer;color:#c0392b;transition:background .15s;}
+    .res-delete-btn:hover{background:#fdecea;border-color:#c0392b;}
 
     /* TRACKER */
     .tracker-header{background:linear-gradient(135deg,var(--gold),var(--gold-dark));border-radius:var(--radius);padding:20px;color:#fff;margin-bottom:20px;}
@@ -431,7 +436,7 @@
       <h1 class="page-title">Resources</h1>
       <p class="page-subtitle">Content strategy guides and tools — click any card to read</p>
     </div>
-    <div class="compose-box admin-compose" id="admin-resource-compose" style="display:none;">
+    <div class="compose-box admin-compose" id="admin-res-compose" style="display:none;">
       <div class="admin-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:14px;">
         <span class="admin-banner-icon">🔐</span>
         <div><div class="admin-banner-title">Add Resource</div></div>
@@ -926,12 +931,12 @@ function bootApp(){
   document.getElementById("topnav-username").innerHTML=`<strong>${currentUser.name}</strong>${currentUser.isAdmin?" 🔐":""}`;
   if(currentUser.isAdmin){
     document.getElementById("admin-compose").style.display="block";
-    document.getElementById("admin-resource-compose").style.display="block";
+    document.getElementById("admin-res-compose").style.display="block";
     document.getElementById("change-password-card").style.display="block";
     showFirebaseSetupCard();
   } else {
     document.getElementById("admin-compose").style.display="none";
-    document.getElementById("admin-resource-compose").style.display="none";
+    document.getElementById("admin-res-compose").style.display="none";
     document.getElementById("change-password-card").style.display="block";
   }
   loadFeed();loadAnnouncements();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();
@@ -1317,13 +1322,23 @@ function renderResources(items){
   const allTags=getAllTags(items);
   document.getElementById("resource-filter").innerHTML=allTags.map(t=>`<button class="filter-btn ${t===activeFilter?"active":""}" onclick="setFilter('${t}')">${t}</button>`).join("");
   const filtered=activeFilter==="All"?items:items.filter(r=>(r.tags||[]).includes(activeFilter));
-  document.getElementById("resource-grid").innerHTML=filtered.map(r=>`
-    <div class="resource-card" onclick='openResModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
+  const isAdmin=currentUser&&currentUser.isAdmin;
+  document.getElementById("resource-grid").innerHTML=filtered.map(r=>{
+    const rJson=JSON.stringify(r).replace(/'/g,"&#39;");
+    const isDefault=DEFAULT_RESOURCES.some(d=>d.id===r.id);
+    const adminBtns=isAdmin&&!isDefault?`
+      <div class="res-admin-btns" onclick="event.stopPropagation()">
+        <button class="res-edit-btn" onclick="openEditResource('${r.id}')">✏️ Edit</button>
+        <button class="res-delete-btn" onclick="deleteResource('${r.id}','${esc(r.title)}')">🗑️</button>
+      </div>`:"";
+    return `<div class="resource-card" onclick='openResModal(${rJson})' style="position:relative;">
+      ${adminBtns}
       <div class="resource-icon">${r.emoji||"📄"}</div>
       <div class="resource-title">${esc(r.title)}</div>
       <div class="resource-desc">${esc(r.desc||"")}</div>
       ${(r.tags||[]).length?`<div class="resource-tags">${r.tags.map(t=>`<span class="res-tag">${esc(t)}</span>`).join("")}</div>`:""}
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 window.setFilter=function(tag){activeFilter=tag;const items=cachedResources.length?cachedResources:[...(lsGet("smac_resources")||[]),...DEFAULT_RESOURCES];renderResources(items);};
 window.openResModal=function(r){
@@ -1344,6 +1359,73 @@ window.openResModal=function(r){
 };
 window.closeResModal=function(e){if(e.target===document.getElementById("res-modal-overlay"))closeResModalDirect();};
 window.closeResModalDirect=function(){document.getElementById("res-modal-overlay").classList.remove("open");document.body.style.overflow="";};
+
+window.deleteResource=async function(id, title){
+  if(!confirm(`Delete "${title}"? This cannot be undone.`))return;
+  if(!useLocalFallback&&db){
+    const {deleteDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await deleteDoc(dc(db,"resources",id)).catch(e=>console.error("Delete resource error:",e));
+  } else {
+    const list=(lsGet("smac_resources")||[]).filter(r=>r.id!==id);
+    lsSet("smac_resources",list);
+    loadResources();
+  }
+  showToast("Resource deleted.");
+};
+
+window.openEditResource=async function(id){
+  // Find the resource in cache
+  const r=cachedResources.find(x=>x.id===id);
+  if(!r)return;
+  // Scroll to compose box and pre-fill all fields
+  const compose=document.getElementById("admin-res-compose");
+  if(compose){compose.style.display="block";compose.scrollIntoView({behavior:"smooth",block:"start"});}
+  document.getElementById("res-title").value=r.title||"";
+  document.getElementById("res-desc").value=r.desc||"";
+  document.getElementById("res-body").value=r.body||"";
+  document.getElementById("res-url").value=r.url||"";
+  document.getElementById("res-url-label").value=r.urlLabel||"";
+  document.getElementById("res-tags").value=(r.tags||[]).join(", ");
+  document.getElementById("res-source").value=r.source||"";
+  document.getElementById("res-source-url").value=r.sourceUrl||"";
+  document.getElementById("res-emoji").value=r.emoji||"";
+  // Switch button to Update mode
+  const btn=document.querySelector("#admin-res-compose .btn-post");
+  if(btn){
+    btn.textContent="Update Resource";
+    btn.onclick=function(){saveEditResource(id);};
+  }
+  showToast("Editing resource — make changes and click Update.");
+};
+
+window.saveEditResource=async function(id){
+  const title=document.getElementById("res-title").value.trim();
+  const desc=document.getElementById("res-desc").value.trim();
+  const body=document.getElementById("res-body").value.trim();
+  const url=document.getElementById("res-url").value.trim();
+  const urlLabel=document.getElementById("res-url-label").value.trim();
+  const tagsRaw=document.getElementById("res-tags").value.trim();
+  const source=document.getElementById("res-source").value.trim();
+  const sourceUrl=document.getElementById("res-source-url").value.trim();
+  const emoji=document.getElementById("res-emoji").value.trim()||"📄";
+  if(!title)return;
+  const tags=tagsRaw?tagsRaw.split(",").map(t=>t.trim()).filter(Boolean):[];
+  const updated={title,desc,body,url,urlLabel,source,sourceUrl,emoji,tags};
+  if(!useLocalFallback&&db){
+    const {updateDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await updateDoc(dc(db,"resources",id),updated).catch(e=>console.error("Update resource error:",e));
+  } else {
+    const list=lsGet("smac_resources")||[];
+    const idx=list.findIndex(r=>r.id===id);
+    if(idx>-1){list[idx]={...list[idx],...updated};lsSet("smac_resources",list);}
+    loadResources();
+  }
+  // Reset compose box back to Add mode
+  ["res-title","res-desc","res-body","res-url","res-url-label","res-tags","res-source","res-source-url","res-emoji"].forEach(fid=>document.getElementById(fid).value="");
+  const btn=document.querySelector("#admin-res-compose .btn-post");
+  if(btn){btn.textContent="Add Resource";btn.onclick=function(){submitResource();};}
+  showToast("Resource updated!");
+};
 
 // ─────────────────────────────────────────────
 //  TRACKER
