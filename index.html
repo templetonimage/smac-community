@@ -1761,15 +1761,42 @@ async function loadTrackerReport(){
     return;
   }
 
-  // Firebase is connected — load all tracker docs
+  // Firebase is connected — load all tracker docs + registry
   document.getElementById("tracker-report-body").innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading...</div>`;
 
   try {
     const { getDocs, collection: col } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const snap = await getDocs(col(db, "trackers"));
-    const trackerDocs = snap.docs.map(d => d.data());
+    // Load trackers AND registry in parallel
+    const [trackerSnap, registrySnap] = await Promise.all([
+      getDocs(col(db, "trackers")),
+      getDocs(col(db, "smac_registry"))
+    ]);
 
-    if(!trackerDocs.length){
+    // Build a map of uid → tracker data
+    const trackerMap = {};
+    trackerSnap.docs.forEach(d => { trackerMap[d.id] = { ...d.data(), _docId: d.id }; });
+
+    // Build full member list from registry (enrolled in current round or founder)
+    const registryMembers = registrySnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(m => m.isFounder || (m.rounds||[]).includes(CURRENT_ROUND));
+
+    // Merge: use tracker doc if exists, else create empty placeholder
+    const mergedDocs = registryMembers.map(m => {
+      if(trackerMap[m.id]) return trackerMap[m.id];
+      // No tracker doc yet — placeholder row
+      return { name: m.name, uid: m.id, _docId: m.id, tracked: {}, _noTracker: true };
+    });
+
+    // Also include any tracker docs not in registry (edge cases)
+    trackerSnap.docs.forEach(d => {
+      const alreadyIncluded = registryMembers.some(m => m.id === d.id);
+      if(!alreadyIncluded) mergedDocs.push({ ...d.data(), _docId: d.id });
+    });
+
+    const trackerDocs = mergedDocs;
+
+    if(!registryMembers.length){
       document.getElementById("tracker-report-body").innerHTML = `
         <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No Data Yet</div><div class="empty-desc">Tracker data will appear here once members start logging posts.</div></div>`;
       return;
@@ -1819,7 +1846,7 @@ async function loadTrackerReport(){
         const mCompleted = mWeeks.reduce((s,w) => s + (tracked[w.id]||[]).filter(Boolean).length, 0);
         return mCompleted >= mRequired;
       });
-      return { name: d.name || d.uid, docId: snap.docs[i].id, monthStats, isAllStar, isAllStarDisplay: isAllStarDisplayFinal, overrides };
+      return { name: d.name || d.uid, docId: d._docId || d.uid, monthStats, isAllStar, isAllStarDisplay: isAllStarDisplayFinal, overrides, noTracker: !!d._noTracker };
     });
 
     // Sort alpha
@@ -1848,7 +1875,8 @@ async function loadTrackerReport(){
                 <tr style="border-bottom:1px solid var(--border);">
                   <td style="padding:12px 10px 12px 0;font-weight:500;white-space:nowrap;">
                     ${esc(r.name)}
-                    ${currentUser.isAdmin ? `<button onclick="openAdminTrackerEditor('${r.docId}','${esc(r.name)}')" style="margin-left:6px;background:rgba(212,175,55,0.12);border:1px solid var(--gold);border-radius:4px;color:var(--gold);font-size:10px;cursor:pointer;padding:2px 6px;vertical-align:middle;" title="Edit tracker">✏️</button>` : ''}
+                    ${r.noTracker ? '<span title="Has not logged in yet" style="font-size:9px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;">Not logged in</span>' : ''}
+                    ${currentUser.isAdmin && !r.noTracker ? `<button onclick="openAdminTrackerEditor('${r.docId}','${esc(r.name)}')" style="margin-left:6px;background:rgba(212,175,55,0.12);border:1px solid var(--gold);border-radius:4px;color:var(--gold);font-size:10px;cursor:pointer;padding:2px 6px;vertical-align:middle;" title="Edit tracker">✏️</button>` : ''}
                     ${currentUser.isAdmin ? `<button onclick="removeFromReport('${r.docId}')" style="margin-left:4px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:10px;cursor:pointer;padding:2px 5px;vertical-align:middle;" title="Remove from report">✕</button>` : ''}
                   </td>
                   ${r.monthStats.map((ms,mi) => {
