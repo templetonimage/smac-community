@@ -879,7 +879,19 @@ window.handleLogin=async function(){
     } else {
       // Look up member record in Firestore registry
       const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      const snap=await getDocs(q(col(db,"smac_registry"),where("email","==",email)));
+      // Try email match first (lowercased), then fall back to UID match
+      let snap=await getDocs(q(col(db,"smac_registry"),where("email","==",email)));
+      if(snap.empty){
+        // Fallback: look up by Firebase Auth UID (handles case mismatch in stored email)
+        const {getDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        const uidDoc=await getDoc(dc(db,"smac_registry",firebaseUid));
+        if(uidDoc.exists()){
+          // Fix the stored email to lowercase while we're here
+          const {updateDoc,doc:dc2}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+          updateDoc(dc2(db,"smac_registry",firebaseUid),{email}).catch(()=>{});
+          snap={empty:false,docs:[{id:uidDoc.id,data:()=>uidDoc.data()}]};
+        }
+      }
       if(snap.empty){
         err.style.display="block";
         err.textContent="Account not found in registry. Contact Nate.";
