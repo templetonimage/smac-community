@@ -233,6 +233,8 @@
     .chat-input-bar textarea{flex:1;border:1px solid var(--border);border-radius:12px;padding:9px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--text);resize:none;max-height:100px;min-height:38px;line-height:1.4;outline:none;}
     .chat-input-bar textarea:focus{border-color:var(--gold);}
     .chat-send-btn{width:38px;height:38px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s;}
+    .chat-emoji-input-btn{background:none;border:none;font-size:20px;cursor:pointer;padding:4px 6px;border-radius:8px;transition:background .1s;flex-shrink:0;line-height:1;}
+    .chat-emoji-input-btn:hover{background:var(--surface2);}
     .chat-send-btn:disabled{opacity:0.45;cursor:not-allowed;}
     .chat-edit-bar{padding:6px 12px;background:rgba(212,175,55,.08);border-top:1px solid var(--gold);font-size:12px;color:var(--gold);display:none;align-items:center;justify-content:space-between;}
     .chat-thread-preview{margin-top:5px;padding:5px 8px;background:rgba(0,0,0,.04);border-left:2px solid var(--gold);border-radius:0 6px 6px 0;font-size:12px;color:var(--text-muted);cursor:pointer;}
@@ -330,6 +332,8 @@
     .setup-step-content{font-size:13px;line-height:1.5;}
     .setup-step-content code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px;}
     @media(max-width:480px){.auth-card{padding:32px 24px;}.auth-logo{font-size:60px;}.page{padding:16px;}}
+    @media(min-width:600px){#page-chat{padding:20px 32px !important;}#chat-container{max-width:100% !important;}}
+    @media(min-width:900px){#page-chat{padding:24px 48px !important;}}
   </style>
 </head>
 <body>
@@ -694,7 +698,7 @@
 </div>
   </div><!-- /app-scroll -->
   <!-- CHAT -->
-  <div class="page" id="page-chat" style="padding:16px;max-width:100%;">
+  <div class="page" id="page-chat" style="padding:16px;max-width:100%;width:100%;box-sizing:border-box;">
     <div class="page-header"><h1 class="page-title">Group Chat</h1></div>
     <div id="chat-container" style="display:flex;flex-direction:column;height:calc(100vh - 185px);background:var(--surface);border:1.5px solid var(--gold);border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(212,175,55,0.10);">
       <div id="chat-messages" class="chat-messages"></div>
@@ -704,7 +708,8 @@
         <span>Editing message</span>
         <button onclick="cancelChatEdit()" style="background:none;border:none;color:var(--gold);font-size:12px;cursor:pointer;font-weight:600;">Cancel</button>
       </div>
-      <div class="chat-input-bar">
+      <div class="chat-input-bar" style="position:relative;">
+        <button class="chat-emoji-input-btn" id="chat-emoji-btn" onclick="toggleInputEmojiPicker()" title="Emoji">😊</button>
         <textarea id="chat-input" placeholder="Say something to the group…" rows="1"
           onkeydown="chatInputKeydown(event)"
           oninput="autoResizeChatInput(this);notifyChatTyping();"
@@ -712,6 +717,7 @@
         <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()" title="Send">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
+        <div id="input-emoji-picker" style="display:none;position:absolute;bottom:58px;left:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:100;max-width:300px;flex-wrap:wrap;gap:4px;"></div>
       </div>
     </div>
     <!-- Thread panel (slides in from right) -->
@@ -2941,7 +2947,7 @@ function buildChatBubble(m, isThread){
     <div class="chat-actions">
       <button class="chat-action-btn" onclick="showReactPicker('${m.id}',this)" title="React">😊</button>
       ${!isThread ? `<button class="chat-action-btn" onclick="openThread('${m.id}')" title="Thread">💬</button>` : ""}
-      ${canEdit ? `<button class="chat-action-btn" onclick="startChatEdit('${m.id}','${esc(m.text||"")}')" title="Edit">✏️</button>` : ""}
+      ${canEdit ? `<button class="chat-action-btn" onclick="startChatEditById('${m.id}')" title="Edit">✏️</button>` : ""}
       ${canDelete ? `<button class="chat-action-btn" onclick="deleteChatMsg('${m.id}')" title="Delete">🗑️</button>` : ""}
     </div>`;
 
@@ -2964,6 +2970,39 @@ function buildChatBubble(m, isThread){
 }
 
 // ── Send ──────────────────────────────────────
+// Input emoji picker
+const INPUT_EMOJIS = ['😀', '😂', '😍', '🥰', '😎', '🤔', '😅', '🙏', '👏', '🔥', '💪', '✨', '🎉', '💯', '❤️', '🙌', '👍', '😊', '😭', '🤣', '😮', '😴', '🤩', '😬', '💀', '🫶', '🫠', '🤯', '💬', '📸', '🎯', '⭐', '🏆', '💡', '📅'];
+window.toggleInputEmojiPicker = function(){
+  const picker = document.getElementById("input-emoji-picker");
+  if(!picker) return;
+  if(picker.style.display === "flex"){ picker.style.display = "none"; return; }
+  if(!picker.innerHTML){
+    picker.innerHTML = INPUT_EMOJIS.map(e =>
+      `<button onclick="insertEmoji('${e}')" style="background:none;border:none;font-size:20px;cursor:pointer;padding:4px;border-radius:6px;line-height:1;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">${e}</button>`
+    ).join("");
+  }
+  picker.style.display = "flex";
+  setTimeout(()=>document.addEventListener("click", function h(ev){
+    if(!document.getElementById("chat-emoji-btn")?.contains(ev.target) &&
+       !document.getElementById("input-emoji-picker")?.contains(ev.target)){
+      picker.style.display="none";
+      document.removeEventListener("click",h);
+    }
+  }), 80);
+};
+
+window.insertEmoji = function(emoji){
+  const input = document.getElementById("chat-input");
+  if(!input) return;
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  input.value = input.value.substring(0,start) + emoji + input.value.substring(end);
+  input.selectionStart = input.selectionEnd = start + emoji.length;
+  input.focus();
+  autoResizeChatInput(input);
+  document.getElementById("input-emoji-picker").style.display = "none";
+};
+
 window.sendChatMessage = async function(){
   const input = document.getElementById("chat-input");
   const text = (input.value||"").trim();
@@ -3012,11 +3051,17 @@ window.autoResizeChatInput = function(el){
 window.startChatEdit = function(id, text){
   _chatEditingId = id;
   const input = document.getElementById("chat-input");
-  input.value = text.replace(/\\\\n/g,"\n");
+  input.value = text;
   input.focus();
   const editBar = document.getElementById("chat-edit-bar");
   if(editBar) editBar.style.display = "flex";
   autoResizeChatInput(input);
+};
+
+window.startChatEditById = function(id){
+  const msg = _chatMessages.find(m=>m.id===id);
+  if(!msg) return;
+  window.startChatEdit(id, msg.text||"");
 };
 
 window.cancelChatEdit = function(){
@@ -3047,22 +3092,27 @@ window.deleteChatMsg = async function(id){
 
 // ── Reactions ─────────────────────────────────
 window.showReactPicker = function(msgId, btn){
-  // Remove any open picker first
   document.querySelectorAll(".react-picker-wrap").forEach(el=>el.remove());
   const wrap = document.createElement("div");
   wrap.className = "react-picker-wrap";
+  wrap.style.cssText = "position:absolute;z-index:60;top:-52px;left:0;";
   const inner = document.createElement("div");
   inner.className = "EMOJI_PICKER_EMOJIS";
   CHAT_REACTIONS.forEach(emoji => {
     const b = document.createElement("button");
     b.textContent = emoji;
-    b.onclick = ()=>{ toggleReaction(msgId, emoji); wrap.remove(); };
+    b.onclick = (e)=>{ e.stopPropagation(); toggleReaction(msgId, emoji); wrap.remove(); };
     inner.appendChild(b);
   });
   wrap.appendChild(inner);
-  btn.closest(".chat-bubble,div").insertBefore(wrap, btn.closest(".chat-actions"));
-  // Close on outside click
-  setTimeout(()=>document.addEventListener("click", function h(){ wrap.remove(); document.removeEventListener("click",h); }), 50);
+  // Attach to the message bubble wrapper (position:relative parent)
+  const msgEl = document.getElementById("cmsg-"+msgId);
+  if(msgEl){
+    const wrapper = msgEl.querySelector("div[style*='position:relative']");
+    if(wrapper) wrapper.appendChild(wrap);
+    else msgEl.appendChild(wrap);
+  }
+  setTimeout(()=>document.addEventListener("click", function h(e){ wrap.remove(); document.removeEventListener("click",h); }), 80);
 };
 
 window.toggleReaction = async function(msgId, emoji){
