@@ -522,6 +522,7 @@
 
     <div id="announcements-list" style="margin-bottom:8px;"></div>
     <div id="spotlight-list" style="margin-bottom:4px;"></div>
+    <div id="feed-challenge-banner" style="margin-bottom:12px;"></div>
     <div class="compose-box">
       <textarea class="compose-textarea" id="compose-text" placeholder="Share a post link, win, or update with the group..." rows="3"></textarea>
       <input class="auth-input" id="compose-link" type="url" placeholder="Instagram post URL (optional — required to receive Props)" style="margin-top:10px;margin-bottom:0;" />
@@ -1399,6 +1400,7 @@ window.navTo=function(page,el){
   const scroller=document.getElementById("app-scroll");if(scroller)scroller.scrollTop=0;
   if(page==="directory")loadDirectory();
   if(page==="leaderboard")loadLeaderboard();
+  if(page==="feed"){loadFeed();loadAnnouncements();loadSpotlights();renderWeeklyChallenge();}
   if(page==="submit"){loadSubmitPage();renderWeeklyChallenge();}
   if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin)loadSubViewer();}
   if(page==="chat"){
@@ -2794,7 +2796,7 @@ window.submitIgPost=async function(){
       clearScreenshot();
       selectFormat("Static");
       _challengeModifierActive=false;
-      renderWeeklyChallenge();
+      await renderWeeklyChallenge();
       showToast(pts>0?`+${pts} pts earned! 🎉`:"Submitted (0 pts — window closed).");
       loadMySubmissions();
       loadLeaderboard();
@@ -3503,14 +3505,51 @@ const WEEKLY_CHALLENGES = [
 
 // _challengeModifierActive: true when member has toggled the modifier on
 let _challengeModifierActive = false;
+let _challengeUsedThisWeek = false; // true if already submitted with modifier this week
 
-window.renderWeeklyChallenge = function(){
-  const wrap = document.getElementById("challenge-modifier-wrap");
-  if(!wrap) return;
+window.renderWeeklyChallenge = async function(){
   const weekIdx = getWeekIndex(Date.now());
-  if(weekIdx < 0 || weekIdx >= WEEKLY_CHALLENGES.length){ wrap.innerHTML=""; return; }
+  const wrap   = document.getElementById("challenge-modifier-wrap");
+  const banner = document.getElementById("feed-challenge-banner");
+  if(weekIdx < 0 || weekIdx >= WEEKLY_CHALLENGES.length){
+    if(wrap)  wrap.innerHTML  = "";
+    if(banner)banner.innerHTML = "";
+    return;
+  }
   const ch = WEEKLY_CHALLENGES[weekIdx];
-  wrap.innerHTML = `
+  const w  = WEEKS[weekIdx] || {};
+
+  // Check Firestore: has this member already submitted the modifier this week?
+  _challengeUsedThisWeek = false;
+  if(!useLocalFallback && db && currentUser && !currentUser.isAdmin){
+    try{
+      const {getDocs,collection:col,query:q,where} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap = await getDocs(q(
+        col(db,"submissions"),
+        where("uid","==",currentUser.uid),
+        where("weekIdx","==",weekIdx),
+        where("challengeApplied","==",true)
+      ));
+      _challengeUsedThisWeek = !snap.empty;
+    }catch(e){}
+  }
+
+  // If already used, force modifier off
+  if(_challengeUsedThisWeek) _challengeModifierActive = false;
+
+  const usedHtml = `
+    <div class="modifier-wrap applied" style="cursor:default;opacity:0.8;">
+      <div class="modifier-toggle">
+        <div class="modifier-checkbox"><span class="modifier-checkmark">✓</span></div>
+        <div class="modifier-text">
+          <div class="modifier-title">🎯 ${esc(ch.title)} — Challenge Done!</div>
+          <div class="modifier-desc">You already applied this modifier this week.</div>
+        </div>
+        <span class="modifier-pts">+5 pts</span>
+      </div>
+    </div>`;
+
+  const toggleHtml = `
     <div class="modifier-wrap${_challengeModifierActive?" applied":""}" id="modifier-card" onclick="toggleChallengeModifier()">
       <div class="modifier-toggle">
         <div class="modifier-checkbox"><span class="modifier-checkmark">✓</span></div>
@@ -3521,11 +3560,57 @@ window.renderWeeklyChallenge = function(){
         <span class="modifier-pts">+5 pts</span>
       </div>
     </div>`;
+
+  // Submit page — full interactive toggle
+  if(wrap) wrap.innerHTML = _challengeUsedThisWeek ? usedHtml : toggleHtml;
+
+  // Feed banner — always visible awareness card
+  if(banner){
+    if(_challengeUsedThisWeek){
+      banner.innerHTML = `
+        <div class="modifier-wrap applied" style="cursor:default;">
+          <div class="modifier-toggle">
+            <div class="modifier-checkbox"><span class="modifier-checkmark">✓</span></div>
+            <div class="modifier-text">
+              <div class="modifier-title">🎯 ${esc(ch.title)} — Done This Week!</div>
+              <div class="modifier-desc">You already applied the challenge modifier this week. Nice work!</div>
+            </div>
+            <span class="modifier-pts">+5 pts</span>
+          </div>
+        </div>`;
+    } else {
+      banner.innerHTML = `
+        <div class="modifier-wrap" style="cursor:default;">
+          <div class="modifier-toggle">
+            <div style="font-size:22px;flex-shrink:0;">🎯</div>
+            <div class="modifier-text">
+              <div class="modifier-title">This Week: ${esc(ch.title)}</div>
+              <div class="modifier-desc">${esc(ch.desc)} <strong style="color:var(--gold);">+5 pts</strong> — apply it when you submit your post.</div>
+            </div>
+          </div>
+        </div>`;
+    }
+  }
 };
 
 window.toggleChallengeModifier = function(){
+  if(_challengeUsedThisWeek) return; // block if already used
   _challengeModifierActive = !_challengeModifierActive;
-  renderWeeklyChallenge();
+  const wrap = document.getElementById("challenge-modifier-wrap");
+  const weekIdx = getWeekIndex(Date.now());
+  if(weekIdx < 0) return;
+  const ch = WEEKLY_CHALLENGES[weekIdx];
+  if(wrap) wrap.innerHTML = `
+    <div class="modifier-wrap${_challengeModifierActive?" applied":""}" id="modifier-card" onclick="toggleChallengeModifier()">
+      <div class="modifier-toggle">
+        <div class="modifier-checkbox"><span class="modifier-checkmark">✓</span></div>
+        <div class="modifier-text">
+          <div class="modifier-title">🎯 Weekly Challenge Modifier: ${esc(ch.title)}</div>
+          <div class="modifier-desc">${esc(ch.desc)}</div>
+        </div>
+        <span class="modifier-pts">+5 pts</span>
+      </div>
+    </div>`;
   updatePtsPreview();
 };
 
