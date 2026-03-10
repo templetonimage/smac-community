@@ -520,9 +520,9 @@
       </div>
     </div>
 
+    <div id="feed-challenge-banner" style="margin-bottom:12px;"></div>
     <div id="announcements-list" style="margin-bottom:8px;"></div>
     <div id="spotlight-list" style="margin-bottom:4px;"></div>
-    <div id="feed-challenge-banner" style="margin-bottom:12px;"></div>
     <div class="compose-box">
       <textarea class="compose-textarea" id="compose-text" placeholder="Share a post link, win, or update with the group..." rows="3"></textarea>
       <input class="auth-input" id="compose-link" type="url" placeholder="Instagram post URL (optional — required to receive Props)" style="margin-top:10px;margin-bottom:0;" />
@@ -3568,26 +3568,20 @@ window.renderWeeklyChallenge = async function(){
   if(banner){
     if(_challengeUsedThisWeek){
       banner.innerHTML = `
-        <div class="modifier-wrap applied" style="cursor:default;">
-          <div class="modifier-toggle">
-            <div class="modifier-checkbox"><span class="modifier-checkmark">✓</span></div>
-            <div class="modifier-text">
-              <div class="modifier-title">🎯 ${esc(ch.title)} — Done This Week!</div>
-              <div class="modifier-desc">You already applied the challenge modifier this week. Nice work!</div>
-            </div>
-            <span class="modifier-pts">+5 pts</span>
-          </div>
+        <div style="background:linear-gradient(135deg,#0d1f0d,#1a2e1a);border:2px solid #27ae60;border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#27ae60,#5ddb5d,#27ae60);"></div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#27ae60;margin-bottom:6px;">🎯 Weekly Challenge Modifier</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;">✓ ${esc(ch.title)} — Done!</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.72);line-height:1.5;">You already applied this modifier this week. Nice work!</div>
         </div>`;
     } else {
       banner.innerHTML = `
-        <div class="modifier-wrap" style="cursor:default;">
-          <div class="modifier-toggle">
-            <div style="font-size:22px;flex-shrink:0;">🎯</div>
-            <div class="modifier-text">
-              <div class="modifier-title">This Week: ${esc(ch.title)}</div>
-              <div class="modifier-desc">${esc(ch.desc)} <strong style="color:var(--gold);">+5 pts</strong> — apply it when you submit your post.</div>
-            </div>
-          </div>
+        <div style="background:linear-gradient(135deg,#1a1400,#2d2200);border:2px solid var(--gold);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#f5d27a,var(--gold));"></div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;">🎯 Weekly Challenge Modifier</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;">${esc(ch.title)}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.72);line-height:1.5;margin-bottom:8px;">${esc(ch.desc)}</div>
+          <div style="display:inline-block;background:rgba(212,175,55,0.2);color:var(--gold);font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">+5 pts — apply when submitting your post</div>
         </div>`;
     }
   }
