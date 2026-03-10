@@ -607,6 +607,23 @@
       <h1 class="page-title">All-Star Reports</h1>
       <p class="page-subtitle">Track weekly progress of all members towards All-Star Status</p>
     </div>
+
+    <!-- ADMIN: UID Sync Tool -->
+    <div id="uid-sync-tool" style="display:none;margin-bottom:24px;">
+      <div class="admin-banner" style="border-radius:8px;padding:14px 16px;margin-bottom:0;">
+        <span class="admin-banner-icon">🔧</span>
+        <div style="flex:1;">
+          <div class="admin-banner-title">One-Time UID Sync</div>
+          <div class="admin-banner-sub">Matches each registry doc to its Firebase Auth UID — enables photo caching &amp; leaderboard avatars</div>
+        </div>
+      </div>
+      <div style="background:#fffbf0;border:1.5px dashed var(--gold);border-top:none;border-radius:0 0 8px 8px;padding:14px 16px;">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">This runs once. It reads all registry docs, looks up each member's Firebase Auth UID by email, then writes the <code>uid</code> field to their doc. Safe to re-run — already-synced docs are skipped.</div>
+        <button class="btn-gold" onclick="runUidSync()" id="uid-sync-btn">Run UID Sync</button>
+        <div id="uid-sync-log" style="margin-top:12px;font-size:12px;font-family:monospace;background:var(--surface2);border-radius:6px;padding:10px;display:none;max-height:220px;overflow-y:auto;line-height:1.8;"></div>
+      </div>
+    </div>
+
     <div id="tracker-report-body"></div>
   </div>
 
@@ -1082,18 +1099,20 @@ function bootApp(){
     _tpBtn.style.display="inline-flex";
     const _tpInitials=(currentUser.name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
     const _tpPhoto=_photoCache[currentUser.uid]||currentUser.photoURL||"";
-    if(_tpPhoto){_tpAv.innerHTML=`<img src="${_tpPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;}
+    if(_tpPhoto){_tpAv.innerHTML=`<img src="${esc(_tpPhoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;}
     else{_tpAv.textContent=_tpInitials;}
   }
   if(currentUser.isAdmin){
     document.getElementById("admin-compose").style.display="block";
     document.getElementById("admin-res-compose").style.display="block";
     document.getElementById("change-password-card").style.display="block";
+    document.getElementById("uid-sync-tool").style.display="block";
     showFirebaseSetupCard();
   } else {
     document.getElementById("admin-compose").style.display="none";
     document.getElementById("admin-res-compose").style.display="none";
     document.getElementById("change-password-card").style.display="block";
+    document.getElementById("uid-sync-tool").style.display="none";
   }
   // Prime photo cache from registry before rendering feed/leaderboard/directory
   if(!useLocalFallback&&db){
@@ -2760,6 +2779,82 @@ window.loadLeaderboard=async function(){
   }).join("");
 }
 
+
+// ─────────────────────────────────────────────
+//  ADMIN: ONE-TIME UID SYNC
+// ─────────────────────────────────────────────
+window.runUidSync = async function(){
+  if(!currentUser||!currentUser.isAdmin){showToast("Admin only.");return;}
+  const btn=document.getElementById("uid-sync-btn");
+  const log=document.getElementById("uid-sync-log");
+  btn.disabled=true; btn.textContent="Running...";
+  log.style.display="block"; log.innerHTML="";
+
+  function logLine(msg, color="var(--text)"){
+    log.innerHTML+=`<div style="color:${color};">${esc(msg)}</div>`;
+    log.scrollTop=log.scrollHeight;
+  }
+
+  try{
+    const {getDocs,collection:col,updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap=await getDocs(col(db,"smac_registry"));
+    const docs=snap.docs.map(d=>({_docId:d.id,...d.data()}));
+    logLine(`Found ${docs.length} registry docs.`);
+
+    let synced=0, skipped=0, failed=0;
+
+    for(const member of docs){
+      if(member.uid){
+        logLine(`⏭ ${member.name||member.email} — already has uid, skipping`, "var(--text-muted)");
+        skipped++;
+        continue;
+      }
+      if(!member.email){
+        logLine(`⚠ Doc ${member._docId} has no email — skipping`, "#e67e22");
+        failed++;
+        continue;
+      }
+      // Look up Firebase Auth UID via REST API
+      try{
+        const res=await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${_a+_b}`,
+          {method:"POST", headers:{"Content-Type":"application/json"},
+           body:JSON.stringify({email:[member.email.toLowerCase()]})}
+        );
+        const data=await res.json();
+        if(!data.users||!data.users.length){
+          logLine(`✗ ${member.email} — not found in Firebase Auth`, "#e74c3c");
+          failed++;
+          continue;
+        }
+        const firebaseUid=data.users[0].localId;
+        await updateDoc(docRef(db,"smac_registry",member._docId),{uid:firebaseUid});
+        _photoCache; // touch to keep reference
+        logLine(`✓ ${member.name||member.email} → uid: ${firebaseUid}`, "#27ae60");
+        synced++;
+      }catch(err){
+        logLine(`✗ ${member.email} — error: ${err.message}`, "#e74c3c");
+        failed++;
+      }
+    }
+
+    logLine("─────────────────────────────────", "var(--border)");
+    logLine(`Done. Synced: ${synced} · Skipped: ${skipped} · Failed: ${failed}`, synced>0?"#27ae60":"var(--text)");
+    btn.textContent="Run Again";
+    btn.disabled=false;
+    showToast(`UID sync complete — ${synced} synced, ${skipped} skipped`);
+
+    // Re-prime photo cache with updated data
+    const snap2=await getDocs(col(db,"smac_registry"));
+    primePhotoCache(snap2.docs.map(d=>({uid:d.id,...d.data()})));
+
+  }catch(e){
+    logLine("Fatal error: "+e.message,"#e74c3c");
+    btn.textContent="Run UID Sync";
+    btn.disabled=false;
+  }
+};
+
 // ─────────────────────────────────────────────
 //  ADMIN TRACKER EDITOR
 // ─────────────────────────────────────────────
@@ -2954,7 +3049,7 @@ function buildChatBubble(m, isThread){
   if(!isThread){
     const replies = _chatMessages.filter(x => x.threadParentId === m.id);
     if(replies.length){
-      const names = [...new Set(replies.map(r=>r.author.split(" ")[0]))].slice(0,3).join(", ");
+      const names = [...new Set(replies.map(r=>r.author.split(" ")[0]))].slice(0,3).map(n=>esc(n)).join(", ");
       threadPreview = `<div class="chat-thread-preview" onclick="openThread('${m.id}')">
         💬 ${replies.length} repl${replies.length===1?"y":"ies"} · ${names}
       </div>`;
@@ -3419,13 +3514,13 @@ window.saveProfile=async function(){
     }
   }
   if(saveBtn){saveBtn.textContent="Save Profile";saveBtn.disabled=false;}
-  document.getElementById("topnav-username").innerHTML=`<strong>${prof.name}</strong>${currentUser.isAdmin?" 🔐":""}`;
+  document.getElementById("topnav-username").innerHTML=`<strong>${esc(prof.name)}</strong>${currentUser.isAdmin?" 🔐":""}`;
   // Refresh topnav avatar
   const _tpAv2=document.getElementById("topnav-avatar");
   if(_tpAv2){
     const _photo2=currentUser.photoURL||_photoCache[currentUser.uid]||"";
     const _init2=(currentUser.name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
-    if(_photo2){_tpAv2.innerHTML=`<img src="${_photo2}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;}
+    if(_photo2){_tpAv2.innerHTML=`<img src="${esc(_photo2)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;}
     else{_tpAv2.textContent=_init2;}
   }
   renderProfileHero(prof);
