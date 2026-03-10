@@ -1094,6 +1094,30 @@ const MONTHS=["March","April","May"];
 const MONTH_REQS={"March":"1 post/week","April":"2 posts/week","May":"3 posts/week"};
 
 // ─────────────────────────────────────────────
+//  MEMBER SANITIZER — fills missing Firestore fields with safe defaults
+// ─────────────────────────────────────────────
+function sanitizeMember(m){
+  if(!m) return {};
+  return {
+    ...m,
+    name:        m.name        || "SMAC Member",
+    email:       m.email       || "",
+    uid:         m.uid         || "",
+    ig:          m.ig          || "",
+    photoURL:    m.photoURL    || "",
+    points:      typeof m.points === "number" ? m.points : 0,
+    totalPosts:  typeof m.totalPosts === "number" ? m.totalPosts : 0,
+    rounds:      Array.isArray(m.rounds) ? m.rounds : [],
+    isAdmin:     m.isAdmin     || false,
+    isFounder:   m.isFounder   || false,
+    isAllStar:   m.isAllStar   || false,
+    isVIP:       m.isVIP       || false,
+    business:    m.business    || "",
+    type:        m.type        || "",
+  };
+}
+
+// ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
 let db=null, auth=null, currentUser=null, useLocalFallback=false, activeFilter="All", cachedResources=[], cachedLeaderboard=[];
@@ -1186,7 +1210,7 @@ window.handleLogin=async function(){
         await signOut(auth);
         return;
       }
-      const member={id:snap.docs[0].id,...snap.docs[0].data()};
+      const member=sanitizeMember({id:snap.docs[0].id,...snap.docs[0].data()});
       const enrolled=(member.rounds||[]).includes(CURRENT_ROUND)||member.isFounder;
       if(!enrolled){
         err.style.display="block";
@@ -1268,7 +1292,7 @@ function bootApp(){
           getDocs(col(db,"smac_registry")),
           getDocs(col(db,"trackers"))
         ]);
-        primePhotoCache(regSnap.docs.map(d=>({uid:d.id,...d.data()})));
+        primePhotoCache(regSnap.docs.map(d=>sanitizeMember({uid:d.id,...d.data()})));
         trackerSnap.docs.forEach(d=>{ _trackerCache[d.id]=d.data(); });
         if(!currentUser.isAdmin){
           const me=regSnap.docs.find(d=>d.id===currentUser.uid);
@@ -1277,7 +1301,7 @@ function bootApp(){
           // Populate member filter dropdown for submissions viewer
           const sel=document.getElementById("sub-filter-member");
           if(sel){
-            const members=regSnap.docs.map(d=>d.data()).filter(m=>m.name).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+            const members=regSnap.docs.map(d=>sanitizeMember({id:d.id,...d.data()})).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
             members.forEach(m=>{
               const opt=document.createElement("option");
               opt.value=m.uid||m.email||"";
@@ -1960,7 +1984,7 @@ function loadDirectory(){
     // Load from Firestore
     import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDocs,collection:col,query:q,orderBy:ob})=>{
       getDocs(col(db,"smac_registry")).then(snap=>{
-        const registry=snap.docs.map(d=>({id:d.id,...d.data()}));
+        const registry=snap.docs.map(d=>sanitizeMember({id:d.id,...d.data()}));
         // Sync to localStorage for admin tools
         lsSet("smac_registry",registry);
         if(currentUser.isAdmin){
@@ -2858,7 +2882,7 @@ window.loadLeaderboard=async function(){
         console.warn("Leaderboard index not ready, sorting client-side:",indexErr.message);
         snap=await getDocs(col(db,"smac_registry"));
       }
-      members=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.name&&(m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND))).sort((a,b)=>(b.points||0)-(a.points||0));
+      members=snap.docs.map(d=>sanitizeMember({id:d.id,...d.data()})).filter(m=>m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND)).sort((a,b)=>(b.points||0)-(a.points||0));
       // Inject admin as a synthetic leaderboard entry if not already in registry
       if(currentUser&&currentUser.isAdmin){
         const adminInRegistry=members.some(m=>m.email===currentUser.email);
