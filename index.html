@@ -122,7 +122,27 @@
     .sub-pts{font-weight:700;color:var(--gold);width:40px;text-align:right;}
     .sub-late{color:#e74c3c;font-size:11px;}
     .sub-ontime{color:#27ae60;font-size:11px;}
-    .admin-banner{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+    .sub-viewer-toggle{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+    .sub-toggle-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+    .sub-toggle-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,.08);}
+    .sub-filter-row{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;}
+    .sub-filter-select{padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+    .sub-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;position:relative;}
+    .sub-card.reviewed{border-left:3px solid #27ae60;}
+    .sub-card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .sub-card-meta{flex:1;min-width:0;}
+    .sub-card-name{font-weight:700;font-size:13px;}
+    .sub-card-detail{font-size:11px;color:var(--text-muted);margin-top:2px;}
+    .sub-status-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0;}
+    .sub-status-pill.ontime{background:rgba(39,174,96,.15);color:#27ae60;}
+    .sub-status-pill.late{background:rgba(230,126,34,.15);color:#e67e22;}
+    .sub-status-pill.missed{background:rgba(231,76,60,.15);color:#e74c3c;}
+    .sub-status-pill.reviewed{background:rgba(39,174,96,.2);color:#1e8449;}
+    .sub-thumb{width:100%;border-radius:6px;max-height:160px;object-fit:cover;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;}
+    .sub-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+    .sub-pts-edit{width:60px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-align:center;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
+    .sub-viewer-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;}
+        .admin-banner{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
     .admin-banner-icon{font-size:24px;}
     .admin-banner-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;}
     .admin-banner-sub{font-size:12px;opacity:.7;}
@@ -621,6 +641,51 @@
       <div id="uid-sync-log" style="display:none;margin-top:8px;font-size:12px;font-family:monospace;background:var(--surface2);border-radius:6px;padding:10px;max-height:180px;overflow-y:auto;line-height:1.8;"></div>
     </div>
 
+    <!-- ADMIN: Submissions Viewer -->
+    <div id="admin-sub-viewer" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">📋 Submissions Viewer</div>
+
+      <!-- View toggle -->
+      <div class="sub-viewer-toggle">
+        <button class="sub-toggle-btn active" id="sub-view-recent" onclick="setSubView('recent',this)">Most Recent</button>
+        <button class="sub-toggle-btn" id="sub-view-week" onclick="setSubView('week',this)">By Week</button>
+        <button class="sub-toggle-btn" id="sub-view-member" onclick="setSubView('member',this)">By Member</button>
+      </div>
+
+      <!-- Filters -->
+      <div class="sub-filter-row">
+        <select class="sub-filter-select" id="sub-filter-week" style="display:none;" onchange="renderSubViewer()">
+          <option value="">All Weeks</option>
+          <option value="0">W1 · Mar 1–7</option>
+          <option value="1">W2 · Mar 8–14</option>
+          <option value="2">W3 · Mar 15–21</option>
+          <option value="3">W4 · Mar 22–31</option>
+          <option value="4">W5 · Apr 1–7</option>
+          <option value="5">W6 · Apr 8–14</option>
+          <option value="6">W7 · Apr 15–21</option>
+          <option value="7">W8 · Apr 22–30</option>
+          <option value="8">W9 · May 1–7</option>
+          <option value="9">W10 · May 8–14</option>
+          <option value="10">W11 · May 15–21</option>
+          <option value="11">W12 · May 22–31</option>
+        </select>
+        <select class="sub-filter-select" id="sub-filter-member" style="display:none;" onchange="renderSubViewer()">
+          <option value="">All Members</option>
+        </select>
+        <select class="sub-filter-select" id="sub-filter-status" onchange="renderSubViewer()">
+          <option value="">All Statuses</option>
+          <option value="ontime">On Time</option>
+          <option value="late">Late</option>
+          <option value="missed">Missed</option>
+          <option value="reviewed">Reviewed</option>
+        </select>
+        <button class="btn-sm" onclick="loadSubViewer()" style="margin-left:auto;">↻ Refresh</button>
+      </div>
+
+      <div id="sub-viewer-count" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
+      <div id="sub-viewer-body"></div>
+    </div>
+
     <div id="tracker-report-body"></div>
   </div>
 
@@ -1114,12 +1179,14 @@ function bootApp(){
     document.getElementById("admin-res-compose").style.display="block";
     document.getElementById("change-password-card").style.display="block";
     document.getElementById("uid-sync-tool").style.display="block";
+    document.getElementById("admin-sub-viewer").style.display="block";
     showFirebaseSetupCard();
   } else {
     document.getElementById("admin-compose").style.display="none";
     document.getElementById("admin-res-compose").style.display="none";
     document.getElementById("change-password-card").style.display="block";
     document.getElementById("uid-sync-tool").style.display="none";
+    document.getElementById("admin-sub-viewer").style.display="none";
   }
   // Prime photo cache from registry before rendering feed/leaderboard/directory
   if(!useLocalFallback&&db){
@@ -1134,6 +1201,18 @@ function bootApp(){
         if(!currentUser.isAdmin){
           const me=regSnap.docs.find(d=>d.id===currentUser.uid);
           if(me&&me.data().photoURL)currentUser.photoURL=me.data().photoURL;
+        } else {
+          // Populate member filter dropdown for submissions viewer
+          const sel=document.getElementById("sub-filter-member");
+          if(sel){
+            const members=regSnap.docs.map(d=>d.data()).filter(m=>m.name).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+            members.forEach(m=>{
+              const opt=document.createElement("option");
+              opt.value=m.uid||m.email||"";
+              opt.textContent=m.name;
+              sel.appendChild(opt);
+            });
+          }
         }
       }catch(e){}
       loadFeed();loadAnnouncements();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();
@@ -1166,7 +1245,7 @@ window.navTo=function(page,el){
   if(page==="directory")loadDirectory();
   if(page==="leaderboard")loadLeaderboard();
   if(page==="submit"){loadSubmitPage();}
-  if(page==="reports")loadTrackerReport();
+  if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin)loadSubViewer();}
   if(page==="chat"){
     document.getElementById("chat-unread-badge").style.display="none";
     _chatLastSeen=Date.now();
@@ -2786,6 +2865,173 @@ window.loadLeaderboard=async function(){
   }).join("");
 }
 
+
+
+// ─────────────────────────────────────────────
+//  ADMIN: SUBMISSIONS VIEWER
+// ─────────────────────────────────────────────
+let _subViewMode = "recent"; // recent | week | member
+let _allSubmissions = [];
+
+window.setSubView = function(mode, btn){
+  _subViewMode = mode;
+  document.querySelectorAll(".sub-toggle-btn").forEach(b=>b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  // Show/hide relevant filters
+  const wkSel = document.getElementById("sub-filter-week");
+  const memSel = document.getElementById("sub-filter-member");
+  if(wkSel) wkSel.style.display = (mode==="week") ? "block" : "none";
+  if(memSel) memSel.style.display = (mode==="member") ? "block" : "none";
+  renderSubViewer();
+};
+
+window.loadSubViewer = async function(){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const body = document.getElementById("sub-viewer-body");
+  if(!body) return;
+  body.innerHTML = "<div class='sub-viewer-empty'>Loading submissions...</div>";
+  try{
+    const {getDocs,collection:col,query:q,orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await getDocs(q(col(db,"submissions"), ob("ts","desc")));
+    _allSubmissions = snap.docs.map(d=>({_id:d.id,...d.data()}));
+    renderSubViewer();
+  }catch(e){
+    body.innerHTML = `<div class='sub-viewer-empty'>Error loading: ${esc(e.message)}</div>`;
+  }
+};
+
+window.renderSubViewer = function(){
+  const body = document.getElementById("sub-viewer-body");
+  const countEl = document.getElementById("sub-viewer-count");
+  if(!body) return;
+
+  const statusFilter = document.getElementById("sub-filter-status")?.value || "";
+  const weekFilter = document.getElementById("sub-filter-week")?.value;
+  const memberFilter = document.getElementById("sub-filter-member")?.value || "";
+
+  let subs = [..._allSubmissions];
+
+  // Apply filters
+  if(statusFilter) subs = subs.filter(s => statusFilter==="reviewed" ? s.reviewed : s.status===statusFilter);
+  if(_subViewMode==="week" && weekFilter!=="") subs = subs.filter(s => String(s.weekIdx)===String(weekFilter));
+  if(_subViewMode==="member" && memberFilter) subs = subs.filter(s => s.uid===memberFilter || s.memberName===memberFilter);
+
+  // Sort
+  if(_subViewMode==="week"){
+    subs.sort((a,b)=>(a.weekIdx-b.weekIdx)||(a.memberName||"").localeCompare(b.memberName||""));
+  } else if(_subViewMode==="member"){
+    subs.sort((a,b)=>(a.weekIdx-b.weekIdx));
+  } else {
+    subs.sort((a,b)=>b.ts-a.ts);
+  }
+
+  if(countEl) countEl.textContent = `${subs.length} submission${subs.length!==1?"s":""}`;
+
+  if(!subs.length){
+    body.innerHTML = "<div class='sub-viewer-empty'>No submissions match this filter.</div>";
+    return;
+  }
+
+  // Group by week if in week mode
+  let html = "";
+  if(_subViewMode==="week"){
+    const grouped = {};
+    subs.forEach(s=>{
+      const k = s.weekIdx;
+      if(!grouped[k]) grouped[k]=[];
+      grouped[k].push(s);
+    });
+    Object.keys(grouped).sort((a,b)=>a-b).forEach(wIdx=>{
+      const w = WEEKS[parseInt(wIdx)] || {};
+      html += `<div style="font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px;">${w.month||""} ${w.label||"Week "+(parseInt(wIdx)+1)} · ${w.dates||""}</div>`;
+      grouped[wIdx].forEach(s=>{ html += buildSubCard(s); });
+    });
+  } else {
+    subs.forEach(s=>{ html += buildSubCard(s); });
+  }
+
+  body.innerHTML = html;
+};
+
+function buildSubCard(s){
+  const w = WEEKS[s.weekIdx] || {};
+  const dateStr = s.ts ? new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "";
+  const timeStr = s.ts ? new Date(s.ts).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "";
+  const statusLabel = s.reviewed ? "reviewed" : (s.status||"ontime");
+  const statusText = s.reviewed ? "✓ Reviewed" : s.status==="ontime" ? "On Time" : s.status==="late" ? "Late" : "Missed";
+  const ptsDisplay = s.pts!==undefined ? s.pts : 0;
+
+  return `<div class="sub-card${s.reviewed?" reviewed":""}" id="subcard-${esc(s._id)}">
+    <div class="sub-card-header">
+      ${avatarHTML(s.memberName||"?", s.uid||"", "avatar")}
+      <div class="sub-card-meta">
+        <div class="sub-card-name">${esc(s.memberName||"Unknown")}</div>
+        <div class="sub-card-detail">
+          ${w.month||""} ${w.label||"Week "+(s.weekIdx+1)} · ${w.dates||""}
+          ${s.format ? ` · ${esc(s.format)}` : ""}
+        </div>
+        <div class="sub-card-detail">${dateStr} at ${timeStr}</div>
+      </div>
+      <span class="sub-status-pill ${statusLabel}">${statusText}</span>
+    </div>
+
+    ${s.screenshotBase64 ? `<img src="${esc(s.screenshotBase64)}" class="sub-thumb" onclick="this.style.maxHeight=this.style.maxHeight==='none'?'160px':'none'" title="Click to expand" />` : ""}
+    ${s.url ? `<div style="margin-bottom:8px;"><a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:var(--gold);font-size:12px;word-break:break-all;">${esc(s.url)}</a></div>` : ""}
+
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);">
+      <span>Points:</span>
+      <input class="sub-pts-edit" type="number" value="${ptsDisplay}" id="pts-${esc(s._id)}" min="0" max="50" />
+      <button class="btn-sm" onclick="saveSubPts('${esc(s._id)}')">Save</button>
+    </div>
+
+    <div class="sub-actions">
+      <button class="btn-sm${s.reviewed?" ":"" }" style="${s.reviewed?"background:rgba(39,174,96,.15);color:#27ae60;border-color:#27ae60;":""}" onclick="toggleSubReviewed('${esc(s._id)}',${s.reviewed?true:false})">
+        ${s.reviewed ? "✓ Reviewed" : "Mark Reviewed"}
+      </button>
+      <button class="btn-sm" style="color:#e74c3c;border-color:#e74c3c;" onclick="deleteSubmission('${esc(s._id)}','${esc(s.memberName||"")}')">Delete</button>
+    </div>
+  </div>`;
+}
+
+window.saveSubPts = async function(id){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const inp = document.getElementById("pts-"+id);
+  if(!inp) return;
+  const newPts = parseInt(inp.value)||0;
+  try{
+    const {updateDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await updateDoc(dcRef(db,"submissions",id),{pts:newPts});
+    // Update local cache
+    const s = _allSubmissions.find(x=>x._id===id);
+    if(s) s.pts=newPts;
+    showToast("Points updated ✓");
+  }catch(e){ showToast("Error: "+e.message); }
+};
+
+window.toggleSubReviewed = async function(id, currentVal){
+  if(!currentUser||!currentUser.isAdmin) return;
+  try{
+    const {updateDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const newVal = !currentVal;
+    await updateDoc(dcRef(db,"submissions",id),{reviewed:newVal});
+    const s = _allSubmissions.find(x=>x._id===id);
+    if(s) s.reviewed=newVal;
+    renderSubViewer();
+    showToast(newVal ? "Marked as reviewed ✓" : "Marked as unreviewed");
+  }catch(e){ showToast("Error: "+e.message); }
+};
+
+window.deleteSubmission = async function(id, memberName){
+  if(!currentUser||!currentUser.isAdmin) return;
+  if(!confirm(`Delete this submission from ${memberName}?\n\nThis cannot be undone.`)) return;
+  try{
+    const {deleteDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await deleteDoc(dcRef(db,"submissions",id));
+    _allSubmissions = _allSubmissions.filter(s=>s._id!==id);
+    renderSubViewer();
+    showToast("Submission deleted");
+  }catch(e){ showToast("Error: "+e.message); }
+};
 
 // ─────────────────────────────────────────────
 //  ADMIN: UID SYNC STATUS CHECK
