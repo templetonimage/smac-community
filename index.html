@@ -142,7 +142,50 @@
     .sub-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
     .sub-pts-edit{width:60px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-align:center;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
     .sub-viewer-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;}
-        .admin-banner{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+    
+    /* ── Weekly Challenge Modifier ── */
+    .modifier-wrap{border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:4px;transition:border-color .2s,background .2s;}
+    .modifier-wrap.applied{border-color:var(--gold);background:rgba(212,175,55,0.06);}
+    .modifier-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
+    .modifier-checkbox{width:18px;height:18px;border:2px solid var(--border);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;background:var(--bg);}
+    .modifier-wrap.applied .modifier-checkbox{background:var(--gold);border-color:var(--gold);}
+    .modifier-checkmark{font-size:11px;color:#000;display:none;}
+    .modifier-wrap.applied .modifier-checkmark{display:block;}
+    .modifier-text{flex:1;min-width:0;}
+    .modifier-title{font-size:13px;font-weight:700;color:var(--text);}
+    .modifier-desc{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.4;}
+    .modifier-pts{font-size:11px;font-weight:700;color:var(--gold);background:rgba(212,175,55,0.12);padding:2px 8px;border-radius:10px;flex-shrink:0;}
+
+    /* ── Weekly Spotlight ── */
+    .spotlight-card{background:linear-gradient(135deg,#1a1400,#2d2200);border:2px solid var(--gold);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px;position:relative;overflow:hidden;}
+    .spotlight-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#f5d27a,var(--gold));}
+    .spotlight-label{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+    .spotlight-member{font-weight:700;font-size:15px;color:#fff;margin-bottom:2px;}
+    .spotlight-caption{font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:10px;line-height:1.5;}
+    .spotlight-thumb{width:100%;border-radius:8px;max-height:200px;object-fit:cover;margin-bottom:10px;border:1px solid rgba(212,175,55,0.3);}
+    .spotlight-view-btn{display:inline-flex;align-items:center;gap:6px;background:var(--gold);color:#000;font-weight:700;font-size:12px;padding:7px 14px;border-radius:20px;text-decoration:none;border:none;cursor:pointer;}
+
+    /* ── Round Milestones ── */
+    .milestone-bar-wrap{background:var(--surface2);border-radius:var(--radius);padding:14px 16px;margin-top:14px;}
+    .milestone-bar-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+    .milestone-bar-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);}
+    .milestone-bar-count{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);}
+    .milestone-bar-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+    .milestone-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold-dark),var(--gold));transition:width .6s ease;}
+    .milestone-markers{display:flex;justify-content:space-between;margin-top:6px;}
+    .milestone-marker{font-size:10px;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;gap:2px;}
+    .milestone-marker.earned{color:var(--gold);}
+
+    /* ── Weekly Challenge ── */
+    .challenge-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;position:relative;}
+    .challenge-card.active-challenge{border-color:var(--gold);background:linear-gradient(135deg,#fffbf0,#fff8e6);}
+    .challenge-week-label{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+    .challenge-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold);letter-spacing:0.04em;margin-bottom:4px;}
+    .challenge-desc{font-size:13px;color:var(--text);line-height:1.55;margin-bottom:12px;}
+    .challenge-pts-pill{display:inline-block;background:rgba(212,175,55,0.15);color:var(--gold);font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;margin-bottom:10px;}
+    .challenge-submitted{display:inline-flex;align-items:center;gap:5px;background:rgba(39,174,96,.12);color:#27ae60;font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;}
+    
+    .admin-banner{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
     .admin-banner-icon{font-size:24px;}
     .admin-banner-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;}
     .admin-banner-sub{font-size:12px;opacity:.7;}
@@ -414,7 +457,30 @@
         <button class="btn-post" onclick="submitAnnouncement()">Post Announcement</button>
       </div>
     </div>
+
+    <!-- Admin: Weekly Spotlight -->
+    <div class="compose-box admin-compose" id="admin-spotlight-compose" style="display:none;">
+      <div class="admin-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+        <span class="admin-banner-icon">⭐</span>
+        <div><div class="admin-banner-title">Post Weekly Spotlight</div><div class="admin-banner-sub">Featured at top of Feed with gold banner</div></div>
+      </div>
+      <input class="auth-input" id="spotlight-member" type="text" placeholder="Member name..." style="margin-bottom:8px;" />
+      <input class="auth-input" id="spotlight-url" type="url" placeholder="Instagram post URL..." style="margin-bottom:8px;" />
+      <textarea class="compose-textarea" id="spotlight-caption" placeholder="Caption (why you're spotlighting them)..." rows="2" style="margin-bottom:8px;"></textarea>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--text-muted);">
+        <span>🖼</span>
+        <span id="spotlight-img-label">Upload screenshot thumbnail (optional)</span>
+        <input type="file" accept="image/*" style="display:none;" onchange="handleSpotlightImage(this)" />
+      </label>
+      <div id="spotlight-img-preview" style="display:none;margin-bottom:10px;">
+        <img id="spotlight-img-thumb" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" />
+      </div>
+      <div class="compose-footer">
+        <span class="compose-hint">Appears above feed posts</span>
+        <button class="btn-post" onclick="submitSpotlight()">Post Spotlight</button>
+    </div>
     <div id="announcements-list" style="margin-bottom:8px;"></div>
+    <div id="spotlight-list" style="margin-bottom:4px;"></div>
     <div class="compose-box">
       <textarea class="compose-textarea" id="compose-text" placeholder="Share a post link, win, or update with the group..." rows="3"></textarea>
       <input class="auth-input" id="compose-link" type="url" placeholder="Instagram post URL (optional — required to receive Props)" style="margin-top:10px;margin-bottom:0;" />
@@ -436,6 +502,7 @@
       <h1 class="page-title">Submit</h1>
       <p class="page-subtitle">Log your posts and engagement for points</p>
     </div>
+
     <div class="card" style="margin-bottom:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">📸 Submit Your Post</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Paste your Instagram link <strong>or</strong> upload a screenshot — date &amp; time must be visible.</div>
@@ -455,6 +522,8 @@
         <button class="format-btn"          id="fmt-reel"     onclick="selectFormat('Reel')">🎬 Reel +2pts</button>
         <button class="format-btn"          id="fmt-carousel" onclick="selectFormat('Carousel')">🖼 Carousel +2pts</button>
       </div>
+      <!-- Weekly Challenge Modifier -->
+      <div id="challenge-modifier-wrap" style="margin:12px 0 0;"></div>
       <div class="pts-preview" id="pts-preview" style="margin:10px 0;">You will earn <strong>10 pts</strong> for this on-time submission.</div>
       <button class="btn-post" style="width:100%;" onclick="submitIgPost()">Submit Post for Points</button>
       <div id="submit-error" style="font-size:13px;color:#e74c3c;margin-top:8px;display:none;"></div>
@@ -1180,6 +1249,7 @@ function bootApp(){
     document.getElementById("change-password-card").style.display="block";
     document.getElementById("uid-sync-tool").style.display="block";
     document.getElementById("admin-sub-viewer").style.display="block";
+    document.getElementById("admin-spotlight-compose").style.display="block";
     showFirebaseSetupCard();
   } else {
     document.getElementById("admin-compose").style.display="none";
@@ -1187,6 +1257,7 @@ function bootApp(){
     document.getElementById("change-password-card").style.display="block";
     document.getElementById("uid-sync-tool").style.display="none";
     document.getElementById("admin-sub-viewer").style.display="none";
+    document.getElementById("admin-spotlight-compose").style.display="none";
   }
   // Prime photo cache from registry before rendering feed/leaderboard/directory
   if(!useLocalFallback&&db){
@@ -1215,10 +1286,10 @@ function bootApp(){
           }
         }
       }catch(e){}
-      loadFeed();loadAnnouncements();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();
+      loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();
     });
   } else {
-    loadFeed();loadAnnouncements();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();
+    loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();
   }
   if(currentUser.isAdmin)setTimeout(initPasswordField,500);
   // New features
@@ -1244,7 +1315,7 @@ window.navTo=function(page,el){
   const scroller=document.getElementById("app-scroll");if(scroller)scroller.scrollTop=0;
   if(page==="directory")loadDirectory();
   if(page==="leaderboard")loadLeaderboard();
-  if(page==="submit"){loadSubmitPage();}
+  if(page==="submit"){loadSubmitPage();renderWeeklyChallenge();}
   if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin)loadSubViewer();}
   if(page==="chat"){
     document.getElementById("chat-unread-badge").style.display="none";
@@ -2534,13 +2605,18 @@ function updatePtsPreview(){
   const isMissed=deadline&&now>deadline+(24*60*60*1000);
   let base=isMissed?0:isLate?PTS_LATE_24H:PTS_ON_TIME;
   let bonus=(selectedFormat==="Reel"||selectedFormat==="Carousel")?(isMissed?0:PTS_REEL):0;
-  let total=base+bonus;
+  const challengeBonus=(!isMissed&&_challengeModifierActive)?5:0;
+  let total=base+bonus+challengeBonus;
+  const parts=[];
+  if(bonus>0) parts.push(`+${bonus} format`);
+  if(challengeBonus>0) parts.push(`+5 challenge`);
+  const breakdown=parts.length?` (${parts.join(", ")})` : "";
   if(isMissed){
     preview.innerHTML=`Submission window closed — <strong style="color:#e74c3c;">0 pts</strong>. You can still submit for your record.`;
   } else if(isLate){
-    preview.innerHTML=`Late submission: <strong>${total} pts</strong> (${bonus>0?"+"+bonus+" format bonus":""}).`;
+    preview.innerHTML=`Late submission: <strong>${total} pts</strong>${breakdown}.`;
   } else {
-    preview.innerHTML=`You will earn <strong>${total} pts</strong> for this on-time submission${bonus>0?" (includes +"+bonus+" format bonus)":""}.`;
+    preview.innerHTML=`You will earn <strong>${total} pts</strong> for this on-time submission${breakdown}.`;
   }
 }
 
@@ -2640,7 +2716,10 @@ window.submitIgPost=async function(){
   const isMissed=now>deadline+(24*60*60*1000);
   let base=isMissed?0:isLate?PTS_LATE_24H:PTS_ON_TIME;
   let bonus=(selectedFormat==="Reel"||selectedFormat==="Carousel")?(!isMissed?PTS_REEL:0):0;
-  let pts=base+bonus;
+  const challengeBonus=(!isMissed&&_challengeModifierActive)?5:0;
+  const weekIdx2=getWeekIndex(now);
+  const challengeTitle=(_challengeModifierActive&&weekIdx2>=0&&WEEKLY_CHALLENGES[weekIdx2])?WEEKLY_CHALLENGES[weekIdx2].title:"";
+  let pts=base+bonus+challengeBonus;
   const status=isMissed?"missed":isLate?"late":"ontime";
 
   const submission={
@@ -2652,6 +2731,8 @@ window.submitIgPost=async function(){
     weekIdx,
     pts,
     status,
+    challengeApplied:_challengeModifierActive&&!isMissed,
+    challengeTitle:challengeTitle,
     ts:now
   };
 
@@ -2683,6 +2764,8 @@ window.submitIgPost=async function(){
       document.getElementById("submit-ig-url").value="";
       clearScreenshot();
       selectFormat("Static");
+      _challengeModifierActive=false;
+      renderWeeklyChallenge();
       showToast(pts>0?`+${pts} pts earned! 🎉`:"Submitted (0 pts — window closed).");
       loadMySubmissions();
       loadLeaderboard();
@@ -3031,6 +3114,183 @@ window.deleteSubmission = async function(id, memberName){
     renderSubViewer();
     showToast("Submission deleted");
   }catch(e){ showToast("Error: "+e.message); }
+};
+
+
+// ─────────────────────────────────────────────
+//  WEEKLY SPOTLIGHT
+// ─────────────────────────────────────────────
+let _pendingSpotlightImg = null;
+
+window.handleSpotlightImage = async function(input){
+  const file = input.files[0];
+  if(!file) return;
+  const compressed = await compressImage(file);
+  _pendingSpotlightImg = compressed;
+  document.getElementById("spotlight-img-thumb").src = compressed;
+  document.getElementById("spotlight-img-preview").style.display = "block";
+  document.getElementById("spotlight-img-label").textContent = "Thumbnail selected ✓ — tap to change";
+};
+
+window.submitSpotlight = async function(){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const member = document.getElementById("spotlight-member").value.trim();
+  const url = document.getElementById("spotlight-url").value.trim();
+  const caption = document.getElementById("spotlight-caption").value.trim();
+  if(!member){ showToast("Member name required."); return; }
+  const spotlight = {
+    member, url: url||"", caption: caption||"",
+    imageBase64: _pendingSpotlightImg||"",
+    weekIdx: getWeekIndex(Date.now()),
+    ts: Date.now()
+  };
+  try{
+    if(!useLocalFallback&&db){
+      const {addDoc,collection:col} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await addDoc(col(db,"spotlights"), spotlight);
+    } else {
+      const arr = lsGet("smac_spotlights")||[];
+      arr.unshift({...spotlight, id: Date.now().toString()});
+      lsSet("smac_spotlights", arr);
+    }
+    document.getElementById("spotlight-member").value="";
+    document.getElementById("spotlight-url").value="";
+    document.getElementById("spotlight-caption").value="";
+    document.getElementById("spotlight-img-preview").style.display="none";
+    document.getElementById("spotlight-img-label").textContent="Upload screenshot thumbnail (optional)";
+    _pendingSpotlightImg=null;
+    showToast("Spotlight posted! ⭐");
+    loadSpotlights();
+  }catch(e){ showToast("Error: "+e.message); }
+};
+
+window.loadSpotlights = async function(){
+  const list = document.getElementById("spotlight-list");
+  if(!list) return;
+  try{
+    if(!useLocalFallback&&db){
+      const {getDocs,collection:col,query:q,orderBy:ob,limit:lim} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap = await getDocs(q(col(db,"spotlights"), ob("ts","desc"), lim(5)));
+      renderSpotlights(snap.docs.map(d=>({id:d.id,...d.data()})));
+    } else {
+      renderSpotlights((lsGet("smac_spotlights")||[]).slice(0,5));
+    }
+  }catch(e){ list.innerHTML=""; }
+};
+
+function renderSpotlights(items){
+  const list = document.getElementById("spotlight-list");
+  if(!list) return;
+  if(!items.length){ list.innerHTML=""; return; }
+  list.innerHTML = items.map(s=>`
+    <div class="spotlight-card">
+      <div class="spotlight-label">⭐ Weekly Spotlight</div>
+      ${s.imageBase64 ? `<img src="${esc(s.imageBase64)}" class="spotlight-thumb" />` : ""}
+      <div class="spotlight-member">${esc(s.member)}</div>
+      ${s.caption ? `<div class="spotlight-caption">${esc(s.caption)}</div>` : ""}
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener" class="spotlight-view-btn">View Post ↗</a>` : ""}
+        ${currentUser&&currentUser.isAdmin ? `<button onclick="deleteSpotlight('${esc(s.id)}')" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;">🗑 Remove</button>` : ""}
+      </div>
+    </div>`).join("");
+}
+
+window.deleteSpotlight = async function(id){
+  if(!currentUser||!currentUser.isAdmin) return;
+  if(!confirm("Remove this spotlight?")) return;
+  try{
+    const {deleteDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await deleteDoc(dcRef(db,"spotlights",id));
+    loadSpotlights();
+    showToast("Spotlight removed");
+  }catch(e){ showToast("Error: "+e.message); }
+};
+
+// ─────────────────────────────────────────────
+//  ROUND MILESTONES PROGRESS BAR
+// ─────────────────────────────────────────────
+function buildMilestoneBar(tracked){
+  // Count weeks where member met the required minimum
+  const weeksCompleted = WEEKS.filter(w=>{
+    const checks = tracked[w.id]||[];
+    return checks.filter(Boolean).length >= w.required;
+  }).length;
+  const total = WEEKS.length; // 12
+  const pct = Math.round((weeksCompleted/total)*100);
+
+  // Milestone markers at 25%, 50%, 75%, 100%
+  const milestones = [
+    {pct:25, weeks:3, label:"25%", emoji:"🥉"},
+    {pct:50, weeks:6, label:"50%", emoji:"🥈"},
+    {pct:75, weeks:9, label:"75%", emoji:"🥇"},
+    {pct:100, weeks:12, label:"All-Star", emoji:"⭐"},
+  ];
+
+  const markersHtml = milestones.map(m=>{
+    const earned = weeksCompleted >= m.weeks;
+    return `<div class="milestone-marker${earned?" earned":""}">
+      <span style="font-size:16px;">${m.emoji}</span>
+      <span>${m.label}</span>
+    </div>`;
+  }).join("");
+
+  return `<div class="milestone-bar-wrap">
+    <div class="milestone-bar-label">
+      <span class="milestone-bar-title">Round Progress</span>
+      <span class="milestone-bar-count">${weeksCompleted} / ${total} weeks</span>
+    </div>
+    <div class="milestone-bar-track">
+      <div class="milestone-bar-fill" style="width:${pct}%;"></div>
+    </div>
+    <div class="milestone-markers">${markersHtml}</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+//  WEEKLY CHALLENGE
+// ─────────────────────────────────────────────
+// 12 challenges — one per week. Edit the text here to customise.
+const WEEKLY_CHALLENGES = [
+  {title:"Behind the Scenes", desc:"Show your setup, workspace, or process behind one of your posts or shoots."},
+  {title:"Client Love",       desc:"Share a client testimonial, thank-you message, or reaction — screenshot or quote."},
+  {title:"Trending Audio",    desc:"Post a Reel using a trending audio track. Show your creative spin on it."},
+  {title:"Before & After",    desc:"Post a before-and-after transformation — editing, a shoot setup, or any creative process."},
+  {title:"Your Why",          desc:"Share a caption-driven post about why you do what you do as a creative."},
+  {title:"Collaborate",       desc:"Post something that features, tags, or was created with another creator or client."},
+  {title:"Your Process",      desc:"Walk your audience through how you approach a shoot, edit, or creative project."},
+  {title:"Editing Based",     desc:"Post content focused on your editing style, workflow, or a before/after edit."},
+  {title:"Best Work",         desc:"Share a piece of work you're genuinely proud of — with the story behind it."},
+  {title:"Teach Something",   desc:"Post a tip, tutorial, or piece of advice your audience can use immediately."},
+  {title:"Go Live",           desc:"Go live on Instagram for at least 10 minutes and engage with your audience."},
+  {title:"Victory Lap",       desc:"Post a recap of your Round 2 journey — growth, lessons, wins, and what's next."},
+];
+
+// _challengeModifierActive: true when member has toggled the modifier on
+let _challengeModifierActive = false;
+
+window.renderWeeklyChallenge = function(){
+  const wrap = document.getElementById("challenge-modifier-wrap");
+  if(!wrap) return;
+  const weekIdx = getWeekIndex(Date.now());
+  if(weekIdx < 0 || weekIdx >= WEEKLY_CHALLENGES.length){ wrap.innerHTML=""; return; }
+  const ch = WEEKLY_CHALLENGES[weekIdx];
+  wrap.innerHTML = `
+    <div class="modifier-wrap${_challengeModifierActive?" applied":""}" id="modifier-card" onclick="toggleChallengeModifier()">
+      <div class="modifier-toggle">
+        <div class="modifier-checkbox"><span class="modifier-checkmark">✓</span></div>
+        <div class="modifier-text">
+          <div class="modifier-title">🎯 Weekly Challenge Modifier: ${esc(ch.title)}</div>
+          <div class="modifier-desc">${esc(ch.desc)}</div>
+        </div>
+        <span class="modifier-pts">+5 pts</span>
+      </div>
+    </div>`;
+};
+
+window.toggleChallengeModifier = function(){
+  _challengeModifierActive = !_challengeModifierActive;
+  renderWeeklyChallenge();
+  updatePtsPreview();
 };
 
 // ─────────────────────────────────────────────
@@ -3614,7 +3874,8 @@ async function renderProfileHero(prof){
         <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1;">${totalPosts}</div>
         <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;">Posts</div>
       </div>
-    </div>`;
+    </div>
+    ${buildMilestoneBar(tracked)}`;
 }
 // ─────────────────────────────────────────────
 //  PROFILE PHOTO UPLOAD
