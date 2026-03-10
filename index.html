@@ -1074,7 +1074,7 @@ function bootApp(){
   document.getElementById("auth-screen").classList.add("hidden");
   const _appEl=document.getElementById("app");_appEl.removeAttribute("style");_appEl.classList.add("visible");document.getElementById("topnav").style.display="flex";
   document.getElementById("bottomnav").style.display="flex";
-  document.getElementById("topnav-username").innerHTML=`<strong>${currentUser.name}</strong>${currentUser.isAdmin?" 🔐":""}`;
+  document.getElementById("topnav-username").innerHTML=`<strong>${esc(currentUser.name)}</strong>${currentUser.isAdmin?" 🔐":""}`;
   // Show topnav profile avatar
   const _tpBtn=document.getElementById("topnav-profile-btn");
   const _tpAv=document.getElementById("topnav-avatar");
@@ -1291,6 +1291,7 @@ window.toggleLike=async function(id){
   }
 };
 window.deletePost=async function(id){
+  if(!currentUser||!currentUser.isAdmin)return;
   if(!confirm("Delete this post?"))return;
   if(!useLocalFallback&&db)await deleteDoc(doc(db,"posts",id));
   else{lsSet("smac_posts",(lsGet("smac_posts")||[]).filter(p=>p.id!==id));loadFeed();}
@@ -1335,6 +1336,7 @@ function renderAnnouncements(items){
     </div>`).join("");
 }
 window.deleteAnn=async function(id){
+  if(!currentUser||!currentUser.isAdmin)return;
   if(!confirm("Delete?"))return;
   if(!useLocalFallback&&db)await deleteDoc(doc(db,"announcements",id));
   else{lsSet("smac_announcements",(lsGet("smac_announcements")||[]).filter(a=>a.id!==id));loadAnnouncements();}
@@ -1927,6 +1929,7 @@ window.saveOverride=async function(docId, month, value){
   }
 };
 window.removeFromReport=async function(docId){
+  if(!currentUser||!currentUser.isAdmin)return;
   if(!docId||!confirm("Remove this member from the tracker report?\n\nThis deletes their tracker data only — they stay in the member registry."))return;
   if(!useLocalFallback&&db){
     try{
@@ -2180,6 +2183,7 @@ window.copyWelcomeEmail=function(){
   navigator.clipboard.writeText(text).then(()=>showToast("Welcome email copied to clipboard!")).catch(()=>prompt("Copy this welcome email:",text));
 };
 window.createMemberAccount=async function(){
+  if(!currentUser||!currentUser.isAdmin)return;
   const name=document.getElementById("dir-name").value.trim();
   const email=(document.getElementById("dir-email").value||"").trim().toLowerCase();
   const ig=document.getElementById("dir-ig").value.trim();
