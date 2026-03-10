@@ -608,20 +608,17 @@
       <p class="page-subtitle">Track weekly progress of all members towards All-Star Status</p>
     </div>
 
-    <!-- ADMIN: UID Sync Tool -->
+    <!-- ADMIN: UID auto-sync status (uid written automatically at each member login) -->
     <div id="uid-sync-tool" style="display:none;margin-bottom:24px;">
-      <div class="admin-banner" style="border-radius:8px;padding:14px 16px;margin-bottom:0;">
+      <div class="admin-banner" style="border-radius:8px;padding:12px 16px;">
         <span class="admin-banner-icon">🔧</span>
         <div style="flex:1;">
-          <div class="admin-banner-title">One-Time UID Sync</div>
-          <div class="admin-banner-sub">Matches each registry doc to its Firebase Auth UID — enables photo caching &amp; leaderboard avatars</div>
+          <div class="admin-banner-title">UID Auto-Sync Active</div>
+          <div class="admin-banner-sub">Each member's uid field is written automatically on their next login — no action needed</div>
         </div>
+        <button class="btn-sm" onclick="checkUidSyncStatus()" style="margin-left:12px;flex-shrink:0;">Check Status</button>
       </div>
-      <div style="background:#fffbf0;border:1.5px dashed var(--gold);border-top:none;border-radius:0 0 8px 8px;padding:14px 16px;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">This runs once. It reads all registry docs, looks up each member's Firebase Auth UID by email, then writes the <code>uid</code> field to their doc. Safe to re-run — already-synced docs are skipped.</div>
-        <button class="btn-gold" onclick="runUidSync()" id="uid-sync-btn">Run UID Sync</button>
-        <div id="uid-sync-log" style="margin-top:12px;font-size:12px;font-family:monospace;background:var(--surface2);border-radius:6px;padding:10px;display:none;max-height:220px;overflow-y:auto;line-height:1.8;"></div>
-      </div>
+      <div id="uid-sync-log" style="display:none;margin-top:8px;font-size:12px;font-family:monospace;background:var(--surface2);border-radius:6px;padding:10px;max-height:180px;overflow-y:auto;line-height:1.8;"></div>
     </div>
 
     <div id="tracker-report-body"></div>
@@ -980,7 +977,11 @@ function avatarHTML(name, uid, cssClass, extraStyle=""){
 
 // Preload photo cache from registry snapshot
 function primePhotoCache(registryDocs){
-  registryDocs.forEach(m=>{ if(m.photoURL&&m.uid) _photoCache[m.uid]=m.photoURL; });
+  registryDocs.forEach(m=>{
+    // uid field (Firebase Auth UID) is preferred; fall back to doc ID for legacy docs
+    const key=m.uid||m._docId||"";
+    if(m.photoURL&&key) _photoCache[key]=m.photoURL;
+  });
 }
 
 let _firebaseApp=null;
@@ -1060,6 +1061,12 @@ window.handleLogin=async function(){
         return;
       }
       currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false};
+      // Write uid to registry doc if missing — self-healing, runs once per member
+      if(!member.uid&&member.id&&!useLocalFallback&&db){
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:_dc})=>{
+          updateDoc(_dc(db,"smac_registry",member.id),{uid:firebaseUid}).catch(()=>{});
+        });
+      }
     }
     lsSet("smac_session",currentUser);
     btn.textContent="Enter Community";btn.disabled=false;
@@ -2781,77 +2788,24 @@ window.loadLeaderboard=async function(){
 
 
 // ─────────────────────────────────────────────
-//  ADMIN: ONE-TIME UID SYNC
+//  ADMIN: UID SYNC STATUS CHECK
 // ─────────────────────────────────────────────
-window.runUidSync = async function(){
+window.checkUidSyncStatus = async function(){
   if(!currentUser||!currentUser.isAdmin){showToast("Admin only.");return;}
-  const btn=document.getElementById("uid-sync-btn");
   const log=document.getElementById("uid-sync-log");
-  btn.disabled=true; btn.textContent="Running...";
-  log.style.display="block"; log.innerHTML="";
-
-  function logLine(msg, color="var(--text)"){
-    log.innerHTML+=`<div style="color:${color};">${esc(msg)}</div>`;
-    log.scrollTop=log.scrollHeight;
-  }
-
+  log.style.display="block"; log.innerHTML="<div style='color:var(--text-muted)'>Checking...</div>";
   try{
-    const {getDocs,collection:col,updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const {getDocs,collection:col}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const snap=await getDocs(col(db,"smac_registry"));
     const docs=snap.docs.map(d=>({_docId:d.id,...d.data()}));
-    logLine(`Found ${docs.length} registry docs.`);
-
-    let synced=0, skipped=0, failed=0;
-
-    for(const member of docs){
-      if(member.uid){
-        logLine(`⏭ ${member.name||member.email} — already has uid, skipping`, "var(--text-muted)");
-        skipped++;
-        continue;
-      }
-      if(!member.email){
-        logLine(`⚠ Doc ${member._docId} has no email — skipping`, "#e67e22");
-        failed++;
-        continue;
-      }
-      // Look up Firebase Auth UID via REST API
-      try{
-        const res=await fetch(
-          `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${_a+_b}`,
-          {method:"POST", headers:{"Content-Type":"application/json"},
-           body:JSON.stringify({email:[member.email.toLowerCase()]})}
-        );
-        const data=await res.json();
-        if(!data.users||!data.users.length){
-          logLine(`✗ ${member.email} — not found in Firebase Auth`, "#e74c3c");
-          failed++;
-          continue;
-        }
-        const firebaseUid=data.users[0].localId;
-        await updateDoc(docRef(db,"smac_registry",member._docId),{uid:firebaseUid});
-        _photoCache; // touch to keep reference
-        logLine(`✓ ${member.name||member.email} → uid: ${firebaseUid}`, "#27ae60");
-        synced++;
-      }catch(err){
-        logLine(`✗ ${member.email} — error: ${err.message}`, "#e74c3c");
-        failed++;
-      }
-    }
-
-    logLine("─────────────────────────────────", "var(--border)");
-    logLine(`Done. Synced: ${synced} · Skipped: ${skipped} · Failed: ${failed}`, synced>0?"#27ae60":"var(--text)");
-    btn.textContent="Run Again";
-    btn.disabled=false;
-    showToast(`UID sync complete — ${synced} synced, ${skipped} skipped`);
-
-    // Re-prime photo cache with updated data
-    const snap2=await getDocs(col(db,"smac_registry"));
-    primePhotoCache(snap2.docs.map(d=>({uid:d.id,...d.data()})));
-
+    const withUid=docs.filter(d=>d.uid);
+    const without=docs.filter(d=>!d.uid);
+    log.innerHTML=`<div style="color:#27ae60;">✓ Synced: ${withUid.length} members</div>`+
+      (without.length?`<div style="color:#e67e22;">⏳ Pending login: ${without.length} members</div>`+
+        without.map(d=>`<div style="color:var(--text-muted);padding-left:12px;">· ${esc(d.name||d.email||d._docId)}</div>`).join("")
+      :`<div style="color:#27ae60;">✓ All members synced!</div>`);
   }catch(e){
-    logLine("Fatal error: "+e.message,"#e74c3c");
-    btn.textContent="Run UID Sync";
-    btn.disabled=false;
+    log.innerHTML=`<div style="color:#e74c3c;">Error: ${esc(e.message)}</div>`;
   }
 };
 
