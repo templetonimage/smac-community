@@ -2005,7 +2005,6 @@ function loadDirectory(){
 function renderAdminRegistry(registry, list){
   if(!registry.length){
     list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Registry Empty</div><div class="empty-desc">Add your first member above.</div></div>`;
-    renderEngagementReport([]);
     return;
   }
   const sorted=[...registry].sort((a,b)=>a.name.localeCompare(b.name));
@@ -2049,7 +2048,6 @@ function renderAdminRegistry(registry, list){
       </div>
     </div>`;
   }).join("")}</div>`;
-  renderEngagementReport(sorted);
 }
 
 let _memberMap={};
@@ -2286,60 +2284,6 @@ async function loadTrackerReport(){
   } catch(e) {
     document.getElementById("tracker-report-body").innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load</div><div class="empty-desc">${e.message}</div></div>`;
   }
-}
-function renderEngagementReport(members){
-  if(!currentUser||!currentUser.isAdmin)return;
-  // Get all posts from localStorage
-  const posts=lsGet("smac_posts")||[];
-  // Build per-member props stats
-  const stats=members.map(m=>{
-    const given=posts.reduce((n,p)=>(p.propsBy||[]).includes(m.name.toLowerCase().replace(/\s+/g,"-"))?n+1:n,0);
-    const received=posts.reduce((n,p)=>(p.propsNames||[]).includes(m.name)?n+(p.propsBy||[]).length:n,0);
-    // Count posts by this member
-    const postCount=posts.filter(p=>p.author===m.name).length;
-    // Props given: count how many posts they've propped
-    const propsGiven=posts.filter(p=>(p.propsNames||[]).includes(m.name)).length;
-    // Props received: total props on their posts
-    const propsReceived=posts.filter(p=>p.author===m.name).reduce((n,p)=>n+(p.props||0),0);
-    return{name:m.name,postCount,propsGiven,propsReceived};
-  });
-  // Render
-  let el=document.getElementById("engagement-report");
-  if(!el){el=document.createElement("div");el.id="engagement-report";document.getElementById("directory-list").after(el);}
-  if(!stats.length){el.innerHTML="";return;}
-  el.innerHTML=`
-    <div class="card" style="margin-top:24px;border-color:var(--gold);">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:4px;">📊 Engagement Report</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Admin only — who's posting and giving Props</div>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
-            <tr style="border-bottom:2px solid var(--border);">
-              <th style="text-align:left;padding:8px 10px 8px 0;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Member</th>
-              <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Posts</th>
-              <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Props Given</th>
-              <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Props Received</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${stats.map(s=>{
-              const activeGiver=s.propsGiven>0;
-              return `<tr style="border-bottom:1px solid var(--border);">
-                <td style="padding:10px 10px 10px 0;font-weight:500;">${esc(s.name)}</td>
-                <td style="text-align:center;padding:10px 8px;">${s.postCount||"—"}</td>
-                <td style="text-align:center;padding:10px 8px;">
-                  <span style="display:inline-flex;align-items:center;gap:4px;${activeGiver?"color:var(--gold);font-weight:600;":"color:var(--text-muted);"}">
-                    ${activeGiver?"🙌":""} ${s.propsGiven||"—"}
-                  </span>
-                </td>
-                <td style="text-align:center;padding:10px 8px;font-weight:${s.propsReceived>0?"600":"400"};color:${s.propsReceived>0?"var(--text)":"var(--text-muted)"};">${s.propsReceived||"—"}</td>
-              </tr>`;
-            }).join("")}
-          </tbody>
-        </table>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:12px;">Props Given = posts they've propped. Props Received = total props across their posts.</div>
-    </div>`;
 }
 // ── Password generator ───────────────────────────────────────────
 window.generatePassword=function(){
