@@ -143,6 +143,28 @@
     .sub-pts-edit{width:60px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-align:center;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
     .sub-viewer-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;}
     
+
+    /* ── Polls ── */
+    .poll-card{background:var(--surface);border:1.5px solid var(--gold);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+    .poll-question{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:12px;color:var(--text);}
+    .poll-option{position:relative;margin-bottom:8px;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);cursor:pointer;transition:border-color .15s;}
+    .poll-option:hover{border-color:var(--gold);}
+    .poll-option.voted{border-color:var(--gold);}
+    .poll-option-bar{position:absolute;top:0;left:0;height:100%;background:rgba(212,175,55,0.15);transition:width .4s ease;border-radius:6px;}
+    .poll-option-label{position:relative;display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:13px;font-weight:500;}
+    .poll-option-check{width:16px;height:16px;border:2px solid var(--border);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .15s;}
+    .poll-option.voted .poll-option-check{background:var(--gold);border-color:var(--gold);color:#000;}
+    .poll-option-pct{margin-left:auto;font-size:11px;font-weight:700;color:var(--gold);}
+    .poll-meta{font-size:11px;color:var(--text-muted);margin-top:10px;display:flex;align-items:center;gap:8px;}
+    .poll-chat-card{background:var(--surface2);border:1.5px solid var(--gold);border-radius:12px;padding:14px;margin:4px 0 6px;}
+    .poll-chat-question{font-weight:700;font-size:14px;margin-bottom:10px;}
+
+    /* Poll compose */
+    .poll-compose{margin-top:10px;display:none;}
+    .poll-option-input{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+    .poll-option-input input{flex:1;}
+    .poll-remove-opt{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0 4px;}
+
     /* ── Weekly Challenge Modifier ── */
     .modifier-wrap{border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:4px;transition:border-color .2s,background .2s;}
     .modifier-wrap.applied{border-color:var(--gold);background:rgba(212,175,55,0.06);}
@@ -480,6 +502,24 @@
         <button class="btn-post" onclick="submitSpotlight()">Post Spotlight</button>
       </div>
     </div>
+    <!-- Admin: Poll composer -->
+    <div class="compose-box admin-compose" id="admin-poll-compose" style="display:none;">
+      <div class="admin-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+        <span class="admin-banner-icon">📊</span>
+        <div><div class="admin-banner-title">Create a Poll</div><div class="admin-banner-sub">Members can vote — multiple choice</div></div>
+      </div>
+      <input class="auth-input" id="poll-question" type="text" placeholder="Ask a question..." style="margin-bottom:10px;" />
+      <div id="poll-options-list">
+        <div class="poll-option-input"><input class="auth-input" placeholder="Option 1" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
+        <div class="poll-option-input"><input class="auth-input" placeholder="Option 2" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
+      </div>
+      <button class="react-btn" style="margin:6px 0 10px;" onclick="addPollOption()">+ Add option</button>
+      <div class="compose-footer">
+        <span class="compose-hint">Posted to Feed</span>
+        <button class="btn-post" onclick="submitPoll('feed')">Post Poll</button>
+      </div>
+    </div>
+
     <div id="announcements-list" style="margin-bottom:8px;"></div>
     <div id="spotlight-list" style="margin-bottom:4px;"></div>
     <div class="compose-box">
@@ -858,12 +898,27 @@
         <span>Editing message</span>
         <button onclick="cancelChatEdit()" style="background:none;border:none;color:var(--gold);font-size:12px;cursor:pointer;font-weight:600;">Cancel</button>
       </div>
+      <!-- Admin chat poll compose (hidden unless admin) -->
+      <div id="chat-poll-compose" style="display:none;padding:12px 14px;border-top:1px solid var(--gold);background:#fffbf0;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;">📊 New Poll</div>
+        <input class="auth-input" id="chat-poll-question" type="text" placeholder="Ask a question..." style="margin-bottom:8px;" />
+        <div id="chat-poll-options-list">
+          <div class="poll-option-input"><input class="auth-input" placeholder="Option 1" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
+          <div class="poll-option-input"><input class="auth-input" placeholder="Option 2" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="react-btn" onclick="addChatPollOption()">+ Option</button>
+          <button class="btn-post" style="flex:1;" onclick="submitPoll('chat')">Post Poll to Chat</button>
+          <button class="react-btn" onclick="document.getElementById('chat-poll-compose').style.display='none'">Cancel</button>
+        </div>
+      </div>
       <div class="chat-input-bar" style="position:relative;">
         <button class="chat-emoji-input-btn" id="chat-emoji-btn" onclick="toggleInputEmojiPicker()" title="Emoji">😊</button>
         <textarea id="chat-input" placeholder="Say something to the group…" rows="1"
           onkeydown="chatInputKeydown(event)"
           oninput="autoResizeChatInput(this);notifyChatTyping();"
         ></textarea>
+        <button id="chat-poll-btn" onclick="toggleChatPollCompose()" title="Create Poll" style="display:none;width:38px;height:38px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--gold);cursor:pointer;flex-shrink:0;font-size:16px;">📊</button>
         <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()" title="Send">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
@@ -1275,6 +1330,8 @@ function bootApp(){
     document.getElementById("uid-sync-tool").style.display="block";
     document.getElementById("admin-sub-viewer").style.display="block";
     document.getElementById("admin-spotlight-compose").style.display="block";
+    document.getElementById("admin-poll-compose").style.display="block";
+    document.getElementById("chat-poll-btn").style.display="flex";
     showFirebaseSetupCard();
   } else {
     document.getElementById("admin-compose").style.display="none";
@@ -1283,6 +1340,8 @@ function bootApp(){
     document.getElementById("uid-sync-tool").style.display="none";
     document.getElementById("admin-sub-viewer").style.display="none";
     document.getElementById("admin-spotlight-compose").style.display="none";
+    document.getElementById("admin-poll-compose").style.display="none";
+    document.getElementById("chat-poll-btn").style.display="none";
   }
   // Prime photo cache from registry before rendering feed/leaderboard/directory
   if(!useLocalFallback&&db){
@@ -1384,7 +1443,7 @@ async function loadFeed(){
 }
 function renderFeed(posts){
   const list=document.getElementById("feed-list");
-  if(!posts.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✍️</div><div class="empty-title">No posts yet</div><div class="empty-desc">Be the first to share with the group!</div></div>`;return;}
+  if(!posts.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✍️</div><div class="empty-title">No posts yet</div><div class="empty-desc">Be the first to share with the group!</div></div>`;renderFeedPolls();return;}
   list.innerHTML=posts.map(p=>{
     const _feedInitials=p.author.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase(); // kept for fallback
     const likedByMe=(p.likedBy||[]).includes(currentUser.uid);
@@ -1431,6 +1490,7 @@ function renderFeed(posts){
       ${propsRow}
     </div>`;
   }).join("");
+  renderFeedPolls();
 }
 
 // Props: open IG link → confirm button appears after redirect
@@ -3086,6 +3146,213 @@ window.deleteSubmission = async function(id, memberName){
 };
 
 
+
+// ─────────────────────────────────────────────
+//  POLLS
+// ─────────────────────────────────────────────
+const PTS_POLL_VOTE = 2; // bonus pts for voting
+
+// ── Compose helpers ──────────────────────────
+window.addPollOption = function(){
+  const list = document.getElementById("poll-options-list");
+  if(!list) return;
+  const count = list.children.length + 1;
+  const div = document.createElement("div");
+  div.className = "poll-option-input";
+  div.innerHTML = `<input class="auth-input" placeholder="Option ${count}" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button>`;
+  list.appendChild(div);
+};
+
+window.addChatPollOption = function(){
+  const list = document.getElementById("chat-poll-options-list");
+  if(!list) return;
+  const count = list.children.length + 1;
+  const div = document.createElement("div");
+  div.className = "poll-option-input";
+  div.innerHTML = `<input class="auth-input" placeholder="Option ${count}" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button>`;
+  list.appendChild(div);
+};
+
+window.removePollOption = function(btn){
+  const row = btn.closest(".poll-option-input");
+  const list = row.parentElement;
+  if(list.children.length <= 2){ showToast("Minimum 2 options."); return; }
+  row.remove();
+};
+
+window.toggleChatPollCompose = function(){
+  const el = document.getElementById("chat-poll-compose");
+  if(!el) return;
+  el.style.display = el.style.display === "none" ? "block" : "none";
+};
+
+// ── Submit poll ──────────────────────────────
+window.submitPoll = async function(destination){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const qId   = destination==="chat" ? "chat-poll-question" : "poll-question";
+  const listId = destination==="chat" ? "chat-poll-options-list" : "poll-options-list";
+  const question = (document.getElementById(qId)?.value||"").trim();
+  if(!question){ showToast("Enter a question."); return; }
+  const inputs = document.querySelectorAll(`#${listId} input`);
+  const options = [...inputs].map(i=>i.value.trim()).filter(Boolean);
+  if(options.length < 2){ showToast("Add at least 2 options."); return; }
+
+  const poll = {
+    type: "poll",
+    question,
+    options,
+    votes: {},        // { optionIndex: [uid, uid, ...] }
+    author: "Nate Templeton",
+    uid: currentUser.uid,
+    destination,
+    ts: Date.now()
+  };
+
+  try{
+    if(!useLocalFallback&&db){
+      const {addDoc,collection:col} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const coll = destination==="chat" ? "chat_messages" : "polls";
+      await addDoc(col(db, coll), poll);
+    }
+    // Reset form
+    document.getElementById(qId).value = "";
+    inputs.forEach((inp,i)=>{ inp.value=""; inp.placeholder=`Option ${i+1}`; });
+    if(destination==="chat"){
+      document.getElementById("chat-poll-compose").style.display="none";
+    }
+    showToast("Poll posted! 📊");
+    if(destination==="feed") renderFeedPolls();
+  }catch(e){ showToast("Error: "+e.message); }
+};
+
+// ── Vote ─────────────────────────────────────
+window.votePoll = async function(pollId, optionIdx, collection_name){
+  if(!currentUser) return;
+  try{
+    const {getDoc,updateDoc,doc:dcRef,arrayUnion,increment} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const ref = dcRef(db, collection_name, pollId);
+    const snap = await getDoc(ref);
+    if(!snap.exists()) return;
+    const data = snap.data();
+    const votes = data.votes || {};
+
+    // Check if already voted for this option — toggle off
+    const currentVoters = votes[optionIdx] || [];
+    const alreadyVoted = currentVoters.includes(currentUser.uid);
+
+    // Build update — remove from old option if switching, add to new
+    const update = {};
+    if(alreadyVoted){
+      // Remove vote
+      update[`votes.${optionIdx}`] = currentVoters.filter(u=>u!==currentUser.uid);
+    } else {
+      // Remove from any other option first
+      Object.keys(votes).forEach(k=>{
+        if(votes[k]&&votes[k].includes(currentUser.uid)){
+          update[`votes.${k}`] = votes[k].filter(u=>u!==currentUser.uid);
+        }
+      });
+      update[`votes.${optionIdx}`] = [...currentVoters, currentUser.uid];
+    }
+    await updateDoc(ref, update);
+    // Re-render
+    if(collection_name==="polls") renderFeedPolls();
+    // Chat polls re-render via onSnapshot naturally
+  }catch(e){ showToast("Error: "+e.message); }
+};
+
+// ── Feed poll rendering ───────────────────────
+window.renderFeedPolls = async function(){
+  if(!db||useLocalFallback) return;
+  const container = document.getElementById("feed-list");
+  if(!container) return;
+  try{
+    const {getDocs,collection:col,query:q,orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await getDocs(q(col(db,"polls"), ob("ts","desc")));
+    const polls = snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(!polls.length) return;
+    // Prepend polls above posts
+    const pollsHtml = polls.map(p=>buildFeedPollCard(p)).join("");
+    container.insertAdjacentHTML("afterbegin", pollsHtml);
+  }catch(e){}
+};
+
+function buildFeedPollCard(p){
+  const votes = p.votes || {};
+  const totalVotes = Object.values(votes).reduce((s,arr)=>s+(arr||[]).length, 0);
+  const myVotes = new Set(
+    Object.entries(votes).filter(([,arr])=>(arr||[]).includes(currentUser.uid)).map(([k])=>parseInt(k))
+  );
+  const optionsHtml = (p.options||[]).map((opt,i)=>{
+    const count = (votes[i]||[]).length;
+    const pct = totalVotes ? Math.round((count/totalVotes)*100) : 0;
+    const voted = myVotes.has(i);
+    return `<div class="poll-option${voted?" voted":""}" onclick="votePoll('${p.id}',${i},'polls')">
+      <div class="poll-option-bar" style="width:${pct}%;"></div>
+      <div class="poll-option-label">
+        <div class="poll-option-check">${voted?"✓":""}</div>
+        <span>${esc(opt)}</span>
+        <span class="poll-option-pct">${totalVotes?pct+"%":""}</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  return `<div class="poll-card" id="fpoll-${p.id}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      ${avatarHTML("Nate Templeton", p.uid, "avatar")}
+      <div><div style="font-weight:700;font-size:13px;">Nate Templeton</div><div style="font-size:11px;color:var(--text-muted);">${timeAgo(p.ts)}</div></div>
+      ${currentUser.isAdmin?`<button onclick="deletePoll('${p.id}','polls')" style="margin-left:auto;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;">🗑</button>`:""}
+    </div>
+    <div class="poll-question">📊 ${esc(p.question)}</div>
+    ${optionsHtml}
+    <div class="poll-meta">${totalVotes} vote${totalVotes!==1?"s":""} · Multiple choice</div>
+  </div>`;
+}
+
+// ── Chat poll card ────────────────────────────
+function buildChatPollCard(m){
+  const votes = m.votes || {};
+  const totalVotes = Object.values(votes).reduce((s,arr)=>s+(arr||[]).length,0);
+  const myVotes = new Set(
+    Object.entries(votes).filter(([,arr])=>(arr||[]).includes(currentUser.uid)).map(([k])=>parseInt(k))
+  );
+  const ts = m.ts ? new Date(m.ts).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "";
+  const optionsHtml = (m.options||[]).map((opt,i)=>{
+    const count = (votes[i]||[]).length;
+    const pct = totalVotes ? Math.round((count/totalVotes)*100) : 0;
+    const voted = myVotes.has(i);
+    return `<div class="poll-option${voted?" voted":""}" onclick="votePoll('${m.id}',${i},'chat_messages')">
+      <div class="poll-option-bar" style="width:${pct}%;"></div>
+      <div class="poll-option-label">
+        <div class="poll-option-check">${voted?"✓":""}</div>
+        <span>${esc(opt)}</span>
+        <span class="poll-option-pct">${totalVotes?pct+"%":""}</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  return `<div class="poll-chat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;">📊 Poll</div>
+      <div style="font-size:11px;color:var(--text-muted);">${ts}</div>
+    </div>
+    <div class="poll-chat-question">${esc(m.question)}</div>
+    ${optionsHtml}
+    <div class="poll-meta">${totalVotes} vote${totalVotes!==1?"s":""} · tap to vote</div>
+  </div>`;
+}
+
+window.deletePoll = async function(id, coll){
+  if(!currentUser||!currentUser.isAdmin) return;
+  if(!confirm("Delete this poll?")) return;
+  try{
+    const {deleteDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await deleteDoc(dcRef(db, coll, id));
+    if(coll==="polls") renderFeedPolls();
+    showToast("Poll deleted");
+  }catch(e){ showToast("Error: "+e.message); }
+};
+
 // ─────────────────────────────────────────────
 //  WEEKLY SPOTLIGHT
 // ─────────────────────────────────────────────
@@ -3504,11 +3771,14 @@ function buildChatBubble(m, isThread){
     ${!isMine ? avatarEl : ""}
     <div style="max-width:82%;position:relative;">
       ${actionsHtml}
-      <div class="chat-bubble">
-        ${!isMine ? `<div class="chat-author">${esc(m.author)}</div>` : ""}
-        <div class="chat-text">${esc(m.text||"")}</div>
-        <div class="chat-ts">${ts}${editedMark}</div>
-        ${reactHtml}
+      <div class="chat-bubble" style="${m.type==='poll'?'background:transparent;border:none;padding:0;':''}" >
+        ${m.type==='poll'
+          ? buildChatPollCard(m)
+          : `${!isMine ? `<div class="chat-author">${esc(m.author)}</div>` : ""}
+             <div class="chat-text">${esc(m.text||"")}</div>
+             <div class="chat-ts">${ts}${editedMark}</div>
+             ${reactHtml}`
+        }
       </div>
       ${threadPreview}
     </div>
