@@ -4833,34 +4833,7 @@ if(!useLocalFallback&&auth){
   if(saved?.name){ currentUser=saved; bootApp(); }
   else document.getElementById("auth-screen").classList.remove("hidden");
 }
-</script>
 
-<script>
-if("serviceWorker"in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").catch(()=>{});});}
-
-let deferredPrompt;
-window.addEventListener("beforeinstallprompt",e=>{
-  e.preventDefault();
-  deferredPrompt=e;
-  const card=document.getElementById("install-card");
-  if(card)card.style.display="block";
-});
-const installProfileBtn=document.getElementById("install-profile-btn");
-if(installProfileBtn){
-  installProfileBtn.addEventListener("click",async()=>{
-    if(deferredPrompt){
-      deferredPrompt.prompt();
-      const {outcome}=await deferredPrompt.userChoice;
-      deferredPrompt=null;
-      const card=document.getElementById("install-card");
-      if(card)card.style.display="none";
-    }
-  });
-}
-</script>
-
-<!-- EmailJS -->
-<script>
 // ─────────────────────────────────────────────
 //  BUG REPORT MODAL — Firestore backed
 // ─────────────────────────────────────────────
@@ -4870,12 +4843,10 @@ window.openBugReport = function(){
   const nameEl = document.getElementById("bug-name");
   if(nameEl && currentUser && currentUser.name) nameEl.value = currentUser.name;
   document.getElementById("bug-report-modal").style.display = "block";
-  document.body.style.overflow = "hidden";
 };
 
 window.closeBugReport = function(){
   document.getElementById("bug-report-modal").style.display = "none";
-  document.body.style.overflow = "";
   document.getElementById("bug-name").value = "";
   document.getElementById("bug-desc").value = "";
   document.getElementById("bug-report-msg").textContent = "";
@@ -4918,25 +4889,17 @@ window.submitBugReport = async function(){
   const desc  = (document.getElementById("bug-desc").value || "").trim();
   const msgEl = document.getElementById("bug-report-msg");
   const btn   = document.getElementById("bug-submit-btn");
-
   msgEl.style.color = "#e74c3c";
   if(!name){ msgEl.textContent = "Please enter your name."; return; }
   if(!desc){ msgEl.textContent = "Please describe the issue."; return; }
-
   btn.disabled = true;
   btn.textContent = "Submitting...";
   msgEl.textContent = "";
-
   try {
     const {addDoc, collection:col} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     await addDoc(col(db, "bug_reports"), {
-      name,
-      email:      currentUser?.email || "",
-      uid:        currentUser?.uid   || "",
-      message:    desc,
-      screenshot: _bugScreenshotBase64 || null,
-      resolved:   false,
-      ts:         Date.now()
+      name, email: currentUser?.email||"", uid: currentUser?.uid||"",
+      message: desc, screenshot: _bugScreenshotBase64||null, resolved: false, ts: Date.now()
     });
     msgEl.style.color = "#27ae60";
     msgEl.textContent = "Report submitted! Thanks — Nate will look into it.";
@@ -4947,68 +4910,82 @@ window.submitBugReport = async function(){
     msgEl.textContent = "Failed to submit. Please try again or email info@joinsmac.com.";
     btn.disabled = false;
     btn.textContent = "Send Report";
-    console.error("Bug report error:", e);
   }
 };
 
-// ─────────────────────────────────────────────
-//  BUG REPORTS VIEWER (admin, Reports tab)
-// ─────────────────────────────────────────────
 window.loadBugReports = async function(){
   if(!currentUser||!currentUser.isAdmin) return;
   const body = document.getElementById("bug-reports-body");
   if(!body) return;
   body.innerHTML = "<div style='text-align:center;padding:32px;color:var(--text-muted);font-size:13px;'>Loading...</div>";
   try {
-    const {getDocs, collection:col, query:q, orderBy:ob, updateDoc, deleteDoc, doc:dcRef} =
+    const {getDocs,collection:col,query:q,orderBy:ob,updateDoc,deleteDoc,doc:dcRef} =
       await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const snap = await getDocs(q(col(db,"bug_reports"), ob("ts","desc")));
-    if(snap.empty){
-      body.innerHTML = "<div style='text-align:center;padding:32px;color:var(--text-muted);font-size:13px;'>No bug reports yet.</div>";
-      return;
-    }
-    body.innerHTML = snap.docs.map(d => {
-      const r = d.data();
-      const date = r.ts ? new Date(r.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "";
-      const time = r.ts ? new Date(r.ts).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "";
-      return `<div id="bugrpt-${d.id}" style="background:var(--surface);border:1px solid ${r.resolved?"var(--border)":"var(--gold)"};border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow);${r.resolved?"opacity:0.6":""}">
+    const snap = await getDocs(q(col(db,"bug_reports"),ob("ts","desc")));
+    if(snap.empty){ body.innerHTML="<div style='text-align:center;padding:32px;color:var(--text-muted);font-size:13px;'>No bug reports yet.</div>"; return; }
+    body.innerHTML = snap.docs.map(d=>{
+      const r=d.data();
+      const date=r.ts?new Date(r.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"";
+      const time=r.ts?new Date(r.ts).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}):"";
+      return `<div style="background:var(--surface);border:1px solid ${r.resolved?"var(--border)":"var(--gold)"};border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow);${r.resolved?"opacity:0.6":""}">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;">
-          <div>
-            <div style="font-weight:700;font-size:14px;">${esc(r.name||"Unknown")}</div>
-            <div style="font-size:12px;color:var(--text-muted);">${esc(r.email||"")} &middot; ${date} at ${time}</div>
-          </div>
-          <span style="flex-shrink:0;font-size:11px;font-weight:600;letter-spacing:0.06em;padding:3px 8px;border-radius:20px;background:${r.resolved?"#e8f5e9":"#fff8e1"};color:${r.resolved?"#27ae60":"#c9a84c"};">${r.resolved?"✓ Resolved":"Open"}</span>
+          <div><div style="font-weight:700;font-size:14px;">${esc(r.name||"Unknown")}</div>
+          <div style="font-size:12px;color:var(--text-muted);">${esc(r.email||"")} · ${date} at ${time}</div></div>
+          <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:${r.resolved?"#e8f5e9":"#fff8e1"};color:${r.resolved?"#27ae60":"#c9a84c"};">${r.resolved?"✓ Resolved":"Open"}</span>
         </div>
-        <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;margin-bottom:${r.screenshot?"12px":"0"}">${esc(r.message||"")}</div>
-        ${r.screenshot ? `<img src="${r.screenshot}" alt="Screenshot" style="width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;cursor:pointer;" onclick="this.style.maxHeight=this.style.maxHeight==='none'?'200px':'none'" title="Click to expand" />` : ""}
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;margin-bottom:10px;">${esc(r.message||"")}</div>
+        ${r.screenshot?`<img src="${r.screenshot}" alt="Screenshot" style="width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;" />`:""}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-sm" onclick="toggleBugResolved('${d.id}',${!!r.resolved})" style="${r.resolved?"":"background:rgba(39,174,96,.12);color:#27ae60;border-color:#27ae60;"}">${r.resolved?"Mark Open":"✓ Mark Resolved"}</button>
           <button class="btn-sm" onclick="deleteBugReport('${d.id}')" style="color:#e74c3c;border-color:#e74c3c;">Delete</button>
         </div>
       </div>`;
     }).join("");
-  } catch(e) {
-    body.innerHTML = `<div style="color:#e74c3c;font-size:13px;padding:16px;">Error loading reports: ${e.message}</div>`;
-  }
+  } catch(e){ body.innerHTML=`<div style="color:#e74c3c;padding:16px;font-size:13px;">Error: ${e.message}</div>`; }
 };
 
-window.toggleBugResolved = async function(id, current){
-  try {
-    const {updateDoc, doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+window.toggleBugResolved = async function(id,current){
+  try{
+    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     await updateDoc(dcRef(db,"bug_reports",id),{resolved:!current});
     loadBugReports();
-  } catch(e){ showToast("Error: "+e.message); }
+  }catch(e){showToast("Error: "+e.message);}
 };
 
 window.deleteBugReport = async function(id){
   if(!confirm("Delete this bug report? Cannot be undone.")) return;
-  try {
-    const {deleteDoc, doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  try{
+    const {deleteDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     await deleteDoc(dcRef(db,"bug_reports",id));
     loadBugReports();
     showToast("Bug report deleted.");
-  } catch(e){ showToast("Error: "+e.message); }
+  }catch(e){showToast("Error: "+e.message);}
 };
 </script>
+
+<script>
+if("serviceWorker"in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").catch(()=>{});});}
+
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  const card=document.getElementById("install-card");
+  if(card)card.style.display="block";
+});
+const installProfileBtn=document.getElementById("install-profile-btn");
+if(installProfileBtn){
+  installProfileBtn.addEventListener("click",async()=>{
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      const {outcome}=await deferredPrompt.userChoice;
+      deferredPrompt=null;
+      const card=document.getElementById("install-card");
+      if(card)card.style.display="none";
+    }
+  });
+}
+</script>
+
 </body>
 </html>
