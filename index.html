@@ -829,6 +829,35 @@
       </div>
     </div>
 
+    <!-- ADMIN: Per-Member Point Reset Tool -->
+    <div id="member-reset-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">👤 Reset Member Points</div>
+      <div class="card" style="border:1.5px solid var(--border);">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+          Select a member to zero out their points, post count, and delete all submissions and engagements from W1–W2. Activity from W3 onward is preserved.
+        </div>
+
+        <!-- Member picker -->
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Select Member</label>
+          <select id="member-reset-select" class="sub-filter-select" style="display:block;width:100%;max-width:320px;" onchange="previewMemberReset()">
+            <option value="">— choose a member —</option>
+          </select>
+        </div>
+
+        <!-- Preview area -->
+        <div id="member-reset-preview" style="display:none;margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px;line-height:1.8;">
+          <div style="font-weight:700;margin-bottom:6px;">What will be reset:</div>
+          <div id="member-reset-preview-body"></div>
+        </div>
+
+        <button class="btn-sm" id="member-reset-run-btn" onclick="runMemberReset()" style="display:none;background:#e74c3c;color:#fff;border-color:#e74c3c;">
+          🗑️ Confirm Reset for <span id="member-reset-name-label">this member</span>
+        </button>
+        <div id="member-reset-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
+      </div>
+    </div>
+
     <div id="tracker-report-body"></div>
   </div>
 
@@ -1363,6 +1392,7 @@ function bootApp(){
     document.getElementById("uid-sync-tool").style.display="block";
     document.getElementById("admin-sub-viewer").style.display="block";
     document.getElementById("reset-week-tool").style.display="block";
+    document.getElementById("member-reset-tool").style.display="block";
     document.getElementById("admin-spotlight-compose").style.display="block";
     document.getElementById("admin-poll-compose").style.display="block";
     document.getElementById("chat-poll-btn").style.display="flex";
@@ -1374,6 +1404,7 @@ function bootApp(){
     document.getElementById("uid-sync-tool").style.display="none";
     document.getElementById("admin-sub-viewer").style.display="none";
     document.getElementById("reset-week-tool").style.display="none";
+    document.getElementById("member-reset-tool").style.display="none";
     document.getElementById("admin-spotlight-compose").style.display="none";
     document.getElementById("admin-poll-compose").style.display="none";
     document.getElementById("chat-poll-btn").style.display="none";
@@ -1401,6 +1432,17 @@ function bootApp(){
               opt.value=m.uid||m.email||"";
               opt.textContent=m.name;
               sel.appendChild(opt);
+            });
+          }
+          // Populate member-reset-select with registryId as value (needed for point reset)
+          const resetSel=document.getElementById("member-reset-select");
+          if(resetSel){
+            const members=regSnap.docs.map(d=>sanitizeMember({id:d.id,...d.data()})).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+            members.forEach(m=>{
+              const opt=document.createElement("option");
+              opt.value=JSON.stringify({registryId:m.id, uid:m.uid||"", name:m.name||""});
+              opt.textContent=m.name + (m.points ? ` — ${m.points} pts` : " — 0 pts");
+              resetSel.appendChild(opt);
             });
           }
         }
@@ -3354,6 +3396,170 @@ window.runResetWeek = async function(){
     statusEl.innerHTML = `<span style="color:#e74c3c;">Error: ${e.message}</span> — Some data may have been partially deleted. Check Firestore manually.`;
     runBtn.disabled = false;
     runBtn.textContent = "🗑️ Confirm & Delete Week 2 Data";
+  }
+};
+
+
+
+// ─────────────────────────────────────────────
+//  ADMIN: PER-MEMBER POINT RESET
+//  Deletes submissions + engagements for weekIdx < 2 (W1 & W2)
+//  Zeros points + totalPosts on smac_registry
+//  Clears w1 + w2 tracker slots
+// ─────────────────────────────────────────────
+const RESET_MEMBER_BEFORE_WEEK = 2; // delete weekIdx 0 and 1 only
+
+let _memberResetTarget = null; // {registryId, uid, name}
+
+window.previewMemberReset = async function(){
+  const sel = document.getElementById("member-reset-select");
+  const previewEl   = document.getElementById("member-reset-preview");
+  const previewBody = document.getElementById("member-reset-preview-body");
+  const runBtn      = document.getElementById("member-reset-run-btn");
+  const nameLabel   = document.getElementById("member-reset-name-label");
+  const statusEl    = document.getElementById("member-reset-status");
+
+  previewEl.style.display = "none";
+  runBtn.style.display = "none";
+  statusEl.style.display = "none";
+  _memberResetTarget = null;
+
+  if(!sel||!sel.value) return;
+
+  let parsed;
+  try{ parsed = JSON.parse(sel.value); }catch(e){ return; }
+  const {registryId, uid, name} = parsed;
+  if(!registryId) return;
+
+  sel.disabled = true;
+
+  try{
+    const {getDocs, collection:col, query:q, where, getDoc, doc:dcRef} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    const regDoc = await getDoc(dcRef(db,"smac_registry",registryId));
+    const regData = regDoc.exists() ? regDoc.data() : {};
+    const currentPts = regData.points || 0;
+
+    const subSnap = await getDocs(q(col(db,"submissions"), where("uid","==",uid)));
+    const preSubs = subSnap.docs.filter(d => (d.data().weekIdx ?? 99) < RESET_MEMBER_BEFORE_WEEK);
+    const preSubPts = preSubs.reduce((sum,d) => sum + (d.data().pts||0), 0);
+
+    const engSnap = await getDocs(q(col(db,"engagements"), where("uid","==",uid)));
+    const preEngs = engSnap.docs.filter(d => (d.data().weekIdx ?? 99) < RESET_MEMBER_BEFORE_WEEK);
+    const preEngPts = preEngs.reduce((sum,d) => sum + (d.data().pts||0), 0);
+
+    const keepSubPts = subSnap.docs
+      .filter(d => (d.data().weekIdx ?? 99) >= RESET_MEMBER_BEFORE_WEEK)
+      .reduce((sum,d) => sum + (d.data().pts||0), 0);
+    const keepEngPts = engSnap.docs
+      .filter(d => (d.data().weekIdx ?? 99) >= RESET_MEMBER_BEFORE_WEEK)
+      .reduce((sum,d) => sum + (d.data().pts||0), 0);
+
+    const knownPts = preSubPts + preEngPts + keepSubPts + keepEngPts;
+    const residualPts = Math.max(0, currentPts - knownPts);
+    const newPts = keepSubPts + keepEngPts;
+    const keepPosts = subSnap.docs.filter(d => (d.data().weekIdx ?? 99) >= RESET_MEMBER_BEFORE_WEEK).length;
+
+    _memberResetTarget = {
+      registryId, uid, name, newPts, keepPosts,
+      preSubIds: preSubs.map(d=>d.id),
+      preEngIds: preEngs.map(d=>d.id),
+      preSubPts, preEngPts, residualPts, currentPts
+    };
+
+    const totalRemoved = currentPts - newPts;
+
+    previewBody.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr><td style="padding:4px 0;color:var(--text-muted);">Current points</td><td style="text-align:right;font-weight:600;">${currentPts}</td></tr>
+        <tr><td style="padding:4px 0;color:#e74c3c;">W1-W2 submission pts removed</td><td style="text-align:right;color:#e74c3c;">-${preSubPts}</td></tr>
+        <tr><td style="padding:4px 0;color:#e74c3c;">W1-W2 engagement pts removed</td><td style="text-align:right;color:#e74c3c;">-${preEngPts}</td></tr>
+        ${residualPts > 0 ? `<tr><td style="padding:4px 0;color:#e74c3c;">Streak / poll pts removed</td><td style="text-align:right;color:#e74c3c;">-${residualPts}</td></tr>` : ""}
+        <tr style="border-top:1px solid var(--border);"><td style="padding:6px 0 2px;font-weight:700;">Points after reset</td><td style="text-align:right;font-weight:700;color:#27ae60;">${newPts}</td></tr>
+        <tr><td style="padding:2px 0;color:var(--text-muted);">Submissions deleted (W1-W2)</td><td style="text-align:right;">${preSubs.length}</td></tr>
+        <tr><td style="padding:2px 0;color:var(--text-muted);">Engagements deleted (W1-W2)</td><td style="text-align:right;">${preEngs.length}</td></tr>
+        <tr><td style="padding:2px 0;color:var(--text-muted);">W3+ activity preserved</td><td style="text-align:right;color:#27ae60;">${keepPosts} post(s) - ${keepSubPts + keepEngPts} pts kept</td></tr>
+        <tr><td style="padding:2px 0;color:var(--text-muted);">Tracker slots cleared</td><td style="text-align:right;">W1, W2</td></tr>
+      </table>`;
+
+    previewEl.style.display = "block";
+    if(nameLabel) nameLabel.textContent = name;
+
+    if(totalRemoved === 0 && preSubs.length === 0 && preEngs.length === 0){
+      previewBody.innerHTML += `<div style="margin-top:10px;color:var(--text-muted);font-style:italic;">No pre-W3 data found - nothing to reset.</div>`;
+      runBtn.style.display = "none";
+    } else {
+      runBtn.style.display = "block";
+    }
+
+  }catch(e){
+    statusEl.textContent = "Preview failed: " + e.message;
+    statusEl.style.display = "block";
+  }
+
+  sel.disabled = false;
+};
+
+window.runMemberReset = async function(){
+  if(!currentUser||!currentUser.isAdmin||!_memberResetTarget) return;
+  const {registryId, uid, name, newPts, keepPosts, preSubIds, preEngIds} = _memberResetTarget;
+
+  if(!confirm(`Reset ${name}?\n\nThis will:\n- Delete ${preSubIds.length} W1-W2 submission(s)\n- Delete ${preEngIds.length} W1-W2 engagement(s)\n- Set points to ${newPts}\n- Clear W1 + W2 tracker slots\n\nW3+ activity is untouched. Cannot be undone.`)) return;
+
+  const runBtn   = document.getElementById("member-reset-run-btn");
+  const statusEl = document.getElementById("member-reset-status");
+  const sel      = document.getElementById("member-reset-select");
+
+  runBtn.disabled = true;
+  runBtn.textContent = "Working...";
+  statusEl.style.display = "block";
+  statusEl.textContent = "Step 1/4 - Deleting W1-W2 submissions...";
+
+  try{
+    const {deleteDoc, updateDoc, doc:dcRef, getDoc} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    for(const id of preSubIds){
+      await deleteDoc(dcRef(db,"submissions",id));
+    }
+    statusEl.textContent = "Step 2/4 - Deleting W1-W2 engagements...";
+
+    for(const id of preEngIds){
+      await deleteDoc(dcRef(db,"engagements",id));
+    }
+    statusEl.textContent = "Step 3/4 - Updating points and post count...";
+
+    await updateDoc(dcRef(db,"smac_registry",registryId),{
+      points: newPts,
+      totalPosts: keepPosts
+    });
+    statusEl.textContent = "Step 4/4 - Clearing W1 + W2 tracker slots...";
+
+    const trackerDocId = uid || registryId;
+    const trackerRef = dcRef(db,"trackers",trackerDocId);
+    const trackerSnap = await getDoc(trackerRef);
+    if(trackerSnap.exists()){
+      await updateDoc(trackerRef,{"tracked.w1":[], "tracked.w2":[]});
+    }
+
+    statusEl.innerHTML = `<span style="color:#27ae60;font-weight:700;">Done.</span> ${name}'s points set to <strong>${newPts}</strong>. ${preSubIds.length} submission(s) and ${preEngIds.length} engagement(s) deleted. W1 + W2 tracker cleared.`;
+    runBtn.style.display = "none";
+    document.getElementById("member-reset-preview").style.display = "none";
+    _memberResetTarget = null;
+
+    if(sel){
+      const opt = sel.options[sel.selectedIndex];
+      if(opt) opt.textContent = opt.textContent.replace(/--.*pts/, `-- ${newPts} pts`);
+      sel.value = "";
+    }
+    showToast(`${name} reset`);
+    if(typeof loadSubViewer === "function") loadSubViewer();
+
+  }catch(e){
+    statusEl.innerHTML = `<span style="color:#e74c3c;">Error: ${e.message}</span> - Check Firestore manually for partial changes.`;
+    runBtn.disabled = false;
+    runBtn.textContent = `Confirm Reset for ${name}`;
   }
 };
 
