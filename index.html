@@ -3313,8 +3313,19 @@ window.runResetWeek = async function(){
     }
     statusEl.textContent = `Step 3/4 — ${subs.length} submission(s) deleted. Clearing W2 engagements…`;
 
-    // ── 4a. Delete W2 engagements ────────────────
+    // ── 4a. Delete W2 engagements + reverse their points ─
     const engSnap = await getDocs(q(col(db,"engagements"), where("weekIdx","==",RESET_WEEK_IDX)));
+    const engDeductions = {}; // registryId → pts to subtract
+    engSnap.docs.forEach(e => {
+      const data = e.data();
+      const regId = uidToRegId[data.uid] || null;
+      if(!regId) return;
+      if(!engDeductions[regId]) engDeductions[regId] = 0;
+      engDeductions[regId] += (data.pts || 0);
+    });
+    for(const [regId, pts] of Object.entries(engDeductions)){
+      if(pts > 0) await updateDoc(dcRef(db,"smac_registry",regId),{points: increment(-pts)});
+    }
     for(const e of engSnap.docs){
       await deleteDoc(dcRef(db,"engagements",e.id));
     }
@@ -3331,7 +3342,7 @@ window.runResetWeek = async function(){
     statusEl.textContent = `Step 4/4 — Tracker W2 data cleared.`;
 
     // ── Done ─────────────────────────────────────
-    statusEl.innerHTML = `<span style="color:#27ae60;font-weight:700;">✓ Reset complete.</span> ${subs.length} submission(s) and ${engSnap.size} engagement(s) deleted. Points reversed for ${deductCount} member(s). W2 tracker cleared. Reload the page to see updated data.`;
+    statusEl.innerHTML = `<span style="color:#27ae60;font-weight:700;">✓ Reset complete.</span> ${subs.length} submission(s) and ${engSnap.size} engagement(s) deleted. Submission + engagement points reversed for affected members. W2 tracker cleared. Reload the page to see updated data.`;
     runBtn.style.display = "none";
     document.getElementById("reset-week-preview-btn").style.display = "none";
     showToast("Week 2 test data cleared ✓");
