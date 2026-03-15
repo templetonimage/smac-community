@@ -797,38 +797,6 @@
       <div id="sub-viewer-body"></div>
     </div>
 
-    <!-- ADMIN: Reset Test Week Tool -->
-    <div id="reset-week-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🗑️ Reset Test Week</div>
-      <div class="card" style="border:1.5px solid #e74c3c;background:#fff8f8;">
-        <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;">
-          <div style="font-size:28px;flex-shrink:0;">⚠️</div>
-          <div>
-            <div style="font-weight:700;font-size:15px;margin-bottom:4px;">Week 2 · Mar 8–14 — Test Week Reset</div>
-            <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">
-              This will permanently delete all Week 2 submissions, reverse the points and post counts for every affected member, and clear the W2 tracker checkbox for all members.<br><br>
-              <strong style="color:#e74c3c;">This cannot be undone.</strong> The official challenge begins Week 3 (Mar 15).
-            </div>
-          </div>
-        </div>
-
-        <div id="reset-week-preview" style="display:none;margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px;line-height:1.8;">
-          <div style="font-weight:700;margin-bottom:6px;">Preview — what will be deleted:</div>
-          <div id="reset-week-preview-body"></div>
-        </div>
-
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn-sm" id="reset-week-preview-btn" onclick="previewResetWeek()" style="border-color:var(--gold);color:var(--gold);">
-            🔍 Preview Affected Data
-          </button>
-          <button class="btn-sm" id="reset-week-run-btn" onclick="runResetWeek()" style="display:none;background:#e74c3c;color:#fff;border-color:#e74c3c;">
-            🗑️ Confirm &amp; Delete Week 2 Data
-          </button>
-        </div>
-        <div id="reset-week-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
-      </div>
-    </div>
-
     <!-- ADMIN: Per-Member Point Reset Tool -->
     <div id="member-reset-tool" style="display:none;margin-bottom:28px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">👤 Reset Member Points</div>
@@ -1391,7 +1359,6 @@ function bootApp(){
     document.getElementById("change-password-card").style.display="block";
     document.getElementById("uid-sync-tool").style.display="block";
     document.getElementById("admin-sub-viewer").style.display="block";
-    document.getElementById("reset-week-tool").style.display="block";
     document.getElementById("member-reset-tool").style.display="block";
     document.getElementById("admin-spotlight-compose").style.display="block";
     document.getElementById("admin-poll-compose").style.display="block";
@@ -1403,7 +1370,6 @@ function bootApp(){
     document.getElementById("change-password-card").style.display="block";
     document.getElementById("uid-sync-tool").style.display="none";
     document.getElementById("admin-sub-viewer").style.display="none";
-    document.getElementById("reset-week-tool").style.display="none";
     document.getElementById("member-reset-tool").style.display="none";
     document.getElementById("admin-spotlight-compose").style.display="none";
     document.getElementById("admin-poll-compose").style.display="none";
@@ -3222,183 +3188,6 @@ window.deleteSubmission = async function(id, memberName){
     showToast("Submission deleted");
   }catch(e){ showToast("Error: "+e.message); }
 };
-
-// ─────────────────────────────────────────────
-//  ADMIN: RESET TEST WEEK (W2 · Mar 8–14)
-// ─────────────────────────────────────────────
-const RESET_WEEK_IDX = 1; // weekIdx 1 = W2 (0-indexed)
-
-window.previewResetWeek = async function(){
-  if(!currentUser||!currentUser.isAdmin) return;
-  const previewEl  = document.getElementById("reset-week-preview");
-  const previewBody= document.getElementById("reset-week-preview-body");
-  const runBtn     = document.getElementById("reset-week-run-btn");
-  const statusEl   = document.getElementById("reset-week-status");
-  const previewBtn = document.getElementById("reset-week-preview-btn");
-
-  previewBtn.disabled = true;
-  previewBtn.textContent = "Loading…";
-  statusEl.style.display = "none";
-
-  try{
-    const {getDocs, collection:col, query:q, where} =
-      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-
-    // Fetch all W2 submissions
-    const snap = await getDocs(q(col(db,"submissions"), where("weekIdx","==",RESET_WEEK_IDX)));
-    const subs  = snap.docs.map(d=>({_id:d.id, ...d.data()}));
-
-    if(!subs.length){
-      previewBody.innerHTML = "<em style='color:var(--text-muted);'>No Week 2 submissions found — nothing to delete.</em>";
-      previewEl.style.display = "block";
-      runBtn.style.display = "none";
-      previewBtn.disabled = false;
-      previewBtn.textContent = "🔍 Preview Affected Data";
-      return;
-    }
-
-    // Aggregate pts and posts per member
-    const memberTotals = {};
-    subs.forEach(s=>{
-      const key = s.memberName || s.uid || "Unknown";
-      if(!memberTotals[key]) memberTotals[key] = {pts:0, posts:0, uid:s.uid||""};
-      memberTotals[key].pts  += (s.pts||0);
-      memberTotals[key].posts += 1;
-    });
-
-    // Also fetch W2 engagements
-    const engSnap = await getDocs(q(col(db,"engagements"), where("weekIdx","==",RESET_WEEK_IDX)));
-    const engs = engSnap.docs.map(d=>({_id:d.id,...d.data()}));
-
-    let html = `<div style="margin-bottom:8px;color:#e74c3c;font-weight:600;">${subs.length} submission${subs.length!==1?"s":""} · ${engs.length} engagement${engs.length!==1?"s":""} will be deleted</div>`;
-    html += `<table style="width:100%;border-collapse:collapse;font-size:12px;">
-      <tr style="color:var(--text-muted);border-bottom:1px solid var(--border);">
-        <th style="text-align:left;padding:4px 8px 4px 0;">Member</th>
-        <th style="text-align:center;padding:4px 8px;">Posts</th>
-        <th style="text-align:center;padding:4px 8px;">Pts Removed</th>
-      </tr>`;
-    Object.entries(memberTotals).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name, data])=>{
-      html += `<tr style="border-bottom:1px solid var(--border);">
-        <td style="padding:5px 8px 5px 0;">${esc(name)}</td>
-        <td style="text-align:center;padding:5px 8px;">${data.posts}</td>
-        <td style="text-align:center;padding:5px 8px;color:#e74c3c;">−${data.pts}</td>
-      </tr>`;
-    });
-    html += "</table>";
-    html += `<div style="margin-top:10px;color:var(--text-muted);">W2 tracker checkboxes will also be cleared for all members.</div>`;
-
-    previewBody.innerHTML = html;
-    previewEl.style.display = "block";
-    runBtn.style.display = "block";
-
-  }catch(e){
-    statusEl.textContent = "Preview failed: " + e.message;
-    statusEl.style.display = "block";
-  }
-
-  previewBtn.disabled = false;
-  previewBtn.textContent = "🔍 Preview Affected Data";
-};
-
-window.runResetWeek = async function(){
-  if(!currentUser||!currentUser.isAdmin) return;
-  if(!confirm("Final confirmation: permanently delete ALL Week 2 submissions, reverse points, and clear W2 tracker data for every member?\n\nThis cannot be undone.")) return;
-
-  const runBtn   = document.getElementById("reset-week-run-btn");
-  const statusEl = document.getElementById("reset-week-status");
-
-  runBtn.disabled = true;
-  runBtn.textContent = "Working…";
-  statusEl.textContent = "Step 1/4 — Fetching Week 2 submissions…";
-  statusEl.style.display = "block";
-
-  try{
-    const {getDocs, deleteDoc, updateDoc, doc:dcRef,
-           collection:col, query:q, where, increment} =
-      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-
-    // ── 1. Fetch W2 submissions ──────────────────
-    const subSnap = await getDocs(q(col(db,"submissions"), where("weekIdx","==",RESET_WEEK_IDX)));
-    const subs = subSnap.docs.map(d=>({_id:d.id,...d.data()}));
-    statusEl.textContent = `Step 1/4 — Found ${subs.length} submission(s). Reversing points…`;
-
-    // ── 2. Aggregate pts/posts per registryId, then deduct ──
-    const registrySnap = await getDocs(col(db,"smac_registry"));
-    // Build uid → registryId map
-    const uidToRegId = {};
-    registrySnap.docs.forEach(d=>{
-      const data = d.data();
-      if(data.uid) uidToRegId[data.uid] = d.id;
-    });
-
-    const memberDeductions = {}; // registryId → {pts, posts}
-    subs.forEach(s=>{
-      const regId = (s.registryId) || uidToRegId[s.uid] || null;
-      if(!regId) return;
-      if(!memberDeductions[regId]) memberDeductions[regId] = {pts:0, posts:0};
-      memberDeductions[regId].pts   += (s.pts||0);
-      memberDeductions[regId].posts += 1;
-    });
-
-    let deductCount = 0;
-    for(const [regId, totals] of Object.entries(memberDeductions)){
-      const updates = {totalPosts: increment(-totals.posts)};
-      if(totals.pts > 0) updates.points = increment(-totals.pts);
-      await updateDoc(dcRef(db,"smac_registry",regId), updates);
-      deductCount++;
-    }
-    statusEl.textContent = `Step 2/4 — Points reversed for ${deductCount} member(s). Deleting submissions…`;
-
-    // ── 3. Delete all W2 submissions ────────────
-    for(const s of subs){
-      await deleteDoc(dcRef(db,"submissions",s._id));
-    }
-    statusEl.textContent = `Step 3/4 — ${subs.length} submission(s) deleted. Clearing W2 engagements…`;
-
-    // ── 4a. Delete W2 engagements + reverse their points ─
-    const engSnap = await getDocs(q(col(db,"engagements"), where("weekIdx","==",RESET_WEEK_IDX)));
-    const engDeductions = {}; // registryId → pts to subtract
-    engSnap.docs.forEach(e => {
-      const data = e.data();
-      const regId = uidToRegId[data.uid] || null;
-      if(!regId) return;
-      if(!engDeductions[regId]) engDeductions[regId] = 0;
-      engDeductions[regId] += (data.pts || 0);
-    });
-    for(const [regId, pts] of Object.entries(engDeductions)){
-      if(pts > 0) await updateDoc(dcRef(db,"smac_registry",regId),{points: increment(-pts)});
-    }
-    for(const e of engSnap.docs){
-      await deleteDoc(dcRef(db,"engagements",e.id));
-    }
-    statusEl.textContent = `Step 3/4 — Engagements cleared. Resetting W2 tracker data…`;
-
-    // ── 4b. Clear w2 in all tracker docs ─────────
-    const trackerSnap = await getDocs(col(db,"trackers"));
-    for(const td of trackerSnap.docs){
-      const tracked = td.data().tracked || {};
-      if(tracked["w2"] !== undefined){
-        await updateDoc(dcRef(db,"trackers",td.id),{"tracked.w2": []});
-      }
-    }
-    statusEl.textContent = `Step 4/4 — Tracker W2 data cleared.`;
-
-    // ── Done ─────────────────────────────────────
-    statusEl.innerHTML = `<span style="color:#27ae60;font-weight:700;">✓ Reset complete.</span> ${subs.length} submission(s) and ${engSnap.size} engagement(s) deleted. Submission + engagement points reversed for affected members. W2 tracker cleared. Reload the page to see updated data.`;
-    runBtn.style.display = "none";
-    document.getElementById("reset-week-preview-btn").style.display = "none";
-    showToast("Week 2 test data cleared ✓");
-
-    // Reload sub viewer to reflect deletions
-    if(typeof loadSubViewer === "function") loadSubViewer();
-
-  }catch(e){
-    statusEl.innerHTML = `<span style="color:#e74c3c;">Error: ${e.message}</span> — Some data may have been partially deleted. Check Firestore manually.`;
-    runBtn.disabled = false;
-    runBtn.textContent = "🗑️ Confirm & Delete Week 2 Data";
-  }
-};
-
 
 
 // ─────────────────────────────────────────────
