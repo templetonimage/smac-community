@@ -1243,6 +1243,8 @@ const lsPush=(k,i)=>{const a=lsGet(k)||[];a.unshift(i);lsSet(k,a);return a;};
 // Migrate stale admin session: clear if name is old short value
 (()=>{try{const s=lsGet("smac_session");if(s&&s.isAdmin&&s.name==="Nate"){localStorage.removeItem("smac_session");}}catch(e){}})();
 const esc=s=>{if(!s)return"";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");};
+// Escapes text then wraps any https?:// URLs in a clickable anchor
+const linkify=s=>{if(!s)return"";const escaped=esc(s);return escaped.replace(/(https?:\/\/[^\s&lt;&gt;"]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--gold);text-decoration:underline;word-break:break-all;">$1</a>');};
 const timeAgo=ts=>{const m=Math.floor((Date.now()-ts)/60000);if(m<1)return"Just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";const d=Math.floor(h/24);if(d<7)return d+"d ago";return new Date(ts).toLocaleDateString("en-US",{month:"short",day:"numeric"});};
 window.togglePassVisibility=function(){
   const input=document.getElementById("pass-input");
@@ -1524,7 +1526,7 @@ function renderFeed(posts){
         ${avatarHTML(p.author, p.uid, "avatar")}
         <div><div class="card-author">${esc(p.author)}</div><div class="card-time">${timeAgo(p.ts)}</div></div>
       </div>
-      <div class="card-body">${esc(p.text)}</div>
+      <div class="card-body">${linkify(p.text)}</div>
       ${hasLink?`<a class="card-link" href="${esc(p.link)}" target="_blank" rel="noopener">View Post ↗</a>`:""}
       <div class="card-actions">
         <button class="react-btn ${likedByMe?"active":""}" onclick="toggleLike('${p.id}')">♥ ${p.likes||0}</button>
@@ -4059,7 +4061,7 @@ function buildChatBubble(m, isThread){
         ${m.type==='poll'
           ? buildChatPollCard(m)
           : `${!isMine ? `<div class="chat-author">${esc(m.author)}</div>` : ""}
-             <div class="chat-text">${esc(m.text||"")}</div>
+             <div class="chat-text">${linkify(m.text||"")}</div>
              <div class="chat-ts">${ts}${editedMark}</div>
              ${reactHtml}`
         }
