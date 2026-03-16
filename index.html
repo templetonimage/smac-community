@@ -617,7 +617,6 @@
         🎬 Reel bonus: <strong>+2 pts</strong><br>
         🖼 Carousel bonus: <strong>+2 pts</strong><br>
         🤝 Engagement screenshot (like/comment/share/save): <strong>+2 pts</strong> · max 5/week<br>
-        🔥 4-week perfect streak: <strong>+25 pts</strong><br>
         ⭐ All-Star: complete every weekly requirement all 12 weeks
       </div>
     </div>
@@ -826,6 +825,73 @@
           🗑️ Confirm Reset for <span id="member-reset-name-label">this member</span>
         </button>
         <div id="member-reset-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN: Engagement Viewer -->
+    <div id="eng-viewer" style="display:none;margin-bottom:28px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;">🤝 Engagement Posts</div>
+        <button class="btn-sm" onclick="loadEngViewer()">↻ Refresh</button>
+      </div>
+      <!-- Filters -->
+      <div class="sub-filter-row" style="margin-bottom:12px;">
+        <select class="sub-filter-select" id="eng-filter-member" onchange="renderEngViewer()">
+          <option value="">All Members</option>
+        </select>
+        <select class="sub-filter-select" id="eng-filter-week" onchange="renderEngViewer()">
+          <option value="">All Weeks</option>
+          <option value="0">W1 · Mar 1–7</option><option value="1">W2 · Mar 8–14</option>
+          <option value="2">W3 · Mar 15–21</option><option value="3">W4 · Mar 22–31</option>
+          <option value="4">W5 · Apr 1–7</option><option value="5">W6 · Apr 8–14</option>
+          <option value="6">W7 · Apr 15–21</option><option value="7">W8 · Apr 22–30</option>
+          <option value="8">W9 · May 1–7</option><option value="9">W10 · May 8–14</option>
+          <option value="10">W11 · May 15–21</option><option value="11">W12 · May 22–31</option>
+        </select>
+        <button class="btn-sm" onclick="openAddEngModal()" style="margin-left:auto;background:var(--gold);color:#000;border-color:var(--gold);">+ Add Entry</button>
+      </div>
+      <div id="eng-viewer-count" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
+      <div id="eng-viewer-body"></div>
+    </div>
+
+    <!-- Add/Edit Engagement Modal -->
+    <div id="eng-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9000;overflow-y:auto;padding:24px 16px;">
+      <div style="background:var(--surface);border-radius:12px;max-width:420px;margin:0 auto;padding:24px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;margin-bottom:16px;" id="eng-modal-title">Edit Engagement</div>
+        <input type="hidden" id="eng-modal-doc-id" />
+        <div class="profile-form-field">
+          <label class="field-label">Member</label>
+          <select class="field-select" id="eng-modal-member"></select>
+        </div>
+        <div class="profile-form-field">
+          <label class="field-label">Week</label>
+          <select class="field-select" id="eng-modal-week">
+            <option value="0">W1 · Mar 1–7</option><option value="1">W2 · Mar 8–14</option>
+            <option value="2">W3 · Mar 15–21</option><option value="3">W4 · Mar 22–31</option>
+            <option value="4">W5 · Apr 1–7</option><option value="5">W6 · Apr 8–14</option>
+            <option value="6">W7 · Apr 15–21</option><option value="7">W8 · Apr 22–30</option>
+            <option value="8">W9 · May 1–7</option><option value="9">W10 · May 8–14</option>
+            <option value="10">W11 · May 15–21</option><option value="11">W12 · May 22–31</option>
+          </select>
+        </div>
+        <div class="profile-form-field">
+          <label class="field-label">Type</label>
+          <select class="field-select" id="eng-modal-type">
+            <option value="Like">Like</option>
+            <option value="Comment">Comment</option>
+            <option value="Share">Share</option>
+            <option value="Save">Save</option>
+          </select>
+        </div>
+        <div class="profile-form-field">
+          <label class="field-label">Points</label>
+          <input class="field-input" id="eng-modal-pts" type="number" min="0" max="10" value="2" />
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button class="btn-gold" onclick="saveEngModal()" style="flex:1;font-size:15px;padding:11px;">Save</button>
+          <button class="btn-sm" onclick="closeEngModal()" style="flex:1;padding:11px;">Cancel</button>
+        </div>
+        <div id="eng-modal-status" style="font-size:12px;color:var(--text-muted);margin-top:10px;min-height:16px;"></div>
       </div>
     </div>
 
@@ -1083,7 +1149,7 @@
       </div>
       <div class="welcome-step">
         <div class="welcome-step-icon">✅</div>
-        <div class="welcome-step-text"><strong>Check your Tracker</strong>Mark off each week as complete. Hit the 4-week streak bonus for +25 pts.</div>
+        <div class="welcome-step-text"><strong>Check your Tracker</strong>Mark off each week as complete. Keep your streak going all 12 weeks to earn All-Star status.</div>
       </div>
       <div class="welcome-step">
         <div class="welcome-step-icon">🤝</div>
@@ -1164,8 +1230,7 @@ const PTS_ON_TIME   = 10;
 const PTS_LATE_24H  = 5;
 const PTS_REEL      = 2;
 const PTS_CAROUSEL  = 2;
-const PTS_STREAK    = 25; // bonus for 4-week perfect streak
-const PTS_ENGAGEMENT = 2;
+const PTS_ENGAGEMENT   = 2;
 const MAX_ENG_PER_WEEK = 5; // max engagement submissions per week
 
 // Fixed calendar schedule for Round 2 (ET = UTC-5 in March/April, UTC-4 in May)
@@ -1412,6 +1477,7 @@ function bootApp(){
     document.getElementById("uid-sync-tool").style.display="block";
     document.getElementById("admin-sub-viewer").style.display="block";
     document.getElementById("member-reset-tool").style.display="block";
+    document.getElementById("eng-viewer").style.display="block";
     document.getElementById("bug-reports-viewer").style.display="block";
     document.getElementById("admin-spotlight-compose").style.display="block";
     document.getElementById("admin-poll-compose").style.display="block";
@@ -1424,6 +1490,7 @@ function bootApp(){
     document.getElementById("uid-sync-tool").style.display="none";
     document.getElementById("admin-sub-viewer").style.display="none";
     document.getElementById("member-reset-tool").style.display="none";
+    document.getElementById("eng-viewer").style.display="none";
     document.getElementById("bug-reports-viewer").style.display="none";
     document.getElementById("admin-spotlight-compose").style.display="none";
     document.getElementById("admin-poll-compose").style.display="none";
@@ -1498,7 +1565,7 @@ window.navTo=function(page,el){
   if(page==="leaderboard")loadLeaderboard();
   if(page==="feed"){loadFeed();loadAnnouncements();loadSpotlights();renderWeeklyChallenge();}
   if(page==="submit"){loadSubmitPage();renderWeeklyChallenge();}
-  if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin){loadSubViewer();loadBugReports();}}
+  if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin){loadSubViewer();loadEngViewer();loadBugReports();}}
   if(page==="chat"){
     document.getElementById("chat-unread-badge").style.display="none";
     _chatLastSeen=Date.now();
@@ -2439,9 +2506,8 @@ async function loadTrackerReport(){
               ${rows.map(r => `
                 <tr style="border-bottom:1px solid var(--border);">
                   <td style="padding:12px 10px 12px 0;font-weight:500;white-space:nowrap;">
-                    <span style="display:inline-flex;align-items:center;gap:6px;">${avatarHTML(r.name, r.docId, "avatar", "width:24px;height:24px;font-size:10px;flex-shrink:0;")}${esc(r.name)}</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;">${avatarHTML(r.name, r.docId, "avatar", "width:24px;height:24px;font-size:10px;flex-shrink:0;")}${currentUser.isAdmin && !r.noTracker ? `<button onclick="openAdminTrackerEditor('${r.docId}','${esc(r.name)}')" style="background:none;border:none;padding:0;font-weight:600;font-size:14px;color:var(--text-primary);cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--border);" title="View tracker">${esc(r.name)}</button>` : `<span>${esc(r.name)}</span>`}</span>
                     ${r.noTracker && currentUser.isAdmin ? '<span title="Has not logged in yet" style="font-size:9px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;">Not logged in</span>' : ''}
-                    ${currentUser.isAdmin && !r.noTracker ? `<button onclick="openAdminTrackerEditor('${r.docId}','${esc(r.name)}')" style="margin-left:6px;background:rgba(212,175,55,0.12);border:1px solid var(--gold);border-radius:4px;color:var(--gold);font-size:10px;cursor:pointer;padding:2px 6px;vertical-align:middle;" title="Edit tracker">✏️</button>` : ''}
                     ${currentUser.isAdmin ? `<button onclick="removeFromReport('${r.docId}')" style="margin-left:4px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:10px;cursor:pointer;padding:2px 5px;vertical-align:middle;" title="Remove from report">✕</button>` : ''}
                   </td>
                   ${r.monthStats.map((ms,mi) => {
@@ -2462,7 +2528,7 @@ async function loadTrackerReport(){
             </tbody>
           </table>
         </div>
-        ${currentUser.isAdmin ? '<div style="margin-top:12px;font-size:11px;color:var(--text-muted);">★ = manually adjusted · ✏️ edit to override any count · changes save instantly to Firestore</div>' : ''}
+        ${currentUser.isAdmin ? '<div style="margin-top:12px;font-size:11px;color:var(--text-muted);">★ = manually adjusted · Click member name to view/edit their tracker · ✏️ edit to override any count · changes save instantly to Firestore</div>' : ''}
       </div>`;
   } catch(e) {
     document.getElementById("tracker-report-body").innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load</div><div class="empty-desc">${e.message}</div></div>`;
@@ -2883,9 +2949,6 @@ window.submitIgPost=async function(){
         await updateDoc(docRef(db,"smac_registry",currentUser.registryId),{points:increment(pts),totalPosts:increment(1)});
       }
 
-      // Check streak — 4 consecutive weeks all met
-      await checkAndAwardStreak(currentUser.uid,currentUser.registryId,weekIdx);
-
       // Check All-Star — all 12 weeks fully met
       await checkAllStar(currentUser.uid,currentUser.registryId);
 
@@ -2906,30 +2969,6 @@ window.submitIgPost=async function(){
   }
 };
 
-async function checkAndAwardStreak(uid,registryId,currentWeekIdx){
-  if(currentWeekIdx<3)return; // Need at least 4 weeks
-  try{
-    const {getDocs,collection:col,query:q,where,updateDoc,doc:docRef,increment,getDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    // Check if streak bonus already awarded for this 4-week block
-    const blockStart=Math.floor(currentWeekIdx/4)*4;
-    const streakKey="streakBonus_"+blockStart;
-    if(registryId){
-      const regDoc=await getDoc(docRef(db,"smac_registry",registryId));
-      if(regDoc.exists()&&regDoc.data()[streakKey])return; // Already awarded
-    }
-    // Check submissions for weeks blockStart through blockStart+3
-    const weekIndices=[blockStart,blockStart+1,blockStart+2,blockStart+3];
-    const subs=await getDocs(q(col(db,"submissions"),where("uid","==",uid),where("status","==","ontime")));
-    const weekSet=new Set(subs.docs.map(d=>d.data().weekIdx));
-    const allMet=weekIndices.every(w=>weekSet.has(w));
-    if(allMet&&registryId){
-      const update={points:increment(PTS_STREAK)};
-      update[streakKey]=true;
-      await updateDoc(docRef(db,"smac_registry",registryId),update);
-      showToast("🔥 4-week streak bonus! +"+PTS_STREAK+" pts!");
-    }
-  }catch(e){console.warn("Streak check error:",e);}
-}
 
 async function checkAllStar(uid,registryId){
   if(!registryId)return;
@@ -4911,6 +4950,160 @@ window.submitBugReport = async function(){
     btn.disabled = false;
     btn.textContent = "Send Report";
   }
+};
+
+// ─────────────────────────────────────────────
+//  ENGAGEMENT VIEWER (Admin)
+// ─────────────────────────────────────────────
+let _engViewerData = [];
+let _engViewerMembers = [];
+
+window.loadEngViewer = async function(){
+  if(!currentUser||!currentUser.isAdmin||!db||useLocalFallback) return;
+  const body = document.getElementById("eng-viewer-body");
+  const countEl = document.getElementById("eng-viewer-count");
+  if(!body) return;
+  body.innerHTML = "<div style='text-align:center;padding:32px;color:var(--text-muted);font-size:13px;'>Loading...</div>";
+  try{
+    const {getDocs,collection:col,query:q,orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await getDocs(q(col(db,"engagements"),ob("ts","desc")));
+    _engViewerData = snap.docs.map(d=>({id:d.id,...d.data()}));
+
+    // Populate member filter
+    const memberSel = document.getElementById("eng-filter-member");
+    const modalMemberSel = document.getElementById("eng-modal-member");
+    const names = [...new Set(_engViewerData.map(e=>e.memberName||"Unknown"))].sort();
+    _engViewerMembers = names;
+    memberSel.innerHTML = '<option value="">All Members</option>' + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    modalMemberSel.innerHTML = names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+
+    renderEngViewer();
+  }catch(e){
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-desc">${e.message}</div></div>`;
+  }
+};
+
+window.renderEngViewer = function(){
+  const body = document.getElementById("eng-viewer-body");
+  const countEl = document.getElementById("eng-viewer-count");
+  if(!body) return;
+  const memberFilter = document.getElementById("eng-filter-member")?.value || "";
+  const weekFilter = document.getElementById("eng-filter-week")?.value;
+  const WEEK_LABELS = ["W1 · Mar 1–7","W2 · Mar 8–14","W3 · Mar 15–21","W4 · Mar 22–31","W5 · Apr 1–7","W6 · Apr 8–14","W7 · Apr 15–21","W8 · Apr 22–30","W9 · May 1–7","W10 · May 8–14","W11 · May 15–21","W12 · May 22–31"];
+
+  let data = _engViewerData;
+  if(memberFilter) data = data.filter(e=>(e.memberName||"") === memberFilter);
+  if(weekFilter !== "" && weekFilter !== undefined) data = data.filter(e=>String(e.weekIdx)===weekFilter);
+
+  countEl.textContent = `${data.length} engagement${data.length!==1?"s":""} shown`;
+
+  if(!data.length){
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-title">No engagements found</div></div>`;
+    return;
+  }
+
+  body.innerHTML = data.map(e=>{
+    const wLabel = WEEK_LABELS[e.weekIdx] || `W${(e.weekIdx||0)+1}`;
+    const date = e.ts ? new Date(e.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "—";
+    const hasShot = e.screenshotBase64 && e.screenshotBase64.length > 10;
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:14px;">${esc(e.memberName||"Unknown")}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${esc(wLabel)} · ${esc(e.type||"—")} · <strong style="color:var(--gold);">+${e.pts||2} pts</strong> · ${date}</div>
+          ${hasShot ? `<img src="${esc(e.screenshotBase64)}" style="margin-top:8px;max-width:160px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" onclick="this.style.maxWidth=this.style.maxWidth==='100%'?'160px':'100%'" title="Click to expand" />` : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn-sm" onclick="openEditEngModal('${esc(e.id)}')" style="padding:5px 10px;">✏️</button>
+          <button class="btn-sm" onclick="deleteEngEntry('${esc(e.id)}','${esc(e.memberName||'')}',${e.pts||2})" style="padding:5px 10px;color:#e74c3c;border-color:#e74c3c;">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+};
+
+window.openAddEngModal = function(){
+  document.getElementById("eng-modal-title").textContent = "Add Engagement";
+  document.getElementById("eng-modal-doc-id").value = "";
+  document.getElementById("eng-modal-pts").value = "2";
+  document.getElementById("eng-modal-week").value = "0";
+  document.getElementById("eng-modal-type").value = "Like";
+  document.getElementById("eng-modal-status").textContent = "";
+  // Refresh member list in modal
+  const sel = document.getElementById("eng-modal-member");
+  sel.innerHTML = _engViewerMembers.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  document.getElementById("eng-modal-overlay").style.display = "block";
+};
+
+window.openEditEngModal = function(docId){
+  const entry = _engViewerData.find(e=>e.id===docId);
+  if(!entry) return;
+  document.getElementById("eng-modal-title").textContent = "Edit Engagement";
+  document.getElementById("eng-modal-doc-id").value = docId;
+  document.getElementById("eng-modal-pts").value = entry.pts ?? 2;
+  document.getElementById("eng-modal-week").value = entry.weekIdx ?? 0;
+  document.getElementById("eng-modal-type").value = entry.type || "Like";
+  document.getElementById("eng-modal-status").textContent = "";
+  const sel = document.getElementById("eng-modal-member");
+  sel.innerHTML = _engViewerMembers.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  sel.value = entry.memberName || "";
+  document.getElementById("eng-modal-overlay").style.display = "block";
+};
+
+window.closeEngModal = function(){
+  document.getElementById("eng-modal-overlay").style.display = "none";
+};
+
+window.saveEngModal = async function(){
+  if(!currentUser||!currentUser.isAdmin||!db) return;
+  const statusEl = document.getElementById("eng-modal-status");
+  statusEl.textContent = "Saving...";
+  const docId = document.getElementById("eng-modal-doc-id").value.trim();
+  const memberName = document.getElementById("eng-modal-member").value;
+  const weekIdx = parseInt(document.getElementById("eng-modal-week").value);
+  const type = document.getElementById("eng-modal-type").value;
+  const pts = parseInt(document.getElementById("eng-modal-pts").value) || 2;
+
+  try{
+    const {addDoc,updateDoc,doc:dcRef,collection:col,getDocs,query:q,where,increment} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    if(docId){
+      // Edit — find old pts to calc delta
+      const oldEntry = _engViewerData.find(e=>e.id===docId);
+      const oldPts = oldEntry?.pts ?? 2;
+      const ptsDelta = pts - oldPts;
+      await updateDoc(dcRef(db,"engagements",docId),{memberName,weekIdx,type,pts});
+      // Adjust registry points by delta
+      if(ptsDelta !== 0){
+        const regSnap = await getDocs(q(col(db,"smac_registry"),where("name","==",memberName)));
+        if(!regSnap.empty) await updateDoc(regSnap.docs[0].ref,{points:increment(ptsDelta)});
+      }
+      statusEl.textContent = "Saved.";
+    } else {
+      // Add new
+      const uid = (await getDocs(q(col(db,"smac_registry"),where("name","==",memberName)))).docs[0]?.data()?.uid || "";
+      await addDoc(col(db,"engagements"),{memberName,weekIdx,type,pts,uid,ts:Date.now(),screenshotBase64:""});
+      // Add pts to registry
+      const regSnap = await getDocs(q(col(db,"smac_registry"),where("name","==",memberName)));
+      if(!regSnap.empty) await updateDoc(regSnap.docs[0].ref,{points:increment(pts)});
+      statusEl.textContent = "Added.";
+    }
+    await loadEngViewer();
+    setTimeout(closeEngModal, 800);
+  }catch(e){ statusEl.textContent = "Error: "+e.message; }
+};
+
+window.deleteEngEntry = async function(docId, memberName, pts){
+  if(!confirm(`Delete this engagement entry for ${memberName}?\n\nThis will also remove ${pts} pts from their score.`)) return;
+  try{
+    const {deleteDoc,doc:dcRef,getDocs,query:q,collection:col,where,updateDoc,increment} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await deleteDoc(dcRef(db,"engagements",docId));
+    // Deduct pts from registry
+    const regSnap = await getDocs(q(col(db,"smac_registry"),where("name","==",memberName)));
+    if(!regSnap.empty) await updateDoc(regSnap.docs[0].ref,{points:increment(-pts)});
+    showToast(`Deleted · -${pts} pts from ${memberName}`);
+    await loadEngViewer();
+  }catch(e){ showToast("Error: "+e.message); }
 };
 
 window.loadBugReports = async function(){
