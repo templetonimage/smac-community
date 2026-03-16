@@ -573,11 +573,6 @@
       <button class="btn-post" style="width:100%;" onclick="submitIgPost()">Submit Post for Points</button>
       <div id="submit-error" style="font-size:13px;color:#e74c3c;margin-top:8px;display:none;"></div>
     </div>
-    <div class="card" id="my-submissions-card" style="margin-bottom:16px;display:none;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">My Submissions</div>
-      <div id="my-points-total" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;"></div>
-      <div class="submission-history" id="my-submissions-list"></div>
-    </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">🤝 Log Engagement</div>
       <div id="eng-weekly-status" style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Upload screenshots of likes, comments, shares, or saves on other SMAC members' posts. +2 pts each, up to 5/week.</div>
@@ -599,7 +594,20 @@
       </div>
       <button class="btn-post" style="width:100%;" id="eng-submit-btn" onclick="submitEngagement()">Submit Engagement +2 pts</button>
       <div id="eng-error" style="font-size:13px;color:#e74c3c;margin-top:8px;display:none;"></div>
-      <div id="eng-history" style="margin-top:14px;"></div>
+    </div>
+
+    <!-- My Submissions Log -->
+    <div class="card" id="my-submissions-card" style="margin-bottom:16px;display:none;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">📋 My Post Submissions</div>
+      <div id="my-points-total" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;"></div>
+      <div class="submission-history" id="my-submissions-list"></div>
+    </div>
+
+    <!-- My Engagement Log -->
+    <div class="card" id="my-eng-log-card" style="margin-bottom:16px;display:none;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">🤝 My Engagement Log</div>
+      <div id="my-eng-log-total" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;"></div>
+      <div id="my-eng-log-list"></div>
     </div>
   </div>
 
@@ -1589,7 +1597,7 @@ window.navTo=function(page,el){
 };
 window.loadSubmitPage=function(){
   updatePtsPreview();
-  loadMySubmissions();
+  loadMySubmissions(); // also calls loadMyEngLog
   loadEngHistory();
 };
 
@@ -1665,7 +1673,15 @@ function renderFeed(posts){
       <div class="card-actions">
         <button class="react-btn ${likedByMe?"active":""}" onclick="toggleLike('${p.id}')">♥ ${p.likes||0}</button>
         ${propsBtn}
-        ${currentUser.isAdmin?`<button class="react-btn" onclick="deletePost('${p.id}')">🗑</button>`:""}
+        ${isMine?`<button class="react-btn" onclick="startFeedEdit('${p.id}',this)" title="Edit post">✏️</button>`:""}
+        ${(isMine||currentUser.isAdmin)?`<button class="react-btn" onclick="deleteFeedPost('${p.id}',${p.uid===currentUser.uid})">🗑</button>`:""}
+      </div>
+      <div class="feed-edit-box" id="feed-edit-${p.id}" style="display:none;margin-top:10px;">
+        <textarea class="auth-input" id="feed-edit-text-${p.id}" style="min-height:70px;margin-bottom:8px;resize:vertical;">${esc(p.text||"")}</textarea>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm" onclick="saveFeedEdit('${p.id}')" style="background:var(--gold);color:#000;border-color:var(--gold);">Save</button>
+          <button class="btn-sm" onclick="cancelFeedEdit('${p.id}')">Cancel</button>
+        </div>
       </div>
       ${propsRow}
     </div>`;
@@ -1731,12 +1747,37 @@ window.toggleLike=async function(id){
     lsSet("smac_posts",posts);loadFeed();
   }
 };
-window.deletePost=async function(id){
-  if(!currentUser||!currentUser.isAdmin)return;
-  if(!confirm("Delete this post?"))return;
-  if(!useLocalFallback&&db)await deleteDoc(doc(db,"posts",id));
-  else{lsSet("smac_posts",(lsGet("smac_posts")||[]).filter(p=>p.id!==id));loadFeed();}
+window.startFeedEdit=function(postId){
+  const box=document.getElementById("feed-edit-"+postId);
+  if(box)box.style.display=box.style.display==="none"?"block":"none";
 };
+window.cancelFeedEdit=function(postId){
+  const box=document.getElementById("feed-edit-"+postId);
+  if(box)box.style.display="none";
+};
+window.saveFeedEdit=async function(postId){
+  const textarea=document.getElementById("feed-edit-text-"+postId);
+  const newText=(textarea?.value||"").trim();
+  if(!newText){showToast("Post can't be empty.");return;}
+  try{
+    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await updateDoc(dcRef(db,"posts",postId),{text:newText,editedAt:Date.now()});
+    showToast("Post updated.");
+    loadFeed();
+  }catch(e){showToast("Error: "+e.message);}
+};
+window.deleteFeedPost=async function(id, isMine){
+  if(!currentUser||(! isMine&&!currentUser.isAdmin))return;
+  if(!confirm("Delete this post?"))return;
+  if(!useLocalFallback&&db){
+    const {deleteDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await deleteDoc(dcRef(db,"posts",id));
+  } else {
+    lsSet("smac_posts",(lsGet("smac_posts")||[]).filter(p=>p.id!==id));
+    loadFeed();
+  }
+};
+window.deletePost=window.deleteFeedPost; // legacy alias
 
 // ─────────────────────────────────────────────
 //  ANNOUNCEMENTS
@@ -2871,7 +2912,6 @@ async function getWeeklyEngCount(uid,weekIdx){
   return(lsGet("smac_engagements")||[]).filter(e=>e.uid===uid&&e.weekIdx===weekIdx).length;
 }
 async function loadEngHistory(){
-  const el=document.getElementById("eng-history");if(!el)return;
   const weekIdx=getWeekIndex(Date.now());
   let engs=[];
   if(!useLocalFallback&&db){try{const {getDocs,collection:col,query:q,where,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");const snap=await getDocs(q(col(db,"engagements"),where("uid","==",currentUser.uid),ob("ts","desc")));engs=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(e){console.warn("Eng history:",e);}}
@@ -2882,18 +2922,6 @@ async function loadEngHistory(){
   if(statusEl)statusEl.innerHTML=remaining>0?`<span style="color:var(--gold);font-weight:600;">${remaining} upload${remaining!==1?"s":""} left this week</span> · +${PTS_ENGAGEMENT}pts each · max ${MAX_ENG_PER_WEEK}/week`:`<span style="color:#e74c3c;font-weight:600;">Weekly limit reached (${MAX_ENG_PER_WEEK}/${MAX_ENG_PER_WEEK}).</span> Resets next week.`;
   const btn=document.getElementById("eng-submit-btn");
   if(btn){btn.disabled=remaining===0;btn.style.opacity=remaining===0?"0.5":"1";}
-  if(!engs.length){el.innerHTML="";return;}
-  el.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Recent Engagements</div>`+engs.slice(0,9).map(e=>`
-    <div style="padding:8px 0;border-bottom:1px solid var(--border);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${e.screenshotBase64?"6px":"0"};">
-        <span style="font-size:13px;font-weight:600;color:var(--gold);">${e.type}</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:11px;color:var(--text-muted);">Wk ${(e.weekIdx||0)+1} · ${new Date(e.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
-          <span style="background:var(--gold);color:#000;font-weight:700;border-radius:4px;padding:2px 7px;font-size:11px;">+${PTS_ENGAGEMENT}</span>
-        </div>
-      </div>
-      ${e.screenshotBase64?`<img src="${e.screenshotBase64}" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover;border:1px solid var(--border);" />`:""}
-    </div>`).join("");
 }
 window.submitEngagement=async function(){
   const errEl=document.getElementById("eng-error");errEl.style.display="none";
@@ -2907,7 +2935,7 @@ window.submitEngagement=async function(){
     try{const {addDoc,collection:col,updateDoc,doc:docRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");await addDoc(col(db,"engagements"),eng);if(currentUser.registryId)await updateDoc(docRef(db,"smac_registry",currentUser.registryId),{points:increment(PTS_ENGAGEMENT)});}
     catch(e){console.error(e);errEl.style.display="block";errEl.textContent="Error saving. Try again.";return;}
   }else{lsPush("smac_engagements",{...eng,id:Date.now().toString()});}
-  clearEngScreenshot();showToast("Engagement logged! +"+PTS_ENGAGEMENT+" pts 🤝");loadEngHistory();loadLeaderboard();
+  clearEngScreenshot();showToast("Engagement logged! +"+PTS_ENGAGEMENT+" pts 🤝");loadEngHistory();loadMyEngLog();loadLeaderboard();
 };
 window.submitIgPost=async function(){
   const url=document.getElementById("submit-ig-url").value.trim();
@@ -3027,28 +3055,37 @@ async function loadMySubmissions(){
   } else {
     subs=(lsGet("smac_submissions")||[]).filter(s=>s.uid===currentUser.uid);
   }
-  if(!subs.length){card.style.display="none";return;}
-  card.style.display="block";
-  const totalPts=subs.reduce((a,s)=>a+s.pts,0);
-  const milestones=getMilestoneBadges(subs.length);
-  total.innerHTML=`<strong>${totalPts} total pts</strong> · ${subs.length} posts ${milestones}`;
-  list.innerHTML=subs.slice(0,10).map(s=>`
-    <div class="sub-item" style="flex-direction:column;align-items:stretch;">
-      ${s.screenshotBase64?`<img src="${s.screenshotBase64}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:140px;object-fit:cover;border:1px solid var(--border);" />`:""}
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="flex:1;">
-          ${s.url?`<a href="${esc(s.url)}" target="_blank" style="color:var(--gold);font-size:12px;">View post ↗</a>`:`<span style="font-size:12px;color:var(--text-muted);">Screenshot only</span>`}
-          <div style="font-size:11px;color:var(--text-muted);">Week ${s.weekIdx+1} · ${s.format} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
-        </div>
+  if(!subs.length){card.style.display="none";}
+  else{
+    card.style.display="block";
+    const totalPts=subs.reduce((a,s)=>a+(s.pts||0),0);
+    const milestones=getMilestoneBadges(subs.length);
+    total.innerHTML=`<strong>${totalPts} total pts</strong> · ${subs.length} post${subs.length!==1?"s":""} ${milestones}`;
+    list.innerHTML=subs.map(s=>`
+      <div class="sub-item" style="flex-direction:column;align-items:stretch;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+        ${s.screenshotBase64?`<img src="${s.screenshotBase64}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:140px;object-fit:cover;border:1px solid var(--border);" />`:""}
         <div style="display:flex;align-items:center;gap:8px;">
-          <div>
-            ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
-            <span class="sub-pts">+${s.pts}</span>
+          <div style="flex:1;">
+            ${s.url?`<a href="${esc(s.url)}" target="_blank" style="color:var(--gold);font-size:12px;">View post ↗</a>`:`<span style="font-size:12px;color:var(--text-muted);">Screenshot only</span>`}
+            <div style="font-size:11px;color:var(--text-muted);">Week ${(s.weekIdx||0)+1} · ${s.format||"Static"} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
           </div>
-          <button onclick="deleteSubmission('${s.id}',${s.pts})" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text-muted);cursor:pointer;" title="Delete submission">🗑</button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
+            <span class="sub-pts">+${s.pts||0}</span>
+            <button onclick="toggleSubEdit('${s.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text-muted);cursor:pointer;" title="Edit URL">✏️</button>
+            <button onclick="deleteSubmission('${s.id}',${s.pts||0})" style="background:none;border:1px solid #e74c3c;border-radius:6px;padding:4px 8px;font-size:11px;color:#e74c3c;cursor:pointer;" title="Delete submission">🗑️</button>
+          </div>
         </div>
-      </div>
-    </div>`).join("");
+        <div id="sub-edit-${s.id}" style="display:none;margin-top:8px;">
+          <input class="auth-input" id="sub-edit-url-${s.id}" type="url" placeholder="Update Instagram URL" value="${esc(s.url||"")}" style="margin-bottom:6px;" />
+          <div style="display:flex;gap:8px;">
+            <button class="btn-sm" onclick="saveSubEdit('${s.id}')" style="background:var(--gold);color:#000;border-color:var(--gold);">Save URL</button>
+            <button class="btn-sm" onclick="toggleSubEdit('${s.id}')">Cancel</button>
+          </div>
+        </div>
+      </div>`).join("");
+  }
+  loadMyEngLog();
 }
 
 window.deleteSubmission=async function(subId, pts){
@@ -3056,9 +3093,7 @@ window.deleteSubmission=async function(subId, pts){
   if(!useLocalFallback&&db){
     try{
       const {deleteDoc,doc:docRef,updateDoc,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      // Delete submission doc
       await deleteDoc(docRef(db,"submissions",subId));
-      // Deduct points and totalPosts from registry
       if(currentUser.registryId){
         const update={totalPosts:increment(-1)};
         if(pts>0)update.points=increment(-pts);
@@ -3072,13 +3107,110 @@ window.deleteSubmission=async function(subId, pts){
       showToast("Error deleting submission: "+e.message);
     }
   } else {
-    // Local fallback
     const subs=(lsGet("smac_submissions")||[]).filter(s=>s.id!==subId);
     lsSet("smac_submissions",subs);
     showToast(pts>0?`Submission deleted. -${pts} pts removed.`:"Submission deleted.");
     loadMySubmissions();
   }
 };
+
+window.toggleSubEdit=function(subId){
+  const box=document.getElementById("sub-edit-"+subId);
+  if(box)box.style.display=box.style.display==="none"?"block":"none";
+};
+
+window.saveSubEdit=async function(subId){
+  const inp=document.getElementById("sub-edit-url-"+subId);
+  const newUrl=(inp?.value||"").trim();
+  try{
+    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await updateDoc(dcRef(db,"submissions",subId),{url:newUrl});
+    showToast("Post URL updated.");
+    loadMySubmissions();
+  }catch(e){showToast("Error: "+e.message);}
+};
+
+async function loadMyEngLog(){
+  const card=document.getElementById("my-eng-log-card");
+  const list=document.getElementById("my-eng-log-list");
+  const totalEl=document.getElementById("my-eng-log-total");
+  if(!card||!list) return;
+  let engs=[];
+  if(!useLocalFallback&&db){
+    try{
+      const {getDocs,collection:col,query:q,where,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap=await getDocs(q(col(db,"engagements"),where("uid","==",currentUser.uid),ob("ts","desc")));
+      engs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    }catch(e){console.warn("Eng log:",e);}
+  } else {
+    engs=(lsGet("smac_engagements")||[]).filter(e=>e.uid===currentUser.uid).sort((a,b)=>b.ts-a.ts);
+  }
+  if(!engs.length){card.style.display="none";return;}
+  card.style.display="block";
+  const totalPts=engs.reduce((a,e)=>a+(e.pts||2),0);
+  totalEl.innerHTML=`<strong>${totalPts} pts</strong> · ${engs.length} engagement${engs.length!==1?"s":""}`;
+  const WEEK_LABELS=["W1","W2","W3","W4","W5","W6","W7","W8","W9","W10","W11","W12"];
+  list.innerHTML=engs.map(e=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      ${e.screenshotBase64?`<img src="${e.screenshotBase64}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:120px;object-fit:cover;border:1px solid var(--border);" />`:""}
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;">
+          <span style="font-size:13px;font-weight:600;color:var(--gold);">${esc(e.type||"—")}</span>
+          <div style="font-size:11px;color:var(--text-muted);">${WEEK_LABELS[e.weekIdx]||"—"} · ${new Date(e.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="sub-pts">+${e.pts||2}</span>
+          <button onclick="toggleEngEdit('${e.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text-muted);cursor:pointer;" title="Edit type">✏️</button>
+          <button onclick="deleteMyEng('${e.id}',${e.pts||2})" style="background:none;border:1px solid #e74c3c;border-radius:6px;padding:4px 8px;font-size:11px;color:#e74c3c;cursor:pointer;" title="Delete">🗑️</button>
+        </div>
+      </div>
+      <div id="eng-edit-${e.id}" style="display:none;margin-top:8px;">
+        <select class="field-select" id="eng-edit-type-${e.id}" style="margin-bottom:6px;">
+          <option value="Like" ${e.type==="Like"?"selected":""}>Like</option>
+          <option value="Comment" ${e.type==="Comment"?"selected":""}>Comment</option>
+          <option value="Share" ${e.type==="Share"?"selected":""}>Share</option>
+          <option value="Save" ${e.type==="Save"?"selected":""}>Save</option>
+        </select>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm" onclick="saveEngEdit('${e.id}')" style="background:var(--gold);color:#000;border-color:var(--gold);">Save</button>
+          <button class="btn-sm" onclick="toggleEngEdit('${e.id}')">Cancel</button>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+window.toggleEngEdit=function(engId){
+  const box=document.getElementById("eng-edit-"+engId);
+  if(box)box.style.display=box.style.display==="none"?"block":"none";
+};
+
+window.saveEngEdit=async function(engId){
+  const sel=document.getElementById("eng-edit-type-"+engId);
+  const newType=sel?.value||"Like";
+  try{
+    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await updateDoc(dcRef(db,"engagements",engId),{type:newType});
+    showToast("Engagement updated.");
+    loadMyEngLog();
+  }catch(e){showToast("Error: "+e.message);}
+};
+
+window.deleteMyEng=async function(engId, pts){
+  if(!confirm("Delete this engagement? Points will be adjusted."))return;
+  try{
+    const {deleteDoc,doc:dcRef,updateDoc,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await deleteDoc(dcRef(db,"engagements",engId));
+    if(currentUser.registryId&&pts>0){
+      await updateDoc(dcRef(db,"smac_registry",currentUser.registryId),{points:increment(-pts)});
+    }
+    showToast(`Engagement deleted. -${pts} pts removed.`);
+    loadMyEngLog();
+    loadEngHistory();
+    loadLeaderboard();
+  }catch(e){showToast("Error: "+e.message);}
+};
+
+
 
 window.loadLeaderboard=async function(){
   const el=document.getElementById("leaderboard-list");
