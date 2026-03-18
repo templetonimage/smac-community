@@ -427,6 +427,43 @@
     @media(max-width:480px){.auth-card{padding:32px 24px;}.auth-logo{font-size:60px;}.page{padding:16px;}}
     @media(min-width:600px){#page-chat{padding:20px 32px !important;}#chat-container{max-width:100% !important;}}
     @media(min-width:900px){#page-chat{padding:24px 48px !important;}}
+
+    /* ── SMAC PRO ── */
+    .pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:0.08em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;line-height:1.4;}
+    .pro-locked-card{background:var(--surface);border-radius:var(--radius);border:1.5px dashed var(--gold);padding:20px;margin-bottom:16px;position:relative;overflow:hidden;}
+    .pro-locked-card::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,.04),transparent);pointer-events:none;}
+    .pro-locked-label{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:0.1em;padding:3px 10px;border-radius:20px;margin-bottom:10px;}
+    .pro-locked-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:4px;}
+    .pro-locked-desc{font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;}
+    .btn-upgrade{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;border:none;border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;cursor:pointer;text-decoration:none;transition:opacity .15s;}
+    .btn-upgrade:hover{opacity:.85;}
+    .pro-page-header{background:linear-gradient(135deg,#1a1500,#2d2000);border-radius:var(--radius);padding:20px;margin-bottom:20px;border:1px solid var(--gold);}
+    .pro-page-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.06em;color:var(--gold);line-height:1;}
+    .pro-page-sub{font-size:13px;color:rgba(201,168,76,.7);margin-top:4px;}
+    .pro-feature-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);}
+    .pro-feature-icon{font-size:28px;margin-bottom:10px;}
+    .pro-feature-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:6px;}
+    .pro-feature-desc{font-size:13px;color:var(--text-muted);line-height:1.6;}
+    .pro-coming-soon{display:inline-block;background:var(--surface2);color:var(--text-muted);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-top:8px;}
+    /* Admin Pro controls */
+    .pro-admin-section{background:linear-gradient(135deg,#fffbf0,#fdf5e0);border:1.5px solid var(--gold);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
+    .pro-admin-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.05em;margin-bottom:4px;color:var(--gold-dark);}
+    .pro-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+    .pro-toggle-row:last-child{border-bottom:none;padding-bottom:0;}
+    .pro-toggle-label{font-size:13px;font-weight:600;}
+    .pro-toggle-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+    .toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;}
+    .toggle-switch input{opacity:0;width:0;height:0;}
+    .toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:24px;transition:.2s;}
+    .toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+    input:checked+.toggle-slider{background:var(--gold);}
+    input:checked+.toggle-slider:before{transform:translateX(20px);}
+    .pro-global-danger{background:#fff5f5;border:1.5px solid #e74c3c;border-radius:var(--radius);padding:14px;margin-top:12px;}
+    .pro-global-danger-title{font-family:'Bebas Neue',sans-serif;font-size:16px;color:#e74c3c;margin-bottom:4px;}
+    /* In-app notification bell */
+    .pro-notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--surface);}
+    /* leaderboard PRO pill */
+    .lb-pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;}
   </style>
 </head>
 <body>
@@ -456,7 +493,7 @@
 <nav class="topnav" id="topnav" style="display:none;">
     <div class="topnav-logo" onclick="navTo('feed',document.getElementById('nav-feed'))" style="cursor:pointer;">SMAC</div>
     <div class="topnav-right">
-      <span class="topnav-user" id="topnav-username"></span>
+      <span class="topnav-user" id="topnav-username"></span><span id="topnav-pro-badge" style="display:none;" class="pro-badge">PRO</span>
       <button class="btn-sm" onclick="handleLogout()">Sign Out</button>
       <button id="topnav-profile-btn" onclick="navTo('profile',null)" style="background:none;border:none;cursor:pointer;padding:0;margin-left:4px;position:relative;display:none;" title="My Profile">
         <div id="topnav-avatar" style="width:34px;height:34px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;border:2px solid var(--gold);overflow:hidden;"></div>
@@ -917,6 +954,54 @@
       <div id="bug-reports-body"><div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Loading...</div></div>
     </div>
 
+    <!-- ADMIN: SMAC Pro Management (hidden until _PRO_GLOBAL_ACTIVE) -->
+    <div id="admin-pro-panel" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">★ SMAC Pro Management</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Global Pro controls — inactive until Pro launch. Per-member Pro toggle and trial access are in the Member Directory.</div>
+
+      <div class="pro-admin-section">
+        <div class="pro-admin-title">Global Enable Pro</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Sets <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:11px;">isPro: true</code> on every member in the registry at once. Use this at Pro launch after members have paid. This runs client-side in a loop — takes ~2–3 seconds for 50 members.</div>
+        <div class="pro-global-danger">
+          <div class="pro-global-danger-title">⚠️ One-Way Action</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;">This grants Pro to everyone currently in the registry. Requires double confirmation. Use per-member toggle in Directory for individual access.</div>
+          <button class="btn-sm" onclick="enableProForAll()" style="background:#e74c3c;color:#fff;border-color:#e74c3c;">Grant Pro to All Members</button>
+        </div>
+        <div id="pro-global-status" style="display:none;margin-top:10px;font-size:13px;color:var(--text-muted);padding:8px;background:var(--surface2);border-radius:6px;"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN: Clear Feed Posts by Week -->
+    <div id="admin-clear-feed-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🗑 Clear Feed Posts by Week</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Remove all feed posts for a completed week after you've verified them. This only deletes the social wall cards — tracker submissions, engagement records, and points are NOT touched.</div>
+      <div class="card" style="border:1.5px solid var(--border);">
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Select Week to Clear</label>
+          <select id="clear-feed-week-select" class="sub-filter-select" style="display:block;width:100%;max-width:320px;">
+            <option value="">— choose a week —</option>
+            <option value="0">W1 · Mar 1–7</option>
+            <option value="1">W2 · Mar 8–14</option>
+            <option value="2">W3 · Mar 15–21</option>
+            <option value="3">W4 · Mar 22–31</option>
+            <option value="4">W5 · Apr 1–7</option>
+            <option value="5">W6 · Apr 8–14</option>
+            <option value="6">W7 · Apr 15–21</option>
+            <option value="7">W8 · Apr 22–30</option>
+            <option value="8">W9 · May 1–7</option>
+            <option value="9">W10 · May 8–14</option>
+            <option value="10">W11 · May 15–21</option>
+            <option value="11">W12 · May 22–31</option>
+          </select>
+        </div>
+        <div style="background:#fff5f5;border:1px solid #f5c6c6;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#c0392b;line-height:1.5;">
+          ⚠️ Deletes feed posts only. Tracker submissions, engagement records, and points are safe.
+        </div>
+        <button class="btn-sm" onclick="clearFeedPostsByWeek()" style="background:#e74c3c;color:#fff;border-color:#e74c3c;">🗑 Clear Feed Posts for Selected Week</button>
+        <div id="clear-feed-status" style="display:none;margin-top:12px;font-size:13px;color:var(--text-muted);padding:8px;background:var(--surface2);border-radius:6px;"></div>
+      </div>
+    </div>
+
     <div id="tracker-report-body"></div>
   </div>
 
@@ -1012,6 +1097,66 @@
     </div>
   </div>
 </div>
+  <!-- PRO PAGE (hidden from free users, visible to admin + Pro) -->
+  <div class="page" id="page-pro">
+    <div class="pro-page-header">
+      <div class="pro-page-title">SMAC PRO</div>
+      <div class="pro-page-sub">Your 90-Day Content Discipline System</div>
+    </div>
+
+    <!-- Weekly Action Plan Generator -->
+    <div class="pro-feature-card" id="pro-action-plan-card">
+      <div class="pro-feature-icon">🗓</div>
+      <div class="pro-feature-title">Weekly Action Plan Generator</div>
+      <div class="pro-feature-desc">Get a personalized posting plan for the week — tailored to your niche, current streak, and this week's requirement. Reduces decision fatigue so you just execute.</div>
+      <div class="pro-coming-soon">Coming at Pro Launch</div>
+    </div>
+
+    <!-- Caption Assist -->
+    <div class="pro-feature-card" id="pro-caption-card">
+      <div class="pro-feature-icon">✍️</div>
+      <div class="pro-feature-title">Caption Assist</div>
+      <div class="pro-feature-desc">Stuck on what to say? Drop in your post idea and get 3 caption directions. You choose, you edit, you post. It supports your voice — it doesn't replace it.</div>
+      <div class="pro-coming-soon">Coming at Pro Launch</div>
+    </div>
+
+    <!-- Advanced Streak Analytics -->
+    <div class="pro-feature-card" id="pro-analytics-card">
+      <div class="pro-feature-icon">📊</div>
+      <div class="pro-feature-title">Advanced Streak Analytics</div>
+      <div class="pro-feature-desc">See your consistency score, posting cadence trends, and how your engagement stacks up across weeks. Know exactly where you stand.</div>
+      <div class="pro-coming-soon">Coming at Pro Launch</div>
+    </div>
+
+    <!-- Priority Accountability Group -->
+    <div class="pro-feature-card" id="pro-priority-group-card">
+      <div class="pro-feature-icon">🔥</div>
+      <div class="pro-feature-title">Priority Accountability Group</div>
+      <div class="pro-feature-desc">A smaller, higher-commitment group inside SMAC. Tighter check-ins, faster feedback, and members who are all in at the same level.</div>
+      <div class="pro-coming-soon">Coming at Pro Launch</div>
+    </div>
+
+    <!-- Stronger Nudges -->
+    <div class="pro-feature-card" id="pro-nudges-card">
+      <div class="pro-feature-icon">🔔</div>
+      <div class="pro-feature-title">Stronger Nudges & Reminders</div>
+      <div class="pro-feature-desc">Smart weekly reminders timed to your submission window — so you never miss a deadline. You told us you wanted to be consistent. We'll hold you to it.</div>
+      <div class="pro-coming-soon">Coming at Pro Launch</div>
+    </div>
+
+    <!-- Early Access -->
+    <div class="pro-feature-card" id="pro-early-access-card">
+      <div class="pro-feature-icon">⚡</div>
+      <div class="pro-feature-title">Early Access to New Features</div>
+      <div class="pro-feature-desc">Pro members shape the product. You get every new feature first, plus direct input on what gets built next.</div>
+      <div class="pro-coming-soon">Coming at Pro Launch</div>
+    </div>
+
+    <div id="pro-trial-banner" style="display:none;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:1.5px solid #27ae60;border-radius:var(--radius);padding:14px 16px;margin-top:8px;font-size:13px;line-height:1.6;">
+      <strong style="color:#27ae60;">Trial Access Active</strong> — you have full Pro access through your trial period.
+    </div>
+  </div>
+
   <!-- CHAT -->
   <div class="page" id="page-chat" style="padding:16px;max-width:100%;width:100%;box-sizing:border-box;">
     <div class="page-header" style="margin-bottom:16px;"><h1 class="page-title">Group Chat</h1><div style="font-size:13px;color:var(--text-muted);margin-top:4px;">Talk live with fellow cohort members</div></div>
@@ -1140,6 +1285,11 @@
   <button class="nav-item" onclick="navTo('directory',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     Members
+  </button>
+  <button class="nav-item" id="nav-pro" onclick="navTo('pro',this)" style="display:none;position:relative;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <span style="background:linear-gradient(135deg,var(--gold),var(--gold-dark));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600;">PRO</span>
+    <span id="pro-notif-dot" style="display:none;" class="pro-notif-dot"></span>
   </button>
   </nav>
 
@@ -1327,6 +1477,11 @@ function sanitizeMember(m){
     isVIP:       m.isVIP       || false,
     business:    m.business    || "",
     type:        m.type        || "",
+    // SMAC Pro fields (all default inactive — flip on Pro launch)
+    isPro:       m.isPro       || false,
+    proSince:    m.proSince    || null,
+    proExpiry:   m.proExpiry   || null,
+    trialUntil:  m.trialUntil  || null,
   };
 }
 
@@ -1336,6 +1491,30 @@ function sanitizeMember(m){
 let db=null, auth=null, currentUser=null, useLocalFallback=false, activeFilter="All", cachedResources=[], cachedLeaderboard=[];
 let _photoCache={}; // uid -> photoURL, populated from registry on load
 let _trackerCache={}; // uid -> tracker doc, populated on boot
+
+// ─────────────────────────────────────────────
+//  SMAC PRO — Access Helper
+// ─────────────────────────────────────────────
+// Returns true if the current user has active Pro access.
+// Admin always has access for testing. Users need isPro=true OR an active trialUntil date.
+// All Pro features are gated behind this function. Status: INACTIVE (Pro not launched yet).
+function userHasPro(){
+  if(!currentUser) return false;
+  if(currentUser.isAdmin) return true; // admin always sees Pro for testing
+  if(currentUser.isPro === true) return true;
+  if(currentUser.trialUntil && Date.now() < currentUser.trialUntil) return true;
+  return false;
+}
+// Returns true if user has trial access (but not full Pro)
+function userHasTrial(){
+  if(!currentUser) return false;
+  return !currentUser.isPro && currentUser.trialUntil && Date.now() < currentUser.trialUntil;
+}
+// Returns formatted trial expiry string
+function getTrialExpiryStr(){
+  if(!currentUser||!currentUser.trialUntil) return "";
+  return new Date(currentUser.trialUntil).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+}
 
 // Returns an avatar div — shows photo if available, else initials
 function avatarHTML(name, uid, cssClass, extraStyle=""){
@@ -1449,7 +1628,7 @@ window.handleLogin=async function(){
         await signOut(auth);
         return;
       }
-      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false};
+      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null};
       // Write uid to registry doc if missing — self-healing, runs once per member
       if(!member.uid&&member.id&&!useLocalFallback&&db){
         import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:_dc})=>{
@@ -1488,6 +1667,12 @@ function bootApp(){
   const _appEl=document.getElementById("app");_appEl.removeAttribute("style");_appEl.classList.add("visible");document.getElementById("topnav").style.display="flex";
   document.getElementById("bottomnav").style.display="flex";
   document.getElementById("topnav-username").innerHTML=`<strong>${esc(currentUser.name)}</strong>${currentUser.isAdmin?" 🔐":""}`;
+  // Pro badge in topnav
+  const _proBadgeEl=document.getElementById("topnav-pro-badge");
+  if(_proBadgeEl) _proBadgeEl.style.display=userHasPro()&&!currentUser.isAdmin?"inline-flex":"none";
+  // Pro nav button
+  const _proNavBtn=document.getElementById("nav-pro");
+  if(_proNavBtn) _proNavBtn.style.display=userHasPro()?"flex":"none";
   // Show topnav profile avatar
   const _tpBtn=document.getElementById("topnav-profile-btn");
   const _tpAv=document.getElementById("topnav-avatar");
@@ -1510,6 +1695,12 @@ function bootApp(){
     document.getElementById("admin-spotlight-compose").style.display="block";
     document.getElementById("admin-poll-compose").style.display="block";
     document.getElementById("chat-poll-btn").style.display="flex";
+    // Pro management panel (shown when _PRO_GLOBAL_ACTIVE flag is on)
+    const _proPanel=document.getElementById("admin-pro-panel");
+    if(_proPanel)_proPanel.style.display=_PRO_GLOBAL_ACTIVE?"block":"none";
+    // Clear Feed tool always visible to admin
+    const _clearFeedTool=document.getElementById("admin-clear-feed-tool");
+    if(_clearFeedTool)_clearFeedTool.style.display="block";
     showFirebaseSetupCard();
   } else {
     document.getElementById("admin-compose").style.display="none";
@@ -1523,7 +1714,13 @@ function bootApp(){
     document.getElementById("admin-spotlight-compose").style.display="none";
     document.getElementById("admin-poll-compose").style.display="none";
     document.getElementById("chat-poll-btn").style.display="none";
+    const _clearFeedToolMember=document.getElementById("admin-clear-feed-tool");
+    if(_clearFeedToolMember)_clearFeedToolMember.style.display="none";
+    const _proPanelMember=document.getElementById("admin-pro-panel");
+    if(_proPanelMember)_proPanelMember.style.display="none";
   }
+  // Fire Pro in-app notification sequence (built, currently inactive — flip _PRO_NOTIFS_ACTIVE to enable at launch)
+  setTimeout(checkProNotifications, 2000);
   // Prime photo cache from registry before rendering feed/leaderboard/directory
   if(!useLocalFallback&&db){
     import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({getDocs,collection:col})=>{
@@ -1594,6 +1791,7 @@ window.navTo=function(page,el){
   if(page==="feed"){loadFeed();loadAnnouncements();loadSpotlights();renderWeeklyChallenge();}
   if(page==="submit"){loadSubmitPage();renderWeeklyChallenge();}
   if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin){loadSubViewer();loadEngViewer();loadBugReports();}}
+  if(page==="pro"){renderProPage();}
   if(page==="chat"){
     document.getElementById("chat-unread-badge").style.display="none";
     _chatLastSeen=Date.now();
@@ -2363,6 +2561,8 @@ function renderAdminRegistry(registry, list){
         ${m.isFounder?`<span class="member-founder-badge">🏅 Founder</span>`:""}
         ${m.isVIP?`<span class="member-vip-badge">⚡ VIP</span>`:""}
         ${m.isAllStar?`<div class="member-allstar-badge">⭐ All-Star</div>`:""}
+        ${m.isPro?`<span class="pro-badge" style="margin-left:0;margin-top:2px;">PRO</span>`:""}
+        ${m.trialUntil&&!m.isPro?`<span style="display:inline-flex;align-items:center;background:#e8f5e9;color:#27ae60;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;margin-top:2px;">Trial until ${new Date(m.trialUntil).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>`:""}
       </div>
       ${m.type?`<span class="member-type-tag">${esc(m.type)}</span>`:""}
       <div style="font-size:11px;color:var(--text-muted);margin:6px 0 4px;">
@@ -2382,6 +2582,8 @@ function renderAdminRegistry(registry, list){
         <button class="react-btn" style="width:100%;justify-content:center;" onclick="toggleRegistryFlag('${docId}','isAllStar')">${m.isAllStar?"Remove All-Star":"⭐ All-Star"}</button>
         <button class="react-btn" style="width:100%;justify-content:center;" onclick="editRegistryIg('${docId}','${esc(m.ig||'')}')">📸 Edit Instagram</button>
         <button class="react-btn" style="width:100%;justify-content:center;" onclick="editRegistryEmail('${docId}','${esc(m.email||'')}')" >✏️ Edit Email</button>
+        <button class="react-btn" style="width:100%;justify-content:center;${m.isPro?"background:#fffbf0;border-color:var(--gold);color:var(--gold-dark);font-weight:600;":""}" onclick="toggleProAccess('${docId}',${!!m.isPro})">${m.isPro?"★ Remove Pro Access":"★ Grant Pro Access"}</button>
+        <button class="react-btn" style="width:100%;justify-content:center;" onclick="setTrialAccess('${docId}','${esc(m.name||'')}')">⏱ Set Trial Access</button>
         <button class="react-btn" style="width:100%;justify-content:center;" onclick="removeRegistryMember('${docId}')">🗑 Remove from Registry</button>
       </div>
     </div>`;
@@ -2799,6 +3001,217 @@ window.removeRegistryMember=async function(docId){
   }
   loadDirectory();
   showToast("Member removed from registry.");
+};
+
+// ─────────────────────────────────────────────
+//  SMAC PRO — Admin Controls
+// ─────────────────────────────────────────────
+
+// Toggle isPro on a single member doc
+window.toggleProAccess=async function(docId, currentlyPro){
+  if(!currentUser||!currentUser.isAdmin)return;
+  const action=currentlyPro?"remove Pro access from":"grant Pro access to";
+  if(!confirm(`Are you sure you want to ${action} this member?`))return;
+  if(!useLocalFallback&&db){
+    try{
+      const {updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const newVal=!currentlyPro;
+      const update={isPro:newVal};
+      if(newVal) update.proSince=Date.now();
+      else { update.proSince=null; }
+      await updateDoc(docRef(db,"smac_registry",docId),update);
+      showToast(newVal?"Pro access granted ★":"Pro access removed");
+      loadDirectory();
+    }catch(e){showToast("Error: "+e.message);}
+  } else {
+    showToast("Firestore required for Pro toggle.");
+  }
+};
+
+// Set a trial expiry date on a member doc (admin only, manual)
+window.setTrialAccess=async function(docId, memberName){
+  if(!currentUser||!currentUser.isAdmin)return;
+  const input=prompt(`Set trial access for ${memberName}.\n\nEnter number of days from today (e.g. 7 for one week), or leave blank to clear trial:`);
+  if(input===null)return; // cancelled
+  const days=parseInt(input,10);
+  let trialUntil=null;
+  if(!isNaN(days)&&days>0){
+    trialUntil=Date.now()+(days*24*60*60*1000);
+  } else if(input.trim()===""){
+    trialUntil=null; // clear
+  } else {
+    showToast("Invalid input — enter a number of days or leave blank to clear.");return;
+  }
+  if(!useLocalFallback&&db){
+    try{
+      const {updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await updateDoc(docRef(db,"smac_registry",docId),{trialUntil});
+      showToast(trialUntil?`Trial set — expires ${new Date(trialUntil).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`:"Trial access cleared");
+      loadDirectory();
+    }catch(e){showToast("Error: "+e.message);}
+  } else {
+    showToast("Firestore required for trial access.");
+  }
+};
+
+// ─────────────────────────────────────────────
+//  SMAC PRO — Global Enable Toggle
+//  STATUS: INACTIVE — flip _PRO_GLOBAL_ACTIVE=true at Pro launch
+// ─────────────────────────────────────────────
+const _PRO_GLOBAL_ACTIVE = false; // <-- flip to true at Pro launch to enable global Pro toggle UI
+const _PRO_NOTIFS_ACTIVE = false; // <-- flip to true at Pro launch to enable in-app notification sequence
+
+// Global "Enable Pro for All" — sets isPro=true on every free registry doc
+// Run once at Pro launch. Shown in admin panel only when _PRO_GLOBAL_ACTIVE=true.
+window.enableProForAll=async function(){
+  if(!currentUser||!currentUser.isAdmin)return;
+  if(!confirm("This will grant Pro access to ALL current members in the registry.\n\nThis action cannot be undone automatically. Confirm?"))return;
+  if(!confirm("Second confirmation: Grant Pro to all members now?"))return;
+  if(!db||useLocalFallback){showToast("Firestore required.");return;}
+  const statusEl=document.getElementById("pro-global-status");
+  if(statusEl){statusEl.style.display="block";statusEl.textContent="Processing...";}
+  try{
+    const {getDocs,collection:col,updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap=await getDocs(col(db,"smac_registry"));
+    let count=0;
+    for(const d of snap.docs){
+      const m=d.data();
+      if(!m.isPro){
+        await updateDoc(docRef(db,"smac_registry",d.id),{isPro:true,proSince:Date.now()});
+        count++;
+      }
+    }
+    if(statusEl){statusEl.textContent=`Done — ${count} member${count!==1?"s":""} upgraded to Pro.`;}
+    showToast(`Pro enabled for ${count} members ★`);
+    loadDirectory();
+  }catch(e){
+    if(statusEl){statusEl.textContent="Error: "+e.message;}
+    showToast("Error: "+e.message);
+  }
+};
+
+// ─────────────────────────────────────────────
+//  SMAC PRO — In-App Notification Sequence
+//  STATUS: INACTIVE — _PRO_NOTIFS_ACTIVE controls this
+// ─────────────────────────────────────────────
+// Day thresholds (ms since proSince) for each nudge
+const _PRO_NUDGE_DAY3 = 3 * 24 * 60 * 60 * 1000;
+const _PRO_NUDGE_DAY7 = 7 * 24 * 60 * 60 * 1000;
+
+function checkProNotifications(){
+  if(!_PRO_NOTIFS_ACTIVE) return; // Inactive until Pro launch
+  if(!currentUser||!userHasPro()||currentUser.isAdmin) return;
+  const proSince=currentUser.proSince;
+  if(!proSince) return;
+  const elapsed=Date.now()-proSince;
+  const seenKey=`smac_pro_notif_${currentUser.uid}`;
+  const seen=lsGet(seenKey)||{};
+
+  // Welcome notification (first login after Pro activated)
+  if(!seen.welcome){
+    seen.welcome=true;lsSet(seenKey,seen);
+    showProNotification("welcome","🎉 Welcome to SMAC Pro!","Your Pro features are now active. Head to the PRO tab to explore everything that's unlocked.");
+    return;
+  }
+  // Day 3 nudge
+  if(elapsed>=_PRO_NUDGE_DAY3&&!seen.day3){
+    seen.day3=true;lsSet(seenKey,seen);
+    showProNotification("day3","📅 Your Weekly Action Plan is waiting","Three days in — have you checked your Action Plan Generator yet? Tap PRO to try it.");
+    return;
+  }
+  // Day 7 check-in
+  if(elapsed>=_PRO_NUDGE_DAY7&&!seen.day7){
+    seen.day7=true;lsSet(seenKey,seen);
+    showProNotification("day7","🔥 One week of SMAC Pro","One week down. Check your streak analytics in the PRO tab — consistency compounds.");
+    return;
+  }
+}
+
+function showProNotification(type, title, message){
+  const dot=document.getElementById("pro-notif-dot");
+  if(dot)dot.style.display="block";
+  const existing=document.getElementById("pro-notif-banner");
+  if(existing)existing.remove();
+  const banner=document.createElement("div");
+  banner.id="pro-notif-banner";
+  banner.style.cssText="position:fixed;bottom:80px;left:12px;right:12px;max-width:500px;margin:0 auto;background:linear-gradient(135deg,#1a1500,#2d2000);border:1.5px solid var(--gold);border-radius:var(--radius);padding:14px 16px;z-index:500;box-shadow:0 4px 24px rgba(201,168,76,.25);display:flex;align-items:flex-start;gap:12px;";
+  banner.innerHTML=`
+    <div style="font-size:22px;flex-shrink:0;">⭐</div>
+    <div style="flex:1;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);letter-spacing:0.04em;margin-bottom:3px;">${esc(title)}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75);line-height:1.5;">${esc(message)}</div>
+      <button onclick="navTo('pro',document.getElementById('nav-pro'));this.closest('#pro-notif-banner').remove();document.getElementById('pro-notif-dot').style.display='none';" style="margin-top:8px;background:var(--gold);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-family:'Bebas Neue',sans-serif;font-size:14px;cursor:pointer;">Open PRO ↗</button>
+    </div>
+    <button onclick="this.closest('#pro-notif-banner').remove();document.getElementById('pro-notif-dot').style.display='none';" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:18px;padding:0;flex-shrink:0;">✕</button>`;
+  document.body.appendChild(banner);
+  setTimeout(()=>{if(banner.parentNode){banner.remove();if(dot)dot.style.display="none";}},10000);
+}
+
+// ─────────────────────────────────────────────
+//  SMAC PRO — Pro Page Renderer
+// ─────────────────────────────────────────────
+function renderProPage(){
+  const page=document.getElementById("page-pro");
+  if(!page)return;
+  // Ensure page is visible (it's hidden from nav for non-Pro users but admin can still reach it)
+  page.style.display="block";
+  // Trial banner
+  const trialBanner=document.getElementById("pro-trial-banner");
+  if(trialBanner){
+    if(userHasTrial()){
+      trialBanner.style.display="block";
+      trialBanner.innerHTML=`<strong style="color:#27ae60;">Trial Access Active</strong> — expires ${getTrialExpiryStr()}. Upgrade to keep full access.`;
+    } else {
+      trialBanner.style.display="none";
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  ADMIN: Clear Feed Posts by Week
+// ─────────────────────────────────────────────
+// Deletes documents from the `posts` collection matching a specific weekIdx.
+// Safe: does NOT touch submissions, engagements, or trackers (accountability data).
+window.clearFeedPostsByWeek=async function(){
+  if(!currentUser||!currentUser.isAdmin)return;
+  const sel=document.getElementById("clear-feed-week-select");
+  if(!sel||sel.value===""){showToast("Select a week first.");return;}
+  const weekIdx=parseInt(sel.value,10);
+  const WEEK_LABELS=["W1 · Mar 1–7","W2 · Mar 8–14","W3 · Mar 15–21","W4 · Mar 22–31","W5 · Apr 1–7","W6 · Apr 8–14","W7 · Apr 15–21","W8 · Apr 22–30","W9 · May 1–7","W10 · May 8–14","W11 · May 15–21","W12 · May 22–31"];
+  const label=WEEK_LABELS[weekIdx]||`Week ${weekIdx+1}`;
+  if(!confirm(`Delete all feed posts for ${label}?\n\nThis removes feed cards only. Tracker submissions, engagement records, and points are NOT affected.`))return;
+  if(!db||useLocalFallback){showToast("Firestore required.");return;}
+  const statusEl=document.getElementById("clear-feed-status");
+  if(statusEl){statusEl.style.display="block";statusEl.textContent="Finding posts...";}
+  try{
+    const {getDocs,collection:col,query:q,where,deleteDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    // posts collection doesn't store weekIdx directly — filter by timestamp range for the week
+    const weekStart=WEEK_SCHEDULE[weekIdx]?WEEK_SCHEDULE[weekIdx][0]:null;
+    const weekEnd=WEEK_SCHEDULE[weekIdx]?WEEK_SCHEDULE[weekIdx][1]:null;
+    let snap;
+    if(weekStart&&weekEnd){
+      snap=await getDocs(q(col(db,"posts"),where("ts",">=",weekStart),where("ts","<=",weekEnd)));
+    } else {
+      // Fallback: fetch all and filter client-side
+      snap=await getDocs(col(db,"posts"));
+    }
+    const toDelete=weekStart&&weekEnd?snap.docs:snap.docs.filter(d=>{const ts=d.data().ts||0;return ts>=weekStart&&ts<=weekEnd;});
+    if(!toDelete.length){
+      if(statusEl)statusEl.textContent=`No feed posts found for ${label}.`;
+      showToast(`No posts found for ${label}`);return;
+    }
+    let deleted=0;
+    for(const d of toDelete){
+      await deleteDoc(docRef(db,"posts",d.id));
+      deleted++;
+    }
+    if(statusEl)statusEl.textContent=`Done — deleted ${deleted} feed post${deleted!==1?"s":""} for ${label}.`;
+    showToast(`Cleared ${deleted} feed post${deleted!==1?"s":""} for ${label} 🗑`);
+    loadFeed();
+  }catch(e){
+    if(statusEl)statusEl.textContent="Error: "+e.message;
+    showToast("Error: "+e.message);
+  }
 };
 // ─────────────────────────────────────────────
 //  PASSWORD MANAGEMENT
@@ -3282,11 +3695,12 @@ window.loadLeaderboard=async function(){
     const posts=trackerPosts||m.totalPosts||0;
     const milestones=getMilestoneBadges(posts);
     const badges=`${m.isAllStar?"⭐":""}${m.isFounder?"🏅":""}${m.isVIP?"⚡":""}${milestones}`;
+    const proBadge=m.isPro?`<span class="lb-pro-badge">PRO</span>`:"";
     return`<div class="leaderboard-row">
       <div class="lb-rank ${i<3?"top3":""}">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div>
       ${avatarHTML(m.name, m.uid||m._uid||"", "lb-avatar")}
       <div class="lb-info">
-        <div class="lb-name">${esc(m.name)} ${badges}</div>
+        <div class="lb-name">${esc(m.name)} ${badges}${proBadge}</div>
         <div class="lb-meta">${posts} posts · ${m.ig?`<a href="https://instagram.com/${esc(m.ig.replace("@",""))}" target="_blank" style="color:var(--gold);">@${esc(m.ig.replace("@",""))}</a>`:"no IG linked"}</div>
       </div>
       <div class="lb-pts">${pts}<span style="font-size:12px;color:var(--text-muted);"> pts</span></div>
