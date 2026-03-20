@@ -3802,6 +3802,8 @@ function buildSubCard(s){
   const statusLabel = s.reviewed ? "reviewed" : (s.status||"ontime");
   const statusText = s.reviewed ? "✓ Reviewed" : s.status==="ontime" ? "On Time" : s.status==="late" ? "Late" : "Missed";
   const ptsDisplay = s.pts!==undefined ? s.pts : 0;
+  const currentFormat = s.format || "Static";
+  const challengeOn = !!s.challengeApplied;
 
   return `<div class="sub-card${s.reviewed?" reviewed":""}" id="subcard-${esc(s._id)}">
     <div class="sub-card-header">
@@ -3810,7 +3812,8 @@ function buildSubCard(s){
         <div class="sub-card-name">${esc(s.memberName||"Unknown")}</div>
         <div class="sub-card-detail">
           ${w.month||""} ${w.label||"Week "+(s.weekIdx+1)} · ${w.dates||""}
-          ${s.format ? ` · ${esc(s.format)}` : ""}
+          ${currentFormat!=="Static" ? ` · <strong style="color:var(--gold);">${esc(currentFormat)}</strong>` : ` · ${esc(currentFormat)}`}
+          ${challengeOn ? ` · <strong style="color:var(--gold);">⭐ Challenge</strong>` : ""}
         </div>
         <div class="sub-card-detail">${dateStr} at ${timeStr}</div>
       </div>
@@ -3820,10 +3823,33 @@ function buildSubCard(s){
     ${s.screenshotBase64 ? `<img src="${esc(s.screenshotBase64)}" class="sub-thumb" onclick="this.style.maxHeight=this.style.maxHeight==='none'?'160px':'none'" title="Click to expand" />` : ""}
     ${s.url ? `<div style="margin-bottom:8px;"><a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:var(--gold);font-size:12px;word-break:break-all;">${esc(s.url)}</a></div>` : ""}
 
-    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);">
-      <span>Points:</span>
-      <input class="sub-pts-edit" type="number" value="${ptsDisplay}" id="pts-${esc(s._id)}" min="0" max="50" />
-      <button class="btn-sm" onclick="saveSubPts('${esc(s._id)}')">Save</button>
+    <!-- Admin Edit: Format + Challenge + Points -->
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;border:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Admin Edit</div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--text-muted);min-width:56px;">Format:</span>
+        <select id="fmt-${esc(s._id)}" onchange="recalcSubPts('${esc(s._id)}')" style="font-size:12px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;">
+          <option value="Static"${currentFormat==="Static"?" selected":""}>📷 Static</option>
+          <option value="Reel"${currentFormat==="Reel"?" selected":""}>🎬 Reel (+2 pts)</option>
+          <option value="Carousel"${currentFormat==="Carousel"?" selected":""}>🖼 Carousel (+2 pts)</option>
+        </select>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:12px;color:var(--text-muted);min-width:56px;">Challenge:</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="chal-${esc(s._id)}" ${challengeOn?"checked":""} onchange="recalcSubPts('${esc(s._id)}')" style="width:14px;height:14px;accent-color:var(--gold);" />
+          ⭐ Weekly challenge modifier applied (+5 pts)
+        </label>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:var(--text-muted);min-width:56px;">Points:</span>
+        <input class="sub-pts-edit" type="number" value="${ptsDisplay}" id="pts-${esc(s._id)}" min="0" max="50" oninput="markPtsManual('${esc(s._id)}')" />
+        <span id="pts-note-${esc(s._id)}" style="font-size:11px;color:var(--text-muted);"></span>
+        <button class="btn-sm" onclick="saveSubDetails('${esc(s._id)}')" style="margin-left:auto;background:var(--gold);color:#000;border-color:var(--gold);">Save</button>
+      </div>
     </div>
 
     <div class="sub-actions">
@@ -3835,18 +3861,69 @@ function buildSubCard(s){
   </div>`;
 }
 
-window.saveSubPts = async function(id){
+// Recalculate pts when admin changes format or challenge toggle — auto-fills the pts field
+window.recalcSubPts = function(id){
+  const s = _allSubmissions.find(x=>x._id===id);
+  if(!s) return;
+  const fmtEl = document.getElementById("fmt-"+id);
+  const chalEl = document.getElementById("chal-"+id);
+  const ptsEl = document.getElementById("pts-"+id);
+  const noteEl = document.getElementById("pts-note-"+id);
+  if(!fmtEl||!chalEl||!ptsEl) return;
+  const fmt = fmtEl.value;
+  const chalOn = chalEl.checked;
+  const status = s.status||"ontime";
+  let base = status==="missed" ? 0 : status==="late" ? PTS_LATE_24H : PTS_ON_TIME;
+  let bonus = (fmt==="Reel"||fmt==="Carousel") && status!=="missed" ? PTS_REEL : 0;
+  let chalBonus = chalOn && status!=="missed" ? 5 : 0;
+  const calc = base + bonus + chalBonus;
+  ptsEl.value = calc;
+  if(noteEl) noteEl.textContent = `Auto: ${base}${bonus?"+"+bonus:""}${chalBonus?"+5 challenge":""} = ${calc} pts`;
+  // Clear any manual override marker
+  ptsEl.dataset.manual = "";
+};
+
+window.markPtsManual = function(id){
+  const noteEl = document.getElementById("pts-note-"+id);
+  if(noteEl) noteEl.textContent = "Manual override";
+};
+
+window.saveSubDetails = async function(id){
   if(!currentUser||!currentUser.isAdmin) return;
-  const inp = document.getElementById("pts-"+id);
-  if(!inp) return;
-  const newPts = parseInt(inp.value)||0;
+  const s = _allSubmissions.find(x=>x._id===id);
+  if(!s) return;
+  const fmtEl = document.getElementById("fmt-"+id);
+  const chalEl = document.getElementById("chal-"+id);
+  const ptsEl = document.getElementById("pts-"+id);
+  if(!fmtEl||!chalEl||!ptsEl) return;
+  const newFormat = fmtEl.value;
+  const newChallenge = chalEl.checked;
+  const newPts = parseInt(ptsEl.value)||0;
+  const oldPts = s.pts||0;
+  const ptsDelta = newPts - oldPts;
   try{
-    const {updateDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    await updateDoc(dcRef(db,"submissions",id),{pts:newPts});
+    const {updateDoc,doc:dcRef,getDocs,collection:col,query:q,where,increment} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    // Update submission doc
+    await updateDoc(dcRef(db,"submissions",id),{
+      format: newFormat,
+      challengeApplied: newChallenge,
+      pts: newPts
+    });
+    // Apply pts delta to registry if changed
+    if(ptsDelta !== 0 && s.uid){
+      const regSnap = await getDocs(q(col(db,"smac_registry"),where("uid","==",s.uid)));
+      if(!regSnap.empty) await updateDoc(regSnap.docs[0].ref,{points:increment(ptsDelta)});
+    }
     // Update local cache
-    const s = _allSubmissions.find(x=>x._id===id);
-    if(s) s.pts=newPts;
-    showToast("Points updated ✓");
+    s.format = newFormat;
+    s.challengeApplied = newChallenge;
+    s.pts = newPts;
+    const noteEl = document.getElementById("pts-note-"+id);
+    if(noteEl) noteEl.textContent = "";
+    showToast(`Saved${ptsDelta!==0?" · pts adjusted by "+(ptsDelta>0?"+":"")+ptsDelta:""}  ✓`);
+    // Re-render just this card
+    const cardEl = document.getElementById("subcard-"+id);
+    if(cardEl) cardEl.outerHTML = buildSubCard(s);
   }catch(e){ showToast("Error: "+e.message); }
 };
 
