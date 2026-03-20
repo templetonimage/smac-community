@@ -3153,8 +3153,7 @@ function showProNotification(type, title, message){
 function renderProPage(){
   const page=document.getElementById("page-pro");
   if(!page)return;
-  // Ensure page is visible (it's hidden from nav for non-Pro users but admin can still reach it)
-  page.style.display="block";
+  // Do NOT set inline display style — let the .page / .page.active CSS class system handle visibility
   // Trial banner
   const trialBanner=document.getElementById("pro-trial-banner");
   if(trialBanner){
