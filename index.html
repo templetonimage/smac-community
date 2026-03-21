@@ -1731,22 +1731,31 @@ function bootApp(){
         ]);
         primePhotoCache(regSnap.docs.map(d=>sanitizeMember({uid:d.id,...d.data()})));
         trackerSnap.docs.forEach(d=>{ _trackerCache[d.id]=d.data(); });
-        // Seed tracker docs for members who have never logged in (no tracker doc yet).
-        // Ensures grace weeks (W1/W2) appear on leaderboard before their first login.
+        // Ensure all members have grace weeks (W1/W2) seeded in their tracker docs.
+        // Handles two cases: (1) no tracker doc yet, (2) doc exists but grace weeks missing.
         if(currentUser.isAdmin){
           import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({setDoc,doc:dcRef})=>{
             for(const regDoc of regSnap.docs){
               const member=sanitizeMember({id:regDoc.id,...regDoc.data()});
               const uid=member.uid;
-              if(!uid||_trackerCache[uid])continue;
-              const defaultTracked={};
+              if(!uid)continue;
+              const existing=_trackerCache[uid];
+              const tracked=existing?(existing.tracked||{}):{};
+              // Check if grace weeks are fully seeded
+              let needsUpdate=false;
               GRACE_WEEKS.forEach(wid=>{
                 const w=WEEKS.find(x=>x.id===wid);
-                if(w){defaultTracked[wid]=Array(w.required).fill(true);}
+                if(!w)return;
+                const checks=tracked[wid]||[];
+                for(let i=0;i<w.required;i++){
+                  if(!checks[i]){checks[i]=true;needsUpdate=true;}
+                }
+                tracked[wid]=checks;
               });
-              const trackerData={name:member.name,uid,tracked:defaultTracked,updatedAt:Date.now()};
+              if(!needsUpdate)continue;
+              const trackerData={name:member.name,uid,tracked,updatedAt:Date.now()};
               await setDoc(dcRef(db,"trackers",uid),trackerData,{merge:true}).catch(()=>{});
-              _trackerCache[uid]=trackerData;
+              _trackerCache[uid]={...(existing||{}),tracked,updatedAt:Date.now()};
             }
           }).catch(()=>{});
         }
