@@ -1731,6 +1731,25 @@ function bootApp(){
         ]);
         primePhotoCache(regSnap.docs.map(d=>sanitizeMember({uid:d.id,...d.data()})));
         trackerSnap.docs.forEach(d=>{ _trackerCache[d.id]=d.data(); });
+        // Seed tracker docs for members who have never logged in (no tracker doc yet).
+        // Ensures grace weeks (W1/W2) appear on leaderboard before their first login.
+        if(currentUser.isAdmin){
+          import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({setDoc,doc:dcRef})=>{
+            for(const regDoc of regSnap.docs){
+              const member=sanitizeMember({id:regDoc.id,...regDoc.data()});
+              const uid=member.uid;
+              if(!uid||_trackerCache[uid])continue;
+              const defaultTracked={};
+              GRACE_WEEKS.forEach(wid=>{
+                const w=WEEKS.find(x=>x.id===wid);
+                if(w){defaultTracked[wid]=Array(w.required).fill(true);}
+              });
+              const trackerData={name:member.name,uid,tracked:defaultTracked,updatedAt:Date.now()};
+              await setDoc(dcRef(db,"trackers",uid),trackerData,{merge:true}).catch(()=>{});
+              _trackerCache[uid]=trackerData;
+            }
+          }).catch(()=>{});
+        }
         if(!currentUser.isAdmin){
           const me=regSnap.docs.find(d=>d.id===currentUser.uid);
           if(me&&me.data().photoURL)currentUser.photoURL=me.data().photoURL;
@@ -3689,7 +3708,7 @@ window.loadLeaderboard=async function(){
   el.innerHTML=members.map((m,i)=>{
     const pts=m.points||0;
     // Use tracker-based post count (same source as Reports/Profile)
-    const trackerDoc=_trackerCache[m.id||m.uid||""]||{};
+    const trackerDoc=_trackerCache[m.uid||m.id||""]||{};
     const trackerPosts=WEEKS.reduce((s,w)=>{const c=(trackerDoc.tracked||{})[w.id]||[];return s+c.filter(Boolean).length;},0);
     const posts=trackerPosts||m.totalPosts||0;
     const milestones=getMilestoneBadges(posts);
