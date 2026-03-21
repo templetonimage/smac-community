@@ -3716,7 +3716,9 @@ window.loadLeaderboard=async function(){
   }
   if(!members.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">No scores yet</div><div class="empty-desc">Submit your first post to get on the board!</div></div>';return;}
   cachedLeaderboard=members;
-  el.innerHTML=members.map((m,i)=>{
+  // Members never see the admin synthetic entry — admin sees it for testing only
+  const displayMembers=currentUser.isAdmin?members:members.filter(m=>!m._isAdminSynthetic&&!m.isAdmin&&m.email!==ADMIN_EMAIL);
+  el.innerHTML=displayMembers.map((m,i)=>{
     const pts=m.points||0;
     // Use tracker-based post count (same source as Reports/Profile)
     const trackerDoc=_trackerCache[m.uid||m.id||""]||{};
