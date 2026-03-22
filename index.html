@@ -226,6 +226,24 @@
     .ann-fade{position:absolute;bottom:0;left:0;right:0;height:52px;background:linear-gradient(to bottom,transparent,var(--surface));pointer-events:none;transition:opacity 0.25s ease;}
     .ann-body-wrap.expanded .ann-fade{opacity:0;}
     .ann-toggle-btn{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--gold);cursor:pointer;padding:6px 0 0;letter-spacing:0.02em;}
+    .ann-archive-trigger{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius);border:1.5px dashed var(--border);background:var(--surface2);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);transition:all .2s;margin-bottom:16px;width:100%;text-align:left;}
+    .ann-archive-trigger:hover{border-color:var(--gold);color:var(--gold);background:#fffbf0;}
+    .ann-archive-trigger-icon{font-size:16px;flex-shrink:0;}
+    .ann-archive-count{margin-left:auto;font-size:11px;font-weight:700;background:var(--border);color:var(--text-muted);padding:2px 8px;border-radius:999px;transition:background .2s,color .2s;}
+    .ann-archive-trigger:hover .ann-archive-count{background:rgba(201,168,76,0.15);color:var(--gold);}
+    .ann-archive-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;align-items:flex-end;justify-content:center;}
+    .ann-archive-overlay.open{display:flex;}
+    .ann-archive-modal{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
+    .ann-archive-modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+    .ann-archive-modal-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;}
+    .ann-archive-modal-sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
+    .ann-archive-modal-close{background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-muted);flex-shrink:0;transition:background .15s;}
+    .ann-archive-modal-close:hover{background:var(--border);}
+    .ann-archive-modal-body{overflow-y:auto;padding:20px 24px 32px;-webkit-overflow-scrolling:touch;}
+    .ann-archived-card{background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border);padding:16px;margin-bottom:12px;}
+    .ann-archived-card:last-child{margin-bottom:0;}
+    .ann-archived-tag{display:inline-block;background:var(--text-muted);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 8px;border-radius:4px;margin-bottom:8px;}
+    .ann-archive-modal-empty{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:14px;}
 
     /* RESOURCES */
     .resource-filter{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
@@ -2395,54 +2413,200 @@ window.submitAnnouncement=async function(){
   loadAnnouncements();
 };
 async function loadAnnouncements(){
+  // Event delegation for announcements-list (wired once)
+  var annList=document.getElementById("announcements-list");
+  if(annList&&!annList._delegated){
+    annList._delegated=true;
+    annList.addEventListener("click",function(e){
+      var ab=e.target.closest("[data-archive-ann]");
+      var db2=e.target.closest("[data-delete-ann]");
+      var tb=e.target.closest("[data-toggle-ann]");
+      var ob=e.target.closest("[data-open-archive]");
+      if(ab) window.archiveAnn(ab.dataset.archiveAnn);
+      else if(db2) window.deleteAnn(db2.dataset.deleteAnn);
+      else if(tb) window.toggleAnn(tb.dataset.toggleAnn, tb);
+      else if(ob) window.openAnnArchiveModal();
+    });
+  }
   if(!useLocalFallback&&db){
     onSnapshot(query(collection(db,"announcements"),orderBy("ts","desc")),snap=>renderAnnouncements(snap.docs.map(d=>({id:d.id,...d.data()}))),err=>{console.error("Announcements error:",err);renderAnnouncements([]);});
   } else renderAnnouncements(lsGet("smac_announcements")||[]);
 }
 function renderAnnouncements(items){
   const list=document.getElementById("announcements-list");
-  if(!items.length){list.innerHTML="";return;}
-  list.innerHTML=items.map(a=>`
-    <div class="card announcement-card">
-      <span class="announcement-tag">Announcement</span>
-      <div style="font-weight:700;font-size:16px;margin-bottom:8px;">${esc(a.title)}</div>
-      <div class="ann-body-wrap" id="ann-wrap-${a.id}">
-        <div class="card-body" style="white-space:pre-wrap;">${linkify(a.body)}</div>
-        <div class="ann-fade" id="ann-fade-${a.id}"></div>
-      </div>
-      <button class="ann-toggle-btn" id="ann-btn-${a.id}" onclick="toggleAnn('${a.id}')">See More ↓</button>
-      <div style="margin-top:6px;font-size:12px;color:var(--text-muted);">Nate Templeton · ${timeAgo(a.ts)}</div>
-      ${currentUser.isAdmin?`<div class="card-actions"><button class="react-btn" onclick="deleteAnn('${a.id}')">🗑 Delete</button></div>`:""}
-    </div>`).join("");
-  // After render, check each announcement — if short enough to fit, hide the toggle entirely
-  items.forEach(a=>{
-    const wrap=document.getElementById("ann-wrap-"+a.id);
-    const btn=document.getElementById("ann-btn-"+a.id);
-    if(!wrap||!btn)return;
-    // Use scrollHeight vs the collapsed max-height (96px) to decide if truncation is needed
-    requestAnimationFrame(()=>{
-      if(wrap.scrollHeight<=100){
-        // Content fits — no toggle needed
-        wrap.style.maxHeight="none";
-        document.getElementById("ann-fade-"+a.id).style.display="none";
-        btn.style.display="none";
-      }
+  const active=items.filter(function(a){return !a.archived;});
+  const archived=items.filter(function(a){return !!a.archived;});
+  if(!active.length){list.innerHTML="";}
+  else{
+    list.innerHTML=active.map(function(a){
+      var adminHtml=currentUser.isAdmin
+        ? '<div class="card-actions"><button class="react-btn" data-archive-ann="'+a.id+'">&#128230; Archive</button><button class="react-btn" data-delete-ann="'+a.id+'">&#128465; Delete</button></div>'
+        : '';
+      return '<div class="card announcement-card">'
+        +'<span class="announcement-tag">Announcement</span>'
+        +'<div style="font-weight:700;font-size:16px;margin-bottom:8px;">'+esc(a.title)+'</div>'
+        +'<div class="ann-body-wrap" id="ann-wrap-'+a.id+'">'
+        +'<div class="card-body" style="white-space:pre-wrap;">'+linkify(a.body)+'</div>'
+        +'<div class="ann-fade" id="ann-fade-'+a.id+'"></div>'
+        +'</div>'
+        +'<button class="ann-toggle-btn" id="ann-btn-'+a.id+'" data-toggle-ann="'+a.id+'">See More &#8595;</button>'
+        +'<div style="margin-top:6px;font-size:12px;color:var(--text-muted);">Nate Templeton &middot; '+timeAgo(a.ts)+'</div>'
+        +adminHtml
+        +'</div>';
+    }).join("");
+    active.forEach(function(a){
+      var wrap=document.getElementById("ann-wrap-"+a.id);
+      var btn=document.getElementById("ann-btn-"+a.id);
+      if(!wrap||!btn)return;
+      requestAnimationFrame(function(){
+        if(wrap.scrollHeight<=100){
+          wrap.style.maxHeight="none";
+          var fade=document.getElementById("ann-fade-"+a.id);
+          if(fade)fade.style.display="none";
+          btn.style.display="none";
+        }
+      });
     });
-  });
+  }
+  // Previous Announcements trigger card
+  var trigger=document.getElementById("ann-archive-trigger");
+  if(!trigger){
+    trigger=document.createElement("button");
+    trigger.id="ann-archive-trigger";
+    trigger.className="ann-archive-trigger";
+    trigger.setAttribute("data-open-archive","1");
+    list.parentNode.insertBefore(trigger,list.nextSibling);
+  }
+  if(archived.length){
+    trigger.style.display="flex";
+    trigger.innerHTML='<span class="ann-archive-trigger-icon">&#128230;</span><span>Previous Announcements</span><span class="ann-archive-count">'+archived.length+'</span>';
+  } else {
+    trigger.style.display="none";
+  }
+  window._archivedAnnouncements=archived;
 }
-window.toggleAnn=function(id){
-  const wrap=document.getElementById("ann-wrap-"+id);
-  const btn=document.getElementById("ann-btn-"+id);
+window.toggleAnn=function(id,btnEl){
+  var wrap=document.getElementById("ann-wrap-"+id);
+  var btn=btnEl||document.getElementById("ann-btn-"+id);
   if(!wrap||!btn)return;
-  const isExpanded=wrap.classList.contains("expanded");
+  var isExpanded=wrap.classList.contains("expanded");
   wrap.classList.toggle("expanded",!isExpanded);
   btn.textContent=isExpanded?"See More ↓":"See Less ↑";
 };
 window.deleteAnn=async function(id){
   if(!currentUser||!currentUser.isAdmin)return;
-  if(!confirm("Delete?"))return;
+  if(!confirm("Permanently delete this announcement?\n\nTip: use Archive to keep it accessible in Previous Announcements."))return;
   if(!useLocalFallback&&db)await deleteDoc(doc(db,"announcements",id));
   else{lsSet("smac_announcements",(lsGet("smac_announcements")||[]).filter(a=>a.id!==id));loadAnnouncements();}
+};
+window.archiveAnn=async function(id){
+  if(!currentUser||!currentUser.isAdmin)return;
+  try{
+    if(!useLocalFallback&&db){
+      const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await updateDoc(dcRef(db,"announcements",id),{archived:true});
+    } else {
+      var all=lsGet("smac_announcements")||[];
+      var idx=all.findIndex(function(a){return a.id===id;});
+      if(idx>-1){all[idx].archived=true;lsSet("smac_announcements",all);loadAnnouncements();}
+    }
+    showToast("Announcement archived.");
+  }catch(e){showToast("Error: "+e.message);}
+};
+window.restoreAnn=async function(id){
+  if(!currentUser||!currentUser.isAdmin)return;
+  try{
+    if(!useLocalFallback&&db){
+      const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await updateDoc(dcRef(db,"announcements",id),{archived:false});
+    } else {
+      var all=lsGet("smac_announcements")||[];
+      var idx=all.findIndex(function(a){return a.id===id;});
+      if(idx>-1){all[idx].archived=false;lsSet("smac_announcements",all);loadAnnouncements();}
+    }
+    showToast("Restored to feed.");
+    var remaining=(window._archivedAnnouncements||[]).filter(function(a){return a.id!==id;});
+    renderAnnArchiveModal(remaining);
+  }catch(e){showToast("Error: "+e.message);}
+};
+window.openAnnArchiveModal=function(){
+  var overlay=document.getElementById("ann-archive-overlay");
+  if(!overlay)return;
+  overlay.style.display="flex";
+  document.body.style.overflow="hidden";
+  renderAnnArchiveModal(window._archivedAnnouncements||[]);
+  // Wire close/delegation once
+  if(!overlay._delegated){
+    overlay._delegated=true;
+    overlay.addEventListener("click",function(e){
+      if(e.target===overlay) window.closeAnnArchiveModal();
+    });
+    document.getElementById("ann-archive-close-btn").addEventListener("click",function(){
+      window.closeAnnArchiveModal();
+    });
+    var mb=document.getElementById("ann-archive-modal-body");
+    mb.addEventListener("click",function(e){
+      var rb=e.target.closest("[data-restore]");
+      var db2=e.target.closest("[data-archive-delete]");
+      var tb=e.target.closest("[data-toggle-arch]");
+      if(rb) window.restoreAnn(rb.dataset.restore);
+      else if(db2) window.deleteAnn(db2.dataset.archiveDelete);
+      else if(tb) window.toggleArchiveCard(tb.dataset.toggleArch,tb);
+    });
+  }
+};
+window.closeAnnArchiveModal=function(){
+  var overlay=document.getElementById("ann-archive-overlay");
+  if(overlay) overlay.style.display="none";
+  document.body.style.overflow="";
+};
+function renderAnnArchiveModal(items){
+  var body=document.getElementById("ann-archive-modal-body");
+  if(!body)return;
+  if(!items.length){
+    body.innerHTML='<div class="ann-archive-modal-empty">No archived announcements yet.</div>';
+    return;
+  }
+  body.innerHTML=items.map(function(a){
+    var adminHtml=currentUser.isAdmin
+      ? '<div class="card-actions" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;gap:8px;">'
+        +'<button class="react-btn" data-restore="'+a.id+'">&#8617;&#65039; Restore to Feed</button>'
+        +'<button class="react-btn" data-archive-delete="'+a.id+'" style="color:#e74c3c;">&#128465; Delete</button>'
+        +'</div>'
+      : '';
+    return '<div class="ann-archived-card">'
+      +'<span class="ann-archived-tag">Archived</span>'
+      +'<div style="font-weight:700;font-size:15px;margin-bottom:8px;">'+esc(a.title)+'</div>'
+      +'<div class="ann-body-wrap" id="arch-wrap-'+a.id+'">'
+      +'<div class="card-body" style="white-space:pre-wrap;font-size:14px;">'+linkify(a.body)+'</div>'
+      +'<div class="ann-fade" id="arch-fade-'+a.id+'" style="background:linear-gradient(to bottom,transparent,var(--surface2));"></div>'
+      +'</div>'
+      +'<button class="ann-toggle-btn" id="arch-btn-'+a.id+'" data-toggle-arch="'+a.id+'">See More &#8595;</button>'
+      +'<div style="margin-top:6px;font-size:12px;color:var(--text-muted);">Nate Templeton &middot; '+timeAgo(a.ts)+'</div>'
+      +adminHtml
+      +'</div>';
+  }).join("");
+  items.forEach(function(a){
+    var wrap=document.getElementById("arch-wrap-"+a.id);
+    var btn=document.getElementById("arch-btn-"+a.id);
+    if(!wrap||!btn)return;
+    requestAnimationFrame(function(){
+      if(wrap.scrollHeight<=100){
+        wrap.style.maxHeight="none";
+        var fade=document.getElementById("arch-fade-"+a.id);
+        if(fade)fade.style.display="none";
+        btn.style.display="none";
+      }
+    });
+  });
+}
+window.toggleArchiveCard=function(id,btnEl){
+  var wrap=document.getElementById("arch-wrap-"+id);
+  var btn=btnEl||document.getElementById("arch-btn-"+id);
+  if(!wrap||!btn)return;
+  var expanded=wrap.classList.contains("expanded");
+  wrap.classList.toggle("expanded",!expanded);
+  btn.textContent=expanded?"See More ↓":"See Less ↑";
 };
 
 // ─────────────────────────────────────────────
@@ -6246,6 +6410,23 @@ if(installProfileBtn){
   });
 }
 </script>
+
+
+<!-- PREVIOUS ANNOUNCEMENTS MODAL -->
+<div class="ann-archive-overlay" id="ann-archive-overlay">
+  <div class="ann-archive-modal">
+    <div class="ann-archive-modal-header">
+      <div>
+        <div class="ann-archive-modal-title">Previous Announcements</div>
+        <div class="ann-archive-modal-sub">Archived by Nate — visible to all members</div>
+      </div>
+      <button class="ann-archive-modal-close" id="ann-archive-close-btn">&#x2715;</button>
+    </div>
+    <div class="ann-archive-modal-body" id="ann-archive-modal-body">
+      <div class="ann-archive-modal-empty">Loading...</div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
