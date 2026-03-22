@@ -3093,10 +3093,10 @@ function loadDirectory(){
         if(currentUser.isAdmin){
           renderAdminRegistry(registry,list);
         } else {
-          const members=registry.filter(m=>m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND));
-          // Inject admin as first entry in member directory
-          const prof=lsGet(`smac_profile_${currentUser.uid}`)||{};
-          const adminEntry={id:currentUser.uid||"admin",uid:currentUser.uid||"admin",name:currentUser.name||"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",photoURL:currentUser.photoURL||_photoCache[currentUser.uid]||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
+          const members=registry.filter(m=>(m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND))&&m.email!==ADMIN_EMAIL&&!m.isAdmin);
+          // Inject admin as first entry in member directory, pulling their actual registry doc for photo
+          const adminDoc=registry.find(m=>m.email===ADMIN_EMAIL)||{};
+          const adminEntry={id:adminDoc.uid||"admin",uid:adminDoc.uid||"admin",name:adminDoc.name||"Nate Templeton",business:adminDoc.business||"Founder of SMAC",ig:adminDoc.ig||"",photoURL:adminDoc.photoURL||_photoCache[adminDoc.uid]||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
           const membersWithAdmin=[adminEntry,...members];
           if(!membersWithAdmin.length){
             list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
@@ -3116,9 +3116,10 @@ function loadDirectory(){
     renderAdminRegistry(registry, list);
   } else {
     // Members see only current Round enrollees
-    const members=getRegistryForCurrentRound();
-    const prof=lsGet(`smac_profile_${currentUser.uid}`)||{};
-    const adminEntry={id:currentUser.uid||"admin",uid:currentUser.uid||"admin",name:currentUser.name||"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",photoURL:currentUser.photoURL||_photoCache[currentUser.uid]||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
+    const _lsRegistry=lsGet("smac_registry")||[];
+    const members=getRegistryForCurrentRound().filter(m=>m.email!==ADMIN_EMAIL&&!m.isAdmin);
+    const adminDoc=_lsRegistry.find(m=>m.email===ADMIN_EMAIL)||{};
+    const adminEntry={id:adminDoc.uid||"admin",uid:adminDoc.uid||"admin",name:adminDoc.name||"Nate Templeton",business:adminDoc.business||"Founder of SMAC",ig:adminDoc.ig||"",photoURL:adminDoc.photoURL||_photoCache[adminDoc.uid]||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
     const membersWithAdmin=[adminEntry,...members];
     if(!membersWithAdmin.length){
       list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
