@@ -2725,10 +2725,15 @@ async function loadTrackerReport(){
       .filter(m => m.isFounder || (m.rounds||[]).includes(CURRENT_ROUND));
 
     // Merge: use tracker doc if exists, else create empty placeholder
+    // Tracker docs are keyed by Firebase Auth UID (m.uid), NOT registry doc ID (m.id)
     const mergedDocs = registryMembers.map(m => {
-      if(trackerMap[m.id]) return trackerMap[m.id];
-      // No tracker doc yet — placeholder row
-      return { name: m.name, uid: m.id, _docId: m.id, tracked: {}, _noTracker: true };
+      const trackerByUid = m.uid ? trackerMap[m.uid] : null;
+      const trackerById  = trackerMap[m.id];
+      if(trackerByUid) return trackerByUid;
+      if(trackerById)  return trackerById;
+      // No tracker doc yet — placeholder row; use Auth UID if available
+      const resolvedId = m.uid || m.id;
+      return { name: m.name, uid: resolvedId, _docId: resolvedId, tracked: {}, _noTracker: true };
     });
 
     // Deduplicate by _docId (prevents double-entries)
