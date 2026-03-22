@@ -3088,13 +3088,15 @@ function loadDirectory(){
         const registry=snap.docs.map(d=>sanitizeMember({id:d.id,...d.data()}));
         // Sync to localStorage for admin tools
         lsSet("smac_registry",registry);
+        // Re-prime photo cache from this fresh snapshot so newly uploaded photos show immediately
+        primePhotoCache(registry);
         if(currentUser.isAdmin){
           renderAdminRegistry(registry,list);
         } else {
           const members=registry.filter(m=>m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND));
           // Inject admin as first entry in member directory
           const prof=lsGet(`smac_profile_${currentUser.uid}`)||{};
-          const adminEntry={id:"admin",uid:"admin",name:"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
+          const adminEntry={id:currentUser.uid||"admin",uid:currentUser.uid||"admin",name:currentUser.name||"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",photoURL:currentUser.photoURL||_photoCache[currentUser.uid]||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
           const membersWithAdmin=[adminEntry,...members];
           if(!membersWithAdmin.length){
             list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
@@ -3116,7 +3118,7 @@ function loadDirectory(){
     // Members see only current Round enrollees
     const members=getRegistryForCurrentRound();
     const prof=lsGet(`smac_profile_${currentUser.uid}`)||{};
-    const adminEntry={id:"admin",uid:"admin",name:"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
+    const adminEntry={id:currentUser.uid||"admin",uid:currentUser.uid||"admin",name:currentUser.name||"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",photoURL:currentUser.photoURL||_photoCache[currentUser.uid]||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
     const membersWithAdmin=[adminEntry,...members];
     if(!membersWithAdmin.length){
       list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
