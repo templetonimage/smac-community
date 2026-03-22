@@ -1700,7 +1700,7 @@ function avatarHTML(name, uid, cssClass, extraStyle=""){
   const photo=_photoCache[uid]||"";
   const initials=(name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
   if(photo){
-    return `<div class="${cssClass}" style="${extraStyle}"><img src="${esc(photo)}" alt="${esc(initials)}" /></div>`;
+    return `<div class="${cssClass}" style="${extraStyle}"><img src="${esc(photo)}" alt="${esc(initials)}" onerror="this.parentElement.innerHTML='${initials.replace(/'/g,"&#39;")}';if(window._photoCache&&'${uid}')delete window._photoCache['${uid}'];" /></div>`;
   }
   return `<div class="${cssClass}" style="${extraStyle}">${initials}</div>`;
 }
@@ -1859,7 +1859,7 @@ function bootApp(){
     _tpBtn.style.display="inline-flex";
     const _tpInitials=(currentUser.name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
     const _tpPhoto=_photoCache[currentUser.uid]||currentUser.photoURL||"";
-    if(_tpPhoto){_tpAv.innerHTML=`<img src="${esc(_tpPhoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;}
+    if(_tpPhoto){_tpAv.innerHTML=`<img src="${esc(_tpPhoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='${_tpInitials.replace(/'/g,"&#39;")}'" />`;}
     else{_tpAv.textContent=_tpInitials;}
   }
   if(currentUser.isAdmin){
@@ -1940,9 +1940,14 @@ function bootApp(){
             }
           }).catch(()=>{});
         }
+        // Set photoURL for all users (admin + member) from registry
+        const _meDoc=regSnap.docs.find(d=>d.id===currentUser.uid);
+        if(_meDoc&&_meDoc.data().photoURL){
+          currentUser.photoURL=_meDoc.data().photoURL;
+          _photoCache[currentUser.uid]=currentUser.photoURL;
+        }
         if(!currentUser.isAdmin){
-          const me=regSnap.docs.find(d=>d.id===currentUser.uid);
-          if(me&&me.data().photoURL)currentUser.photoURL=me.data().photoURL;
+          // (photoURL already set above)
         } else {
           // Populate member filter dropdown for submissions viewer
           const sel=document.getElementById("sub-filter-member");
@@ -1968,6 +1973,23 @@ function bootApp(){
           }
         }
       }catch(e){}
+      // ── Refresh UI after photo cache is warm ─────────────────────────────
+      // 1. Topnav avatar bubble
+      (function refreshTopnavAvatar(){
+        var _tpAv=document.getElementById("topnav-avatar");
+        if(!_tpAv)return;
+        var _photo=_photoCache[currentUser.uid]||currentUser.photoURL||"";
+        var _initials=(currentUser.name||"?").split(" ").map(function(w){return w[0];}).join("").substring(0,2).toUpperCase();
+        if(_photo){_tpAv.innerHTML='<img src="'+esc(_photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent=\''+_initials+'\'" />';}
+        else{_tpAv.textContent=_initials;}
+      })();
+      // 2. Re-render active page if it needs photos (feed/leaderboard/chat)
+      var _activePage=document.querySelector(".page.active");
+      var _activeId=_activePage?_activePage.id:"";
+      if(_activeId==="page-feed"||_activeId==="page-dashboard"){loadFeed();loadAnnouncements();loadSpotlights();}
+      if(_activeId==="page-leaderboard"){loadLeaderboard();}
+      if(_activeId==="page-chat"&&typeof renderChatMessages==="function"){renderChatMessages(_chatMessages,false);}
+      // ─────────────────────────────────────────────────────────────────────
       loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();loadDashboard();
     });
   } else {
@@ -3122,7 +3144,7 @@ function renderAdminRegistry(registry, list){
     const enrolledNow=m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND);
     return `<div class="member-card" style="${!enrolledNow?"opacity:0.55;":""}">
       <div class="member-card-top">
-        <div class="member-avatar-sm">${initials}</div>
+        ${avatarHTML(m.name, m.uid||docId, 'member-avatar-sm')}
         <div><div class="member-name">${esc(m.name)}</div>${m.business?`<div class="member-biz">${esc(m.business)}</div>`:""}<div style="font-size:10px;color:var(--text-muted);margin-top:1px;">${esc(m.email||"")}</div></div>
       </div>
       <div style="margin-bottom:4px;">
@@ -5368,7 +5390,7 @@ function buildChatBubble(m, isThread){
   const photo = _photoCache[m.uid] || "";
   const initials = (m.author||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
   const avatarEl = photo
-    ? `<div class="avatar" style="flex-shrink:0;"><img src="${esc(photo)}" alt="${esc(initials)}" /></div>`
+    ? `<div class="avatar" style="flex-shrink:0;"><img src="${esc(photo)}" alt="${esc(initials)}" onerror="this.parentElement.textContent='${initials.replace(/'/g,"&#39;")}'" /></div>`
     : `<div class="avatar" style="flex-shrink:0;">${initials}</div>`;
 
   // Reactions
@@ -5826,7 +5848,7 @@ window.saveProfile=async function(){
 
   // Handle photo upload/removal
   let photoURL=currentUser.photoURL||null;
-  if(window._pendingPhotoData&&!currentUser.isAdmin){
+  if(window._pendingPhotoData){
     const uploaded=await uploadProfilePhoto(currentUser.uid,window._pendingPhotoData);
     if(uploaded){
       photoURL=uploaded;
@@ -5834,7 +5856,7 @@ window.saveProfile=async function(){
       _photoCache[currentUser.uid]=photoURL;
     }
     window._pendingPhotoData=null;
-  } else if(window._removePhoto&&!currentUser.isAdmin){
+  } else if(window._removePhoto){
     await deleteProfilePhoto(currentUser.uid);
     photoURL=null;
     currentUser.photoURL=null;
@@ -5843,21 +5865,19 @@ window.saveProfile=async function(){
   }
 
   // Sync to Firestore registry
-  if(!currentUser.isAdmin){
-    if(!useLocalFallback&&db){
-      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:docRef})=>{
-        const registryId=currentUser.registryId;
-        if(registryId){
-          const updates={ig:prof.ig};
-          if(photoURL!==undefined)updates.photoURL=photoURL||"";
-          updateDoc(docRef(db,"smac_registry",registryId),updates).catch(()=>{});
-        }
-      });
-    } else {
-      const registry=lsGet("smac_registry")||[];
-      const idx=registry.findIndex(m=>m.uid===currentUser.uid);
-      if(idx>-1){registry[idx].ig=prof.ig;if(photoURL!==undefined)registry[idx].photoURL=photoURL||"";lsSet("smac_registry",registry);}
-    }
+  if(!useLocalFallback&&db){
+    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:docRef})=>{
+      const registryId=currentUser.registryId;
+      if(registryId){
+        const updates={ig:prof.ig};
+        if(photoURL!==undefined)updates.photoURL=photoURL||"";
+        updateDoc(docRef(db,"smac_registry",registryId),updates).catch(()=>{});
+      }
+    });
+  } else {
+    const registry=lsGet("smac_registry")||[];
+    const idx=registry.findIndex(m=>m.uid===currentUser.uid);
+    if(idx>-1){registry[idx].ig=prof.ig;if(photoURL!==undefined)registry[idx].photoURL=photoURL||"";lsSet("smac_registry",registry);}
   }
   if(saveBtn){saveBtn.textContent="Save Profile";saveBtn.disabled=false;}
   document.getElementById("topnav-username").innerHTML=`<strong>${esc(prof.name)}</strong>${currentUser.isAdmin?" 🔐":""}`;
@@ -5866,7 +5886,7 @@ window.saveProfile=async function(){
   if(_tpAv2){
     const _photo2=currentUser.photoURL||_photoCache[currentUser.uid]||"";
     const _init2=(currentUser.name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
-    if(_photo2){_tpAv2.innerHTML=`<img src="${esc(_photo2)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;}
+    if(_photo2){_tpAv2.innerHTML=`<img src="${esc(_photo2)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='${_init2.replace(/'/g,'&#39;')}'" />`;}
     else{_tpAv2.textContent=_init2;}
   }
   renderProfileHero(prof);
