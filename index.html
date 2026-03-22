@@ -1976,126 +1976,107 @@ window.navTo=function(page,el){
 window.loadDashboard=async function(){
   if(!currentUser)return;
 
-  // ── Reset animations so they replay every visit ──
+  // ── Reset animations so they replay on every visit ──
   document.querySelectorAll('#page-dashboard .dash-animate').forEach(el=>{
     el.style.animation='none';
-    el.offsetHeight; // force reflow
+    void el.offsetHeight; // force reflow
     el.style.animation='';
   });
-  // Reset stat values to 0 for count-up effect
+  // Reset stat values to 0 before count-up
   ['dash-val-total','dash-val-posts','dash-val-eng','dash-val-count'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.textContent='0';
   });
-  // Reset progress bar
+  // Reset progress bar cleanly
   const progFill=document.getElementById('dash-prog-fill');
-  if(progFill)progFill.style.transition='none', progFill.style.width='0%', progFill.offsetHeight, progFill.style.transition='';
+  if(progFill){ progFill.style.transition='none'; progFill.style.width='0%'; void progFill.offsetHeight; }
 
-  // ── Fill static fields ──
-  const firstName=currentUser.name.split(' ')[0];
+  // ── Static header fields ──
+  const firstName=(currentUser.name||'').split(' ')[0]||currentUser.name;
   const nameEl=document.getElementById('dash-name');
   if(nameEl)nameEl.textContent=firstName;
 
   const now=Date.now();
   const weekIdx=getWeekIndex(now);
+  // Use global week number (1-12), not the per-month label
   const weekEl=document.getElementById('dash-week-label');
-  if(weekEl)weekEl.textContent=weekIdx>=0?WEEKS[weekIdx].label+' of 12':'—';
+  if(weekEl)weekEl.textContent=weekIdx>=0?'Week '+(weekIdx+1)+' of 12':'—';
 
   const metaEl=document.getElementById('dash-date-meta');
   if(metaEl){
-    const today=new Date();
-    const dateStr=today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
     metaEl.textContent=dateStr;
   }
 
   // ── Load data from Firebase ──
   if(!db||useLocalFallback){
-    _renderDashboard({total:0,postPts:0,engPts:0,postCount:0,weekSubmitted:false,trackerUpdated:false,trackerDots:[],leaderboard:[]});
+    _renderDashboard({total:0,postPts:0,engPts:0,trackerPostCount:0,weekSubmitted:false,trackerThisWeek:false,trackerDots:[],leaderboard:[],myUid:''});
     return;
   }
 
   try{
-    const {getDocs,collection:col,query:q,where,orderBy:ob,limit:lim}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const {getDocs,collection:col,query:q,where,orderBy:ob,limit:lim,getDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const uid=currentUser.uid;
     const registryId=currentUser.registryId||uid;
 
-    // Fetch in parallel: registry doc, submissions, engagements, tracker, leaderboard top 10
-    const [regSnap, subSnap, engSnap, trackerSnap, lbSnap] = await Promise.all([
-      // Member registry doc for points + totalPosts
-      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({getDoc,doc:dc})=>{
-        return getDoc(dc(db,'smac_registry',registryId));
-      }),
-      // All submissions for this user
+    // Fetch in parallel
+    const [regSnap, subSnap, engSnap, trackerSnap, lbSnap]=await Promise.all([
+      getDoc(dc(db,'smac_registry',registryId)),
       getDocs(q(col(db,'submissions'),where('uid','==',uid))),
-      // All engagements for this user
       getDocs(q(col(db,'engagements'),where('uid','==',uid))),
-      // Tracker doc
-      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({getDoc,doc:dc})=>{
-        return getDoc(dc(db,'trackers',uid));
-      }),
-      // Leaderboard top 10 — try ordered, fall back to client sort
+      getDoc(dc(db,'trackers',uid)),
       (async()=>{
-        try{
-          return await getDocs(q(col(db,'smac_registry'),ob('points','desc'),lim(12)));
-        }catch(e){
-          return await getDocs(col(db,'smac_registry'));
-        }
+        try{ return await getDocs(q(col(db,'smac_registry'),ob('points','desc'),lim(12))); }
+        catch(e){ return await getDocs(col(db,'smac_registry')); }
       })()
     ]);
 
-    // ── Points breakdown ──
+    // ── Points — registry is source of truth for total ──
     const regData=regSnap.exists()?regSnap.data():{};
     const totalPts=regData.points||0;
-
     const subs=subSnap.docs.map(d=>({...d.data(),id:d.id}));
     const engs=engSnap.docs.map(d=>({...d.data(),id:d.id}));
     const postPts=subs.reduce((a,s)=>a+(s.pts||0),0);
     const engPts=engs.reduce((a,e)=>a+(e.pts||0),0);
-    const postCount=subs.length;
+
+    // ── Tracker-based post count (matches Reports/Tracker page logic) ──
+    const trackerData=trackerSnap.exists()?trackerSnap.data():{};
+    const tracked=trackerData.tracked||{};
+    const trackerPostCount=WEEKS.reduce((sum,w)=>{
+      const checks=tracked[w.id]||[];
+      return sum+checks.filter(Boolean).length;
+    },0);
 
     // ── This-week submission check ──
     const currentWeekIdx=getWeekIndex(now);
     const weekSubmitted=currentWeekIdx>=0&&subs.some(s=>s.weekIdx===currentWeekIdx);
 
-    // ── Tracker updated this week ──
-    const trackerData=trackerSnap.exists()?trackerSnap.data():{};
-    const tracked=trackerData.tracked||{};
+    // ── Tracker updated this week — check if current week has any box checked ──
     const currentWeekId=currentWeekIdx>=0?WEEKS[currentWeekIdx].id:null;
-    const trackerUpdated=currentWeekId?((tracked[currentWeekId]||[]).some(Boolean)):false;
-    const trackerUpdatedAt=trackerData.updatedAt||0;
-    const currentWeekStart=currentWeekIdx>=0?WEEK_SCHEDULE[currentWeekIdx][0]:0;
-    const trackerThisWeek=trackerUpdatedAt>=currentWeekStart;
+    const trackerThisWeek=currentWeekId?((tracked[currentWeekId]||[]).some(Boolean)):false;
 
-    // ── Week dots ──
+    // ── Week dots (based on tracker checkbox completion) ──
     const trackerDots=WEEKS.map((w,i)=>{
-      const weekChecks=tracked[w.id]||[];
-      const met=weekChecks.filter(Boolean).length>=w.required;
-      const isCurrent=i===currentWeekIdx;
-      const isPast=currentWeekIdx>=0&&i<currentWeekIdx;
-      if(isCurrent)return'current';
-      if(met&&isPast)return'complete';
-      if(i>currentWeekIdx)return'future';
-      return'incomplete';
+      const checks=tracked[w.id]||[];
+      const met=checks.filter(Boolean).length>=w.required;
+      if(i===currentWeekIdx)return'current';
+      if(met&&i<currentWeekIdx)return'complete';
+      return'future';
     });
 
-    // ── Leaderboard top 10 ──
-    let lbMembers=lbSnap.docs
+    // ── Leaderboard top 10 (exclude admin) ──
+    const lbMembers=lbSnap.docs
       .map(d=>sanitizeMember({id:d.id,...d.data()}))
       .filter(m=>m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND))
       .sort((a,b)=>(b.points||0)-(a.points||0))
       .filter(m=>!m.isAdmin&&m.email!==ADMIN_EMAIL)
       .slice(0,10);
 
-    _renderDashboard({
-      total:totalPts, postPts, engPts, postCount,
-      weekSubmitted, trackerThisWeek,
-      trackerDots, leaderboard:lbMembers,
-      myUid:uid
-    });
+    _renderDashboard({total:totalPts,postPts,engPts,trackerPostCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,myUid:uid});
 
   }catch(e){
     console.error('Dashboard load error:',e);
-    _renderDashboard({total:0,postPts:0,engPts:0,postCount:0,weekSubmitted:false,trackerThisWeek:false,trackerDots:[],leaderboard:[]});
+    _renderDashboard({total:0,postPts:0,engPts:0,trackerPostCount:0,weekSubmitted:false,trackerThisWeek:false,trackerDots:[],leaderboard:[],myUid:''});
   }
 };
 
@@ -2114,7 +2095,7 @@ function _dashCountUp(el,target,delay=0,duration=900){
   },delay);
 }
 
-function _renderDashboard({total,postPts,engPts,postCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,myUid}){
+function _renderDashboard({total,postPts,engPts,trackerPostCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,myUid}){
   // ── Status pills ──
   const strip=document.getElementById('dash-status-strip');
   if(strip){
@@ -2128,16 +2109,16 @@ function _renderDashboard({total,postPts,engPts,postCount,weekSubmitted,trackerT
   }
 
   // ── Count-up stats ──
-  _dashCountUp(document.getElementById('dash-val-total'), total,  120);
-  _dashCountUp(document.getElementById('dash-val-posts'), postPts, 200);
-  _dashCountUp(document.getElementById('dash-val-eng'),   engPts,  280);
-  _dashCountUp(document.getElementById('dash-val-count'), postCount, 360);
+  _dashCountUp(document.getElementById('dash-val-total'), total,        120);
+  _dashCountUp(document.getElementById('dash-val-posts'), postPts,      200);
+  _dashCountUp(document.getElementById('dash-val-eng'),   engPts,       280);
+  _dashCountUp(document.getElementById('dash-val-count'), trackerPostCount, 360);
 
-  // ── All-star progress bar ──
+  // ── All-star progress bar (tracker-based, matches Tracker page) ──
   const totalRequired=24;
-  const pct=Math.min(Math.round((postCount/totalRequired)*100),100);
+  const pct=Math.min(Math.round((trackerPostCount/totalRequired)*100),100);
   const subEl=document.getElementById('dash-allstar-sub');
-  if(subEl)subEl.textContent=`${postCount} of ${totalRequired} posts completed`;
+  if(subEl)subEl.textContent=`${trackerPostCount} of ${totalRequired} posts completed`;
   const pctEl=document.getElementById('dash-prog-pct');
   if(pctEl)pctEl.textContent=pct+'%';
   setTimeout(()=>{
