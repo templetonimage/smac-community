@@ -3093,17 +3093,14 @@ function loadDirectory(){
         if(currentUser.isAdmin){
           renderAdminRegistry(registry,list);
         } else {
-          const members=registry.filter(m=>(m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND))&&m.email!==ADMIN_EMAIL&&!m.isAdmin);
-          // Inject admin as first entry in member directory, pulling their actual registry doc for photo
-          const adminDoc=registry.find(m=>m.email===ADMIN_EMAIL)||{};
-          const adminEntry={id:adminDoc.uid||"admin",uid:adminDoc.uid||"admin",name:adminDoc.name||"Nate Templeton",business:adminDoc.business||"Founder of SMAC",ig:adminDoc.ig||"",photoURL:adminDoc.photoURL||_photoCache[adminDoc.uid]||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
-          const membersWithAdmin=[adminEntry,...members];
-          if(!membersWithAdmin.length){
+          // Exclude admin account from member-facing directory
+          const members=registry.filter(m=>(m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND))&&m.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase());
+          if(!members.length){
             list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
 </div></div>`;
             return;
           }
-          renderMemberGrid(membersWithAdmin,list,false);
+          renderMemberGrid(members,list,false);
         }
       }).catch(e=>console.error("Directory load error:",e));
     });
@@ -3116,17 +3113,13 @@ function loadDirectory(){
     renderAdminRegistry(registry, list);
   } else {
     // Members see only current Round enrollees
-    const _lsRegistry=lsGet("smac_registry")||[];
-    const members=getRegistryForCurrentRound().filter(m=>m.email!==ADMIN_EMAIL&&!m.isAdmin);
-    const adminDoc=_lsRegistry.find(m=>m.email===ADMIN_EMAIL)||{};
-    const adminEntry={id:adminDoc.uid||"admin",uid:adminDoc.uid||"admin",name:adminDoc.name||"Nate Templeton",business:adminDoc.business||"Founder of SMAC",ig:adminDoc.ig||"",photoURL:adminDoc.photoURL||_photoCache[adminDoc.uid]||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
-    const membersWithAdmin=[adminEntry,...members];
-    if(!membersWithAdmin.length){
+    const members=getRegistryForCurrentRound().filter(m=>m.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase());
+    if(!members.length){
       list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
 </div></div>`;
       return;
     }
-    renderMemberGrid(membersWithAdmin, list, false);
+    renderMemberGrid(members, list, false);
   }
 }
 
@@ -3191,10 +3184,12 @@ function renderMemberGrid(members, list, isAdmin){
     return a.name.localeCompare(b.name);
   });
   sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; });
+  // Seed photo cache from member objects so cards always show current photos
+  sorted.forEach(m=>{ const k=m.uid||m.id||""; if(k&&m.photoURL)_photoCache[k]=m.photoURL; });
   list.innerHTML=`<div class="member-grid">${sorted.map(m=>{
     const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";const mapKey=m.id||m.uid||m.name;
     const isAdminCard=m._isAdmin===true;
-    const _muid=m.id||m.uid||"";
+    const _muid=m.uid||m.id||""; // prefer Auth UID over doc ID for photo cache lookup
     return `<div class="member-card" data-member-key="${mapKey}" onclick="handleMemberCardClick(this)" style="${isAdminCard?"border-color:var(--gold);background:linear-gradient(135deg,#fffbf0,#fdf5e0);":""}">
       <div class="member-card-top">
         ${avatarHTML(m.name, _muid, "member-avatar-sm", isAdminCard?"background:linear-gradient(135deg,var(--gold),var(--gold-dark));":"")}
