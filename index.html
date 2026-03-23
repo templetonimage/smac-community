@@ -1859,7 +1859,7 @@ function bootApp(){
     _tpBtn.style.display="inline-flex";
     const _tpInitials=(currentUser.name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
     const _tpPhoto=_photoCache[currentUser.uid]||currentUser.photoURL||"";
-    if(_tpPhoto){_tpAv.innerHTML=`<img src="${esc(_tpPhoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;}
+    if(_tpPhoto){_tpAv.innerHTML=`<img src="${esc(_tpPhoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='${_tpInitials.replace(/'/g,'&#39;')}'" />`;  }
     else{_tpAv.textContent=_tpInitials;}
   }
   if(currentUser.isAdmin){
@@ -1940,9 +1940,14 @@ function bootApp(){
             }
           }).catch(()=>{});
         }
+        // Set photoURL for all users from registry
+        const _meDoc=regSnap.docs.find(d=>d.id===currentUser.uid);
+        if(_meDoc&&_meDoc.data().photoURL){
+          currentUser.photoURL=_meDoc.data().photoURL;
+          _photoCache[currentUser.uid]=currentUser.photoURL;
+        }
         if(!currentUser.isAdmin){
-          const me=regSnap.docs.find(d=>d.id===currentUser.uid);
-          if(me&&me.data().photoURL)currentUser.photoURL=me.data().photoURL;
+          // photoURL already set above
         } else {
           // Populate member filter dropdown for submissions viewer
           const sel=document.getElementById("sub-filter-member");
@@ -1968,6 +1973,15 @@ function bootApp(){
           }
         }
       }catch(e){}
+      // Refresh topnav avatar after photo cache is warm
+      (function refreshTopnavAvatar(){
+        var _tpAv=document.getElementById("topnav-avatar");
+        if(!_tpAv)return;
+        var _photo=_photoCache[currentUser.uid]||currentUser.photoURL||"";
+        var _initials=(currentUser.name||"?").split(" ").map(function(w){return w[0];}).join("").substring(0,2).toUpperCase();
+        if(_photo){_tpAv.innerHTML='<img src="'+esc(_photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent=\''+_initials+'\'" />';}
+        else{_tpAv.textContent=_initials;}
+      })();
       loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();loadDashboard();
     });
   } else {
@@ -3165,7 +3179,7 @@ function renderMemberGrid(members, list, isAdmin){
     if(!a.isAllStar&&b.isAllStar)return 1;
     return a.name.localeCompare(b.name);
   });
-  sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; });
+  sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; const k=m.uid||m.id||""; if(k&&m.photoURL)_photoCache[k]=m.photoURL; });
   list.innerHTML=`<div class="member-grid">${sorted.map(m=>{
     const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";const mapKey=m.id||m.uid||m.name;
     const isAdminCard=m._isAdmin===true;
@@ -4092,7 +4106,12 @@ async function loadMySubmissions(){
     const totalPts=subs.reduce((a,s)=>a+(s.pts||0),0);
     const milestones=getMilestoneBadges(subs.length);
     total.innerHTML=`<strong>${totalPts} total pts</strong> · ${subs.length} post${subs.length!==1?"s":""} ${milestones}`;
-    list.innerHTML=subs.map(s=>`
+    const EDIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+    list.innerHTML=subs.map(s=>{
+      const canEdit = (Date.now() - (s.ts||0)) < EDIT_WINDOW_MS;
+      const daysLeft = canEdit ? Math.ceil((EDIT_WINDOW_MS - (Date.now() - (s.ts||0))) / (24*60*60*1000)) : 0;
+      const editTitle = canEdit ? `Edit (${daysLeft}d left)` : "Edit window closed (7-day limit)";
+      return `
       <div class="sub-item" style="flex-direction:column;align-items:stretch;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
         ${s.screenshotBase64?`<img src="${s.screenshotBase64}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:140px;object-fit:cover;border:1px solid var(--border);" />`:""}
         <div style="display:flex;align-items:center;gap:8px;">
@@ -4103,18 +4122,27 @@ async function loadMySubmissions(){
           <div style="display:flex;align-items:center;gap:6px;">
             ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
             <span class="sub-pts">+${s.pts||0}</span>
-            <button onclick="toggleSubEdit('${s.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text-muted);cursor:pointer;" title="Edit URL">✏️</button>
+            <button onclick="${canEdit?`toggleSubEdit('${s.id}')`:'showToast("Edit window closed — submissions can only be edited within 7 days.")'}" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:${canEdit?"var(--text-muted)":"var(--border)"};cursor:${canEdit?"pointer":"not-allowed"};opacity:${canEdit?"1":"0.5"};" title="${editTitle}">✏️</button>
             <button onclick="deleteSubmission('${s.id}',${s.pts||0})" style="background:none;border:1px solid #e74c3c;border-radius:6px;padding:4px 8px;font-size:11px;color:#e74c3c;cursor:pointer;" title="Delete submission">🗑️</button>
           </div>
         </div>
         <div id="sub-edit-${s.id}" style="display:none;margin-top:8px;">
           <input class="auth-input" id="sub-edit-url-${s.id}" type="url" placeholder="Update Instagram URL" value="${esc(s.url||"")}" style="margin-bottom:6px;" />
+          <div style="margin-bottom:8px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Post format</div>
+            <select class="field-select" id="sub-edit-fmt-${s.id}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);">
+              <option value="Static"${(s.format||"Static")==="Static"?" selected":""}>📷 Static</option>
+              <option value="Reel"${s.format==="Reel"?" selected":""}>🎬 Reel (+2 pts)</option>
+              <option value="Carousel"${s.format==="Carousel"?" selected":""}>🖼 Carousel (+2 pts)</option>
+            </select>
+          </div>
           <div style="display:flex;gap:8px;">
-            <button class="btn-sm" onclick="saveSubEdit('${s.id}')" style="background:var(--gold);color:#000;border-color:var(--gold);">Save URL</button>
+            <button class="btn-sm" onclick="saveSubEdit('${s.id}',${s.pts||0},'${s.status||"ontime"}')" style="background:var(--gold);color:#000;border-color:var(--gold);">Save</button>
             <button class="btn-sm" onclick="toggleSubEdit('${s.id}')">Cancel</button>
           </div>
         </div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
   }
   loadMyEngLog();
 }
@@ -4150,14 +4178,25 @@ window.toggleSubEdit=function(subId){
   if(box)box.style.display=box.style.display==="none"?"block":"none";
 };
 
-window.saveSubEdit=async function(subId){
+window.saveSubEdit=async function(subId, oldPts, status){
   const inp=document.getElementById("sub-edit-url-"+subId);
+  const fmtSel=document.getElementById("sub-edit-fmt-"+subId);
   const newUrl=(inp?.value||"").trim();
+  const newFormat=fmtSel?.value||"Static";
+  // Recalculate pts: derive base from status, add format bonus
+  const base = status==="missed" ? 0 : status==="late" ? PTS_LATE_24H : PTS_ON_TIME;
+  const formatBonus = (newFormat==="Reel"||newFormat==="Carousel") ? PTS_REEL : 0;
+  const newPts = base + formatBonus;
+  const ptsDelta = newPts - (oldPts||0);
   try{
-    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    await updateDoc(dcRef(db,"submissions",subId),{url:newUrl});
-    showToast("Post URL updated.");
+    const {updateDoc,doc:dcRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await updateDoc(dcRef(db,"submissions",subId),{url:newUrl, format:newFormat, pts:newPts});
+    if(ptsDelta!==0&&currentUser.registryId){
+      await updateDoc(dcRef(db,"smac_registry",currentUser.registryId),{points:increment(ptsDelta)});
+    }
+    showToast(ptsDelta>0?`Format updated. +${ptsDelta} pts added!`:ptsDelta<0?`Format updated. ${ptsDelta} pts adjusted.`:"Submission updated.");
     loadMySubmissions();
+    loadLeaderboard();
   }catch(e){showToast("Error: "+e.message);}
 };
 
