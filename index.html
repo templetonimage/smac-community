@@ -1700,7 +1700,7 @@ function avatarHTML(name, uid, cssClass, extraStyle=""){
   const photo=_photoCache[uid]||"";
   const initials=(name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
   if(photo){
-    return `<div class="${cssClass}" style="${extraStyle}"><img src="${esc(photo)}" alt="${esc(initials)}" /></div>`;
+    return `<div class="${cssClass}" style="${extraStyle}"><img src="${esc(photo)}" alt="${esc(initials)}" onerror="this.parentElement.innerHTML='${initials.replace(/'/g,"&#39;")}';if(window._photoCache&&'${uid}')delete window._photoCache['${uid}'];" /></div>`;
   }
   return `<div class="${cssClass}" style="${extraStyle}">${initials}</div>`;
 }
@@ -1708,8 +1708,9 @@ function avatarHTML(name, uid, cssClass, extraStyle=""){
 // Preload photo cache from registry snapshot
 function primePhotoCache(registryDocs){
   registryDocs.forEach(m=>{
-    // uid field (Firebase Auth UID) is preferred; fall back to doc ID for legacy docs
-    const key=m.uid||m._docId||"";
+    // m.uid may be "" even when the doc ID is the real Firebase Auth UID.
+    // Always fall back through m.id before giving up.
+    const key=m.uid||m.id||m._docId||"";
     if(m.photoURL&&key) _photoCache[key]=m.photoURL;
   });
 }
@@ -1908,7 +1909,7 @@ function bootApp(){
           getDocs(col(db,"smac_registry")),
           getDocs(col(db,"trackers"))
         ]);
-        primePhotoCache(regSnap.docs.map(d=>sanitizeMember({uid:d.id,...d.data()})));
+        primePhotoCache(regSnap.docs.map(d=>sanitizeMember({id:d.id,uid:d.id,...d.data()})));
         trackerSnap.docs.forEach(d=>{ _trackerCache[d.id]=d.data(); });
         // Ensure all members have grace weeks (W1/W2) seeded in their tracker docs.
         // Handles two cases: (1) no tracker doc yet, (2) doc exists but grace weeks missing.
