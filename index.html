@@ -4172,7 +4172,7 @@ async function loadMyEngLog(){
       const {getDocs,collection:col,query:q,where,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       const snap=await getDocs(q(col(db,"engagements"),where("uid","==",currentUser.uid),ob("ts","desc")));
       engs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    }catch(e){console.warn("Eng log:",e);}
+    }catch(e){console.warn("Eng log:",e);card.style.display="block";totalEl.innerHTML=`<span style="color:#e74c3c;font-size:12px;">⚠️ Could not load — check browser console for a Firestore index link.</span>`;list.innerHTML="";return;}
   } else {
     engs=(lsGet("smac_engagements")||[]).filter(e=>e.uid===currentUser.uid).sort((a,b)=>b.ts-a.ts);
   }
