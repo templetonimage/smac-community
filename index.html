@@ -1708,10 +1708,14 @@ function avatarHTML(name, uid, cssClass, extraStyle=""){
 // Preload photo cache from registry snapshot
 function primePhotoCache(registryDocs){
   registryDocs.forEach(m=>{
-    // m.uid may be "" even when the doc ID is the real Firebase Auth UID.
-    // Always fall back through m.id before giving up.
-    const key=m.uid||m.id||m._docId||"";
-    if(m.photoURL&&key) _photoCache[key]=m.photoURL;
+    // Store under BOTH doc ID (m.id) and uid (m.uid) so avatarHTML
+    // finds the photo regardless of which key is passed in.
+    const docId=m.id||m._docId||"";
+    const uid=m.uid||"";
+    if(m.photoURL){
+      if(docId) _photoCache[docId]=m.photoURL;
+      if(uid && uid!==docId) _photoCache[uid]=m.photoURL;
+    }
   });
 }
 
@@ -1946,6 +1950,8 @@ function bootApp(){
         if(_meDoc&&_meDoc.data().photoURL){
           currentUser.photoURL=_meDoc.data().photoURL;
           _photoCache[currentUser.uid]=currentUser.photoURL;
+          // Also cache by registryId (Firestore doc ID) since avatarHTML may use that key
+          if(currentUser.registryId)_photoCache[currentUser.registryId]=currentUser.photoURL;
         }
         if(!currentUser.isAdmin){
           // photoURL already set above
@@ -3085,16 +3091,12 @@ function loadDirectory(){
           renderAdminRegistry(registry,list);
         } else {
           const members=registry.filter(m=>m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND));
-          // Inject admin as first entry in member directory
-          const prof=lsGet(`smac_profile_${currentUser.uid}`)||{};
-          const adminEntry={id:"admin",uid:"admin",name:"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
-          const membersWithAdmin=[adminEntry,...members];
-          if(!membersWithAdmin.length){
+          if(!members.length){
             list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
 </div></div>`;
             return;
           }
-          renderMemberGrid(membersWithAdmin,list,false);
+          renderMemberGrid(members,list,false);
         }
       }).catch(e=>console.error("Directory load error:",e));
     });
@@ -3108,15 +3110,12 @@ function loadDirectory(){
   } else {
     // Members see only current Round enrollees
     const members=getRegistryForCurrentRound();
-    const prof=lsGet(`smac_profile_${currentUser.uid}`)||{};
-    const adminEntry={id:"admin",uid:"admin",name:"Nate Templeton",business:"Founder of SMAC",ig:prof.ig||"",points:0,totalPosts:0,isFounder:true,isVIP:false,isAllStar:false,rounds:[CURRENT_ROUND],_isAdmin:true};
-    const membersWithAdmin=[adminEntry,...members];
-    if(!membersWithAdmin.length){
+    if(!members.length){
       list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No Members Yet</div><div class="empty-desc">Nate will add members as they join Round ${CURRENT_ROUND.replace("R","")}.
 </div></div>`;
       return;
     }
-    renderMemberGrid(membersWithAdmin, list, false);
+    renderMemberGrid(members, list, false);
   }
 }
 
@@ -3180,7 +3179,7 @@ function renderMemberGrid(members, list, isAdmin){
     if(!a.isAllStar&&b.isAllStar)return 1;
     return a.name.localeCompare(b.name);
   });
-  sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; const k=m.uid||m.id||""; if(k&&m.photoURL)_photoCache[k]=m.photoURL; });
+  sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; const _dk=m.id||""; const _uk=m.uid||""; if(m.photoURL){ if(_dk)_photoCache[_dk]=m.photoURL; if(_uk&&_uk!==_dk)_photoCache[_uk]=m.photoURL; } });
   list.innerHTML=`<div class="member-grid">${sorted.map(m=>{
     const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";const mapKey=m.id||m.uid||m.name;
     const isAdminCard=m._isAdmin===true;
