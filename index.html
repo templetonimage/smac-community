@@ -555,6 +555,7 @@
     .pro-global-danger-title{font-family:'Bebas Neue',sans-serif;font-size:16px;color:#e74c3c;margin-bottom:4px;}
     /* In-app notification bell */
     .pro-notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--surface);}
+    .nav-notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--surface);display:none;pointer-events:none;}
     /* leaderboard PRO pill */
     .lb-pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;}
   </style>
@@ -1432,26 +1433,29 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     Dashboard
   </button>
-  <button class="nav-item" id="nav-feed" onclick="navTo('feed',this)">
+  <button class="nav-item" id="nav-feed" onclick="navTo('feed',this)" style="position:relative;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     Feed
+    <span class="nav-notif-dot" id="dot-feed"></span>
   </button>
   <button class="nav-item" id="nav-chat" onclick="navTo('chat',this);loadChat();" style="position:relative;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     Chat
-    <span id="chat-unread-badge" style="display:none;position:absolute;top:6px;right:6px;width:8px;height:8px;background:#e74c3c;border-radius:50%;"></span>
+    <span class="nav-notif-dot" id="dot-chat"></span>
   </button>
-  <button class="nav-item" onclick="navTo('resources',this);loadResources();">
+  <button class="nav-item" id="nav-resources" onclick="navTo('resources',this);loadResources();" style="position:relative;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
     Resources
+    <span class="nav-notif-dot" id="dot-resources"></span>
   </button>
   <button class="nav-item" id="nav-submit" onclick="navTo('submit',this);loadSubmitPage();">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
     Submit
   </button>
-  <button class="nav-item" id="nav-leaderboard" onclick="navTo('leaderboard',this);loadLeaderboard();">
+  <button class="nav-item" id="nav-leaderboard" onclick="navTo('leaderboard',this);loadLeaderboard();" style="position:relative;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
     Ranks
+    <span class="nav-notif-dot" id="dot-ranks"></span>
   </button>
   <button class="nav-item" id="nav-tracker" onclick="navTo('tracker',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -1999,6 +2003,7 @@ function bootApp(){
   setTimeout(showWelcomeModal, 600);
   setTimeout(initPushNotifications, 1000);
   setTimeout(checkRoundEnd, 300);
+  setTimeout(initRanksWatcher, 3000);
 }
 
 // ─────────────────────────────────────────────
@@ -2024,9 +2029,28 @@ window.navTo=function(page,el){
   if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin){loadSubViewer();loadEngViewer();loadBugReports();}}
   if(page==="pro"){renderProPage();}
   if(page==="chat"){
-    document.getElementById("chat-unread-badge").style.display="none";
+    clearNavDot("chat");
     _chatLastSeen=Date.now();
     lsSet("smac_chat_last_seen",_chatLastSeen);
+  }
+  if(page==="feed"){
+    clearNavDot("feed");
+    _lastSeenFeed=Date.now();
+    lsSet("smac_lastseen_feed",_lastSeenFeed);
+  }
+  if(page==="resources"){
+    clearNavDot("resources");
+    _lastSeenResources=Date.now();
+    lsSet("smac_lastseen_resources",_lastSeenResources);
+  }
+  if(page==="leaderboard"){
+    clearNavDot("ranks");
+    // Store current top-3 names as "seen"
+    if(cachedLeaderboard.length){
+      const top3=cachedLeaderboard.slice(0,3).map(m=>m.name||m.uid||"");
+      _lastSeenRanks=top3;
+      lsSet("smac_lastseen_ranks",JSON.stringify(top3));
+    }
   }
 };
 
@@ -2259,7 +2283,13 @@ window.submitPost=async function(){
 async function loadFeed(){
   if(!useLocalFallback&&db){
     const q=query(collection(db,"posts"),orderBy("ts","desc"));
-    onSnapshot(q,snap=>renderFeed(snap.docs.map(d=>({id:d.id,...d.data()}))),err=>{console.error("Feed error:",err);renderFeed([]);});
+    onSnapshot(q,snap=>{
+    const posts=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderFeed(posts);
+    // Badge: show dot if newest post is newer than last time user visited feed
+    const newest=posts.reduce((max,p)=>Math.max(max,p.ts||0),0);
+    if(!_isPageActive("feed") && newest > _lastSeenFeed) showNavDot("feed");
+  },err=>{console.error("Feed error:",err);renderFeed([]);});
   } else renderFeed(lsGet("smac_posts")||[]);
 }
 function renderFeed(posts){
@@ -2450,7 +2480,13 @@ async function loadAnnouncements(){
     });
   }
   if(!useLocalFallback&&db){
-    onSnapshot(query(collection(db,"announcements"),orderBy("ts","desc")),snap=>renderAnnouncements(snap.docs.map(d=>({id:d.id,...d.data()}))),err=>{console.error("Announcements error:",err);renderAnnouncements([]);});
+    onSnapshot(query(collection(db,"announcements"),orderBy("ts","desc")),snap=>{
+    const items=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAnnouncements(items);
+    // Badge: announcements live on the Feed page
+    const newest=items.reduce((max,a)=>Math.max(max,a.ts||0),0);
+    if(!_isPageActive("feed") && newest > _lastSeenFeed) showNavDot("feed");
+  },err=>{console.error("Announcements error:",err);renderAnnouncements([]);});
   } else renderAnnouncements(lsGet("smac_announcements")||[]);
 }
 function renderAnnouncements(items){
@@ -2857,7 +2893,11 @@ window.submitResource=async function(){
 async function loadResources(){
   if(!useLocalFallback&&db){
     onSnapshot(query(collection(db,"resources"),orderBy("ts","desc")),snap=>{
-      renderResources([...snap.docs.map(d=>({id:d.id,...d.data()})),...DEFAULT_RESOURCES]);
+      const items=snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderResources([...items,...DEFAULT_RESOURCES]);
+      // Badge: show dot if a new resource was added since last visit
+      const newest=items.reduce((max,r)=>Math.max(max,r.ts||0),0);
+      if(!_isPageActive("resources") && newest > _lastSeenResources) showNavDot("resources");
     },err=>{console.error("Resources error:",err);renderResources(DEFAULT_RESOURCES);});
   } else renderResources([...(lsGet("smac_resources")||[]),...DEFAULT_RESOURCES]);
 }
@@ -5361,6 +5401,22 @@ let _chatUnsub = null;
 let _chatEditingId = null;
 let _chatThreadParentId = null;
 let _chatLastSeen = lsGet("smac_chat_last_seen") || 0;
+// ── Nav notification dot state ──────────────────────────────────────────
+let _lastSeenFeed      = lsGet("smac_lastseen_feed")      || 0;
+let _lastSeenResources = lsGet("smac_lastseen_resources")  || 0;
+let _lastSeenRanks     = JSON.parse(lsGet("smac_lastseen_ranks") || "null") || [];
+
+function showNavDot(page){
+  const el = document.getElementById("dot-" + page);
+  if(el) el.style.display = "block";
+}
+function clearNavDot(page){
+  const el = document.getElementById("dot-" + page);
+  if(el) el.style.display = "none";
+}
+function _isPageActive(page){
+  return document.getElementById("page-" + page)?.classList.contains("active");
+}
 let _chatTypingTimeout = null;
 let _chatMessages = []; // local cache for thread lookups
 
@@ -5391,7 +5447,7 @@ window.loadChat = async function(){
     const newest = _chatMessages.reduce((max, m) => Math.max(max, m.ts||0), 0);
     const isOnChat = document.getElementById("page-chat")?.classList.contains("active");
     if(!isOnChat && newest > _chatLastSeen){
-      document.getElementById("chat-unread-badge").style.display = "block";
+      showNavDot("chat");
     }
   });
 };
@@ -5969,6 +6025,22 @@ initFirebase();
 // ─────────────────────────────────────────────
 const ROUND_END_TS = Date.UTC(2026,5,1,3,59,59,999); // Jun 1 00:00 ET = Jun 1 03:59:59 UTC (May 31 end)
 function isRoundOver(){ return Date.now() > ROUND_END_TS; }
+function initRanksWatcher(){
+  if(!db||useLocalFallback||!currentUser) return;
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({collection:col,query:q,orderBy:ob,limit:lim,onSnapshot})=>{
+    const ranksQ=q(col(db,"smac_registry"),ob("points","desc"),lim(3));
+    onSnapshot(ranksQ,snap=>{
+      const top3=snap.docs.map(d=>d.data().name||d.id);
+      // Compare to last-seen top-3; badge if changed
+      const changed = top3.length && (
+        _lastSeenRanks.length===0 ||
+        top3.some((name,i)=>name!==_lastSeenRanks[i])
+      );
+      if(changed && !_isPageActive("leaderboard")) showNavDot("ranks");
+    },err=>{console.warn("Ranks watcher:",err);});
+  });
+}
+
 function checkRoundEnd(){
   if(!isRoundOver()) return;
   const banner = document.getElementById("round-ended-banner");
