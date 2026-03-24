@@ -652,6 +652,9 @@
         <svg style="flex-shrink:0;margin-left:auto;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </a>
     </div>
+    <!-- Weekly Challenge on Dashboard -->
+    <div id="dash-challenge-banner" class="dash-animate" style="animation-delay:0.53s;margin-bottom:4px;"></div>
+    <div id="dash-next-challenge" class="dash-animate" style="animation-delay:0.54s;margin-bottom:10px;padding:0 2px;"></div>
     <div class="dash-allstar-banner dash-animate" style="animation-delay:0.55s;">
       <div class="dash-allstar-top">
         <div class="dash-allstar-star">⭐</div>
@@ -741,7 +744,6 @@
       </div>
     </div>
 
-    <div id="feed-challenge-banner" style="margin-bottom:12px;"></div>
     <div class="compose-box">
       <textarea class="compose-textarea" id="compose-text" placeholder="Share a post link, win, or update with the group..." rows="3"></textarea>
       <input class="auth-input" id="compose-link" type="url" placeholder="Instagram post URL (optional — required to receive Props)" style="margin-top:10px;margin-bottom:0;" />
@@ -787,6 +789,7 @@
       </div>
       <!-- Weekly Challenge Modifier -->
       <div id="challenge-modifier-wrap" style="margin:12px 0 0;"></div>
+      <div id="submit-next-challenge" style="margin:6px 0 0;"></div>
       <div class="pts-preview" id="pts-preview" style="margin:10px 0;">You will earn <strong>10 pts</strong> for this on-time submission.</div>
       <button class="btn-post" style="width:100%;" onclick="submitIgPost()">Submit Post for Points</button>
       <div id="submit-error" style="font-size:13px;color:#e74c3c;margin-top:8px;display:none;"></div>
@@ -2021,10 +2024,10 @@ window.navTo=function(page,el){
   const topBtn=document.getElementById("topnav-profile-btn");
   if(topBtn)topBtn.style.outline=page==="profile"?"2px solid var(--gold)":"none";
   const scroller=document.getElementById("app-scroll");if(scroller)scroller.scrollTop=0;
-  if(page==="dashboard")loadDashboard();
+  if(page==="dashboard"){loadDashboard();renderWeeklyChallenge();}
   if(page==="directory")loadDirectory();
   if(page==="leaderboard")loadLeaderboard();
-  if(page==="feed"){loadFeed();loadAnnouncements();loadSpotlights();renderWeeklyChallenge();}
+  if(page==="feed"){loadFeed();loadAnnouncements();loadSpotlights();}
   if(page==="submit"){loadSubmitPage();renderWeeklyChallenge();}
   if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin){loadSubViewer();loadEngViewer();loadBugReports();}}
   if(page==="pro"){renderProPage();}
@@ -5149,13 +5152,26 @@ let _challengeUsedThisWeek = false; // true if already submitted with modifier t
 
 window.renderWeeklyChallenge = async function(){
   const weekIdx = getWeekIndex(Date.now());
-  const wrap   = document.getElementById("challenge-modifier-wrap");
-  const banner = document.getElementById("feed-challenge-banner");
+  const wrap       = document.getElementById("challenge-modifier-wrap");
+  const dashBanner = document.getElementById("dash-challenge-banner");
+  const dashNext   = document.getElementById("dash-next-challenge");   // Dashboard subtext
+  const submitNext = document.getElementById("submit-next-challenge"); // Submit page subtext
+
+  // Next week preview — computed regardless of current week validity
+  const nextIdx = weekIdx + 1;
+  const nextCh  = (nextIdx >= 0 && nextIdx < WEEKLY_CHALLENGES.length) ? WEEKLY_CHALLENGES[nextIdx] : null;
+  const nextHtml = nextCh
+    ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Next week: <strong>${esc(nextCh.title)}</strong> — ${esc(nextCh.desc)}</div>`
+    : "";
+
   if(weekIdx < 0 || weekIdx >= WEEKLY_CHALLENGES.length){
-    if(wrap)  wrap.innerHTML  = "";
-    if(banner)banner.innerHTML = "";
+    if(wrap)       wrap.innerHTML       = "";
+    if(dashBanner) dashBanner.innerHTML = "";
+    if(dashNext)   dashNext.innerHTML   = nextHtml;
+    if(submitNext) submitNext.innerHTML = nextHtml;
     return;
   }
+
   const ch = WEEKLY_CHALLENGES[weekIdx];
   const w  = WEEKS[weekIdx] || {};
 
@@ -5201,21 +5217,24 @@ window.renderWeeklyChallenge = async function(){
       </div>
     </div>`;
 
-  // Submit page — full interactive toggle
+  // Submit page — full interactive modifier toggle
   if(wrap) wrap.innerHTML = _challengeUsedThisWeek ? usedHtml : toggleHtml;
 
-  // Feed banner — always visible awareness card
-  if(banner){
+  // Submit page — next week preview subtext
+  if(submitNext) submitNext.innerHTML = nextHtml;
+
+  // Dashboard — awareness banner (same gold/green style, not interactive)
+  if(dashBanner){
     if(_challengeUsedThisWeek){
-      banner.innerHTML = `
+      dashBanner.innerHTML = `
         <div style="background:linear-gradient(135deg,#0d1f0d,#1a2e1a);border:2px solid #27ae60;border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;">
           <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#27ae60,#5ddb5d,#27ae60);"></div>
           <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#27ae60;margin-bottom:6px;">🎯 Weekly Challenge Modifier</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;">✓ ${esc(ch.title)} — Done!</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.72);line-height:1.5;">You already applied this modifier this week. Nice work!</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.72);line-height:1.5;">You applied this modifier this week. Nice work!</div>
         </div>`;
     } else {
-      banner.innerHTML = `
+      dashBanner.innerHTML = `
         <div style="background:linear-gradient(135deg,#1a1400,#2d2200);border:2px solid var(--gold);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;">
           <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#f5d27a,var(--gold));"></div>
           <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;">🎯 Weekly Challenge Modifier</div>
@@ -5225,6 +5244,9 @@ window.renderWeeklyChallenge = async function(){
         </div>`;
     }
   }
+
+  // Dashboard — next week preview subtext
+  if(dashNext) dashNext.innerHTML = nextHtml;
 };
 
 window.toggleChallengeModifier = function(){
