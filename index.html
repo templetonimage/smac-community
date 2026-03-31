@@ -789,6 +789,8 @@
       </div>
       <!-- Weekly Challenge Modifier -->
       <div id="challenge-modifier-wrap" style="margin:12px 0 0;"></div>
+      <!-- Show Your Face Modifier -->
+      <div id="syf-modifier-wrap" style="margin:8px 0 0;"></div>
       <div id="submit-next-challenge" style="margin:6px 0 0;"></div>
       <div class="pts-preview" id="pts-preview" style="margin:10px 0;">You will earn <strong>10 pts</strong> for this on-time submission.</div>
       <button class="btn-post" style="width:100%;" onclick="submitIgPost()">Submit Post for Points</button>
@@ -1996,10 +1998,10 @@ function bootApp(){
         if(_photo){_tpAv.innerHTML='<img src="'+esc(_photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent=\''+_initials+'\'" />';}
         else{_tpAv.textContent=_initials;}
       })();
-      loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();loadDashboard();
+      loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();renderSYFModifier();loadDashboard();
     });
   } else {
-    loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();loadDashboard();
+    loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();renderSYFModifier();loadDashboard();
   }
   if(currentUser.isAdmin)setTimeout(initPasswordField,500);
   // New features
@@ -2028,7 +2030,7 @@ window.navTo=function(page,el){
   if(page==="directory")loadDirectory();
   if(page==="leaderboard")loadLeaderboard();
   if(page==="feed"){loadFeed();loadAnnouncements();loadSpotlights();}
-  if(page==="submit"){loadSubmitPage();renderWeeklyChallenge();}
+  if(page==="submit"){loadSubmitPage();renderWeeklyChallenge();renderSYFModifier();}
   if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin){loadSubViewer();loadEngViewer();loadBugReports();}}
   if(page==="pro"){renderProPage();}
   if(page==="chat"){
@@ -2259,6 +2261,7 @@ window.loadSubmitPage=function(){
   updatePtsPreview();
   loadMySubmissions(); // also calls loadMyEngLog
   loadEngHistory();
+  renderSYFModifier();
 };
 
 // ─────────────────────────────────────────────
@@ -3930,10 +3933,12 @@ function updatePtsPreview(){
   let base=isMissed?0:isLate?PTS_LATE_24H:PTS_ON_TIME;
   let bonus=(selectedFormat==="Reel"||selectedFormat==="Carousel")?(isMissed?0:PTS_REEL):0;
   const challengeBonus=(!isMissed&&_challengeModifierActive)?5:0;
-  let total=base+bonus+challengeBonus;
+  const syfBonus=(!isMissed&&_syfModifierActive)?5:0;
+  let total=base+bonus+challengeBonus+syfBonus;
   const parts=[];
   if(bonus>0) parts.push(`+${bonus} format`);
   if(challengeBonus>0) parts.push(`+5 challenge`);
+  if(syfBonus>0) parts.push(`+5 SYF`);
   const breakdown=parts.length?` (${parts.join(", ")})` : "";
   if(isMissed){
     preview.innerHTML=`Submission window closed — <strong style="color:#e74c3c;">0 pts</strong>. You can still submit for your record.`;
@@ -4040,9 +4045,10 @@ window.submitIgPost=async function(){
   let base=isMissed?0:isLate?PTS_LATE_24H:PTS_ON_TIME;
   let bonus=(selectedFormat==="Reel"||selectedFormat==="Carousel")?(!isMissed?PTS_REEL:0):0;
   const challengeBonus=(!isMissed&&_challengeModifierActive)?5:0;
+  const syfBonus=(!isMissed&&_syfModifierActive)?5:0;
   const weekIdx2=getWeekIndex(now);
   const challengeTitle=(_challengeModifierActive&&weekIdx2>=0&&WEEKLY_CHALLENGES[weekIdx2])?WEEKLY_CHALLENGES[weekIdx2].title:"";
-  let pts=base+bonus+challengeBonus;
+  let pts=base+bonus+challengeBonus+syfBonus;
   const status=isMissed?"missed":isLate?"late":"ontime";
 
   const submission={
@@ -4056,6 +4062,7 @@ window.submitIgPost=async function(){
     status,
     challengeApplied:_challengeModifierActive&&!isMissed,
     challengeTitle:challengeTitle,
+    syfApplied:_syfModifierActive&&!isMissed,
     ts:now
   };
 
@@ -4085,7 +4092,9 @@ window.submitIgPost=async function(){
       clearScreenshot();
       selectFormat("Static");
       _challengeModifierActive=false;
+      _syfModifierActive=false;
       await renderWeeklyChallenge();
+      await renderSYFModifier();
       showToast(pts>0?`+${pts} pts earned! 🎉`:"Submitted (0 pts — window closed).");
       loadMySubmissions();
       loadLeaderboard();
@@ -4160,7 +4169,7 @@ async function loadMySubmissions(){
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="flex:1;">
             ${s.url?`<a href="${esc(s.url)}" target="_blank" style="color:var(--gold);font-size:12px;">View post ↗</a>`:`<span style="font-size:12px;color:var(--text-muted);">Screenshot only</span>`}
-            <div style="font-size:11px;color:var(--text-muted);">Week ${(s.weekIdx||0)+1} · ${s.format||"Static"} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+            <div style="font-size:11px;color:var(--text-muted);">Week ${(s.weekIdx||0)+1} · ${s.format||"Static"} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}${s.challengeApplied?` · <strong style="color:var(--gold);">⭐ Challenge</strong>`:""}${s.syfApplied?` · <strong style="color:#9b59b6;">🎥 SYF</strong>`:""}</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
             ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
@@ -4229,6 +4238,8 @@ window.saveSubEdit=async function(subId, oldPts, status){
   // Recalculate pts: derive base from status, add format bonus
   const base = status==="missed" ? 0 : status==="late" ? PTS_LATE_24H : PTS_ON_TIME;
   const formatBonus = (newFormat==="Reel"||newFormat==="Carousel") ? PTS_REEL : 0;
+  // Preserve existing modifier bonuses — member edits only affect format
+  const subData = (lsGet("smac_submissions")||[]).find(x=>x.id===subId) || {};
   const newPts = base + formatBonus;
   const ptsDelta = newPts - (oldPts||0);
   try{
@@ -4479,6 +4490,7 @@ function buildSubCard(s){
   const ptsDisplay = s.pts!==undefined ? s.pts : 0;
   const currentFormat = s.format || "Static";
   const challengeOn = !!s.challengeApplied;
+  const syfOn = !!s.syfApplied;
 
   return `<div class="sub-card${s.reviewed?" reviewed":""}" id="subcard-${esc(s._id)}">
     <div class="sub-card-header">
@@ -4489,6 +4501,7 @@ function buildSubCard(s){
           ${w.month||""} ${w.label||"Week "+(s.weekIdx+1)} · ${w.dates||""}
           ${currentFormat!=="Static" ? ` · <strong style="color:var(--gold);">${esc(currentFormat)}</strong>` : ` · ${esc(currentFormat)}`}
           ${challengeOn ? ` · <strong style="color:var(--gold);">⭐ Challenge</strong>` : ""}
+          ${syfOn ? ` · <strong style="color:#9b59b6;">🎥 SYF</strong>` : ""}
         </div>
         <div class="sub-card-detail">${dateStr} at ${timeStr}</div>
       </div>
@@ -4519,6 +4532,14 @@ function buildSubCard(s){
         </label>
       </div>
 
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:12px;color:var(--text-muted);min-width:56px;">SYF:</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="syf-${esc(s._id)}" ${syfOn?"checked":""} onchange="recalcSubPts('${esc(s._id)}')" style="width:14px;height:14px;accent-color:#9b59b6;" />
+          🎥 Show Your Face modifier applied (+5 pts)
+        </label>
+      </div>
+
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:12px;color:var(--text-muted);min-width:56px;">Points:</span>
         <input class="sub-pts-edit" type="number" value="${ptsDisplay}" id="pts-${esc(s._id)}" min="0" max="50" oninput="markPtsManual('${esc(s._id)}')" />
@@ -4542,18 +4563,21 @@ window.recalcSubPts = function(id){
   if(!s) return;
   const fmtEl = document.getElementById("fmt-"+id);
   const chalEl = document.getElementById("chal-"+id);
+  const syfEl  = document.getElementById("syf-"+id);
   const ptsEl = document.getElementById("pts-"+id);
   const noteEl = document.getElementById("pts-note-"+id);
   if(!fmtEl||!chalEl||!ptsEl) return;
   const fmt = fmtEl.value;
   const chalOn = chalEl.checked;
+  const syfOn  = syfEl ? syfEl.checked : false;
   const status = s.status||"ontime";
   let base = status==="missed" ? 0 : status==="late" ? PTS_LATE_24H : PTS_ON_TIME;
   let bonus = (fmt==="Reel"||fmt==="Carousel") && status!=="missed" ? PTS_REEL : 0;
   let chalBonus = chalOn && status!=="missed" ? 5 : 0;
-  const calc = base + bonus + chalBonus;
+  let syfBonus  = syfOn  && status!=="missed" ? 5 : 0;
+  const calc = base + bonus + chalBonus + syfBonus;
   ptsEl.value = calc;
-  if(noteEl) noteEl.textContent = `Auto: ${base}${bonus?"+"+bonus:""}${chalBonus?"+5 challenge":""} = ${calc} pts`;
+  if(noteEl) noteEl.textContent = `Auto: ${base}${bonus?"+"+bonus:""}${chalBonus?"+5 challenge":""}${syfBonus?"+5 SYF":""} = ${calc} pts`;
   // Clear any manual override marker
   ptsEl.dataset.manual = "";
 };
@@ -4569,10 +4593,12 @@ window.saveSubDetails = async function(id){
   if(!s) return;
   const fmtEl = document.getElementById("fmt-"+id);
   const chalEl = document.getElementById("chal-"+id);
+  const syfEl  = document.getElementById("syf-"+id);
   const ptsEl = document.getElementById("pts-"+id);
   if(!fmtEl||!chalEl||!ptsEl) return;
   const newFormat = fmtEl.value;
   const newChallenge = chalEl.checked;
+  const newSyf = syfEl ? syfEl.checked : (s.syfApplied||false);
   const newPts = parseInt(ptsEl.value)||0;
   const oldPts = s.pts||0;
   const ptsDelta = newPts - oldPts;
@@ -4582,6 +4608,7 @@ window.saveSubDetails = async function(id){
     await updateDoc(dcRef(db,"submissions",id),{
       format: newFormat,
       challengeApplied: newChallenge,
+      syfApplied: newSyf,
       pts: newPts
     });
     // Apply pts delta to registry if changed
@@ -4592,6 +4619,7 @@ window.saveSubDetails = async function(id){
     // Update local cache
     s.format = newFormat;
     s.challengeApplied = newChallenge;
+    s.syfApplied = newSyf;
     s.pts = newPts;
     const noteEl = document.getElementById("pts-note-"+id);
     if(noteEl) noteEl.textContent = "";
@@ -5150,6 +5178,13 @@ const WEEKLY_CHALLENGES = [
 let _challengeModifierActive = false;
 let _challengeUsedThisWeek = false; // true if already submitted with modifier this week
 
+// ── Show Your Face Modifier state ──
+// SYF feature unlocks April 1 2026 12:00 AM ET (UTC-4 during EDT)
+const SYF_UNLOCK_TS = new Date("2026-04-01T04:00:00Z").getTime();
+
+let _syfModifierActive = false;
+let _syfUsedThisWeek   = false; // true if already submitted with SYF modifier this week
+
 window.renderWeeklyChallenge = async function(){
   const weekIdx = getWeekIndex(Date.now());
   const wrap       = document.getElementById("challenge-modifier-wrap");
@@ -5252,6 +5287,11 @@ window.renderWeeklyChallenge = async function(){
 window.toggleChallengeModifier = function(){
   if(_challengeUsedThisWeek) return; // block if already used
   _challengeModifierActive = !_challengeModifierActive;
+  // Mutual exclusion: challenge on → SYF off
+  if(_challengeModifierActive && _syfModifierActive){
+    _syfModifierActive = false;
+    renderSYFModifier();
+  }
   const wrap = document.getElementById("challenge-modifier-wrap");
   const weekIdx = getWeekIndex(Date.now());
   if(weekIdx < 0) return;
@@ -5267,6 +5307,100 @@ window.toggleChallengeModifier = function(){
         <span class="modifier-pts">+5 pts</span>
       </div>
     </div>`;
+  updatePtsPreview();
+};
+
+// ─────────────────────────────────────────────
+//  SHOW YOUR FACE MODIFIER
+// ─────────────────────────────────────────────
+window.renderSYFModifier = async function(){
+  const wrap = document.getElementById("syf-modifier-wrap");
+  if(!wrap) return;
+
+  // Feature not yet unlocked
+  if(Date.now() < SYF_UNLOCK_TS){
+    wrap.innerHTML = "";
+    return;
+  }
+
+  // Check Firestore: has this member already submitted with SYF this week?
+  _syfUsedThisWeek = false;
+  const weekIdx = getWeekIndex(Date.now());
+  if(!useLocalFallback && db && currentUser && !currentUser.isAdmin){
+    try{
+      const {getDocs,collection:col,query:q,where} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap = await getDocs(q(
+        col(db,"submissions"),
+        where("uid","==",currentUser.uid),
+        where("weekIdx","==",weekIdx),
+        where("syfApplied","==",true)
+      ));
+      _syfUsedThisWeek = !snap.empty;
+    }catch(e){}
+  }
+
+  if(_syfUsedThisWeek) _syfModifierActive = false;
+
+  const usedHtml = `
+    <div class="modifier-wrap applied" style="cursor:default;opacity:0.8;">
+      <div class="modifier-toggle">
+        <div class="modifier-checkbox"><span class="modifier-checkmark">✓</span></div>
+        <div class="modifier-text">
+          <div class="modifier-title">🎥 Show Your Face — Done!</div>
+          <div class="modifier-desc">You already applied this modifier this week.</div>
+        </div>
+        <span class="modifier-pts">+5 pts</span>
+      </div>
+    </div>`;
+
+  const mutualNote = _challengeModifierActive
+    ? `<div style="font-size:11px;color:#e67e22;margin-top:4px;">⚠️ Cannot combine with the Weekly Challenge Modifier.</div>`
+    : `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Cannot be combined with the Weekly Challenge Modifier. Limit 1 per week.</div>`;
+
+  const toggleHtml = `
+    <div class="modifier-wrap${_syfModifierActive?" applied":""}" id="syf-modifier-card" onclick="toggleSYFModifier()">
+      <div class="modifier-toggle">
+        <div class="modifier-checkbox"><span class="modifier-checkmark">✓</span></div>
+        <div class="modifier-text">
+          <div class="modifier-title">🎥 Show Your Face Modifier</div>
+          <div class="modifier-desc">Talking head, quick reaction, behind-the-scenes — real you. Static, Reel (+2), or Carousel (+2) all qualify.</div>
+        </div>
+        <span class="modifier-pts">+5 pts</span>
+      </div>
+      ${mutualNote}
+    </div>`;
+
+  wrap.innerHTML = _syfUsedThisWeek ? usedHtml : toggleHtml;
+};
+
+window.toggleSYFModifier = function(){
+  if(Date.now() < SYF_UNLOCK_TS) return;
+  if(_syfUsedThisWeek) return;
+  _syfModifierActive = !_syfModifierActive;
+  // Mutual exclusion: SYF on → challenge off
+  if(_syfModifierActive && _challengeModifierActive){
+    _challengeModifierActive = false;
+    // Re-render challenge card to reflect deactivation
+    const weekIdx = getWeekIndex(Date.now());
+    if(weekIdx >= 0 && !_challengeUsedThisWeek){
+      const ch = WEEKLY_CHALLENGES[weekIdx];
+      const cWrap = document.getElementById("challenge-modifier-wrap");
+      if(cWrap && ch){
+        cWrap.innerHTML = `
+          <div class="modifier-wrap" id="modifier-card" onclick="toggleChallengeModifier()">
+            <div class="modifier-toggle">
+              <div class="modifier-checkbox"><span class="modifier-checkmark">✓</span></div>
+              <div class="modifier-text">
+                <div class="modifier-title">🎯 Weekly Challenge Modifier: ${esc(ch.title)}</div>
+                <div class="modifier-desc">${esc(ch.desc)}</div>
+              </div>
+              <span class="modifier-pts">+5 pts</span>
+            </div>
+          </div>`;
+      }
+    }
+  }
+  renderSYFModifier();
   updatePtsPreview();
 };
 
