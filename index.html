@@ -4175,7 +4175,7 @@ async function loadMySubmissions(){
             ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
             <span class="sub-pts">+${s.pts||0}</span>
             <button onclick="${canEdit?`toggleSubEdit('${s.id}')`:'showToast("Edit window closed — submissions can only be edited within 7 days.")'}" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:${canEdit?"var(--text-muted)":"var(--border)"};cursor:${canEdit?"pointer":"not-allowed"};opacity:${canEdit?"1":"0.5"};" title="${editTitle}">✏️</button>
-            <button onclick="deleteSubmission('${s.id}',${s.pts||0})" style="background:none;border:1px solid #e74c3c;border-radius:6px;padding:4px 8px;font-size:11px;color:#e74c3c;cursor:pointer;" title="Delete submission">🗑️</button>
+            <button onclick="deleteMemberSubmission('${s.id}',${s.pts||0})" style="background:none;border:1px solid #e74c3c;border-radius:6px;padding:4px 8px;font-size:11px;color:#e74c3c;cursor:pointer;" title="Delete submission">🗑️</button>
           </div>
         </div>
         <div id="sub-edit-${s.id}" style="display:none;margin-top:8px;">
@@ -4188,8 +4188,14 @@ async function loadMySubmissions(){
               <option value="Carousel"${s.format==="Carousel"?" selected":""}>🖼 Carousel (+2 pts)</option>
             </select>
           </div>
+          ${s.status!=="missed"?`<div style="margin-bottom:10px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg);">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);">
+              <input type="checkbox" id="sub-edit-chal-${s.id}" ${s.challengeApplied?"checked":""} style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;" />
+              <span>⭐ Weekly Challenge Modifier <span style="color:var(--text-muted);font-size:11px;">(+5 pts)</span></span>
+            </label>
+          </div>`:""}
           <div style="display:flex;gap:8px;">
-            <button class="btn-sm" onclick="saveSubEdit('${s.id}',${s.pts||0},'${s.status||"ontime"}')" style="background:var(--gold);color:#000;border-color:var(--gold);">Save</button>
+            <button class="btn-sm" onclick="saveSubEdit('${s.id}',${s.pts||0},'${s.status||"ontime"}',${!!s.syfApplied})" style="background:var(--gold);color:#000;border-color:var(--gold);">Save</button>
             <button class="btn-sm" onclick="toggleSubEdit('${s.id}')">Cancel</button>
           </div>
         </div>
@@ -4199,7 +4205,7 @@ async function loadMySubmissions(){
   loadMyEngLog();
 }
 
-window.deleteSubmission=async function(subId, pts){
+window.deleteMemberSubmission=async function(subId, pts){
   if(!confirm("Delete this submission? Your points will be adjusted accordingly."))return;
   if(!useLocalFallback&&db){
     try{
@@ -4230,25 +4236,27 @@ window.toggleSubEdit=function(subId){
   if(box)box.style.display=box.style.display==="none"?"block":"none";
 };
 
-window.saveSubEdit=async function(subId, oldPts, status){
+window.saveSubEdit=async function(subId, oldPts, status, syfApplied){
   const inp=document.getElementById("sub-edit-url-"+subId);
   const fmtSel=document.getElementById("sub-edit-fmt-"+subId);
+  const chalBox=document.getElementById("sub-edit-chal-"+subId);
   const newUrl=(inp?.value||"").trim();
   const newFormat=fmtSel?.value||"Static";
-  // Recalculate pts: derive base from status, add format bonus
+  const newChallengeApplied = chalBox ? chalBox.checked : false;
+  // Recalculate pts from scratch using all modifiers
   const base = status==="missed" ? 0 : status==="late" ? PTS_LATE_24H : PTS_ON_TIME;
-  const formatBonus = (newFormat==="Reel"||newFormat==="Carousel") ? PTS_REEL : 0;
-  // Preserve existing modifier bonuses — member edits only affect format
-  const subData = (lsGet("smac_submissions")||[]).find(x=>x.id===subId) || {};
-  const newPts = base + formatBonus;
+  const formatBonus = (newFormat==="Reel"||newFormat==="Carousel") && status!=="missed" ? PTS_REEL : 0;
+  const challengeBonus = newChallengeApplied && status!=="missed" ? 5 : 0;
+  const syfBonus = syfApplied && status!=="missed" ? 5 : 0;
+  const newPts = base + formatBonus + challengeBonus + syfBonus;
   const ptsDelta = newPts - (oldPts||0);
   try{
     const {updateDoc,doc:dcRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    await updateDoc(dcRef(db,"submissions",subId),{url:newUrl, format:newFormat, pts:newPts});
+    await updateDoc(dcRef(db,"submissions",subId),{url:newUrl, format:newFormat, pts:newPts, challengeApplied:newChallengeApplied});
     if(ptsDelta!==0&&currentUser.registryId){
       await updateDoc(dcRef(db,"smac_registry",currentUser.registryId),{points:increment(ptsDelta)});
     }
-    showToast(ptsDelta>0?`Format updated. +${ptsDelta} pts added!`:ptsDelta<0?`Format updated. ${ptsDelta} pts adjusted.`:"Submission updated.");
+    showToast(ptsDelta>0?`Updated. +${ptsDelta} pts added!`:ptsDelta<0?`Updated. ${ptsDelta} pts adjusted.`:"Submission updated.");
     loadMySubmissions();
     loadLeaderboard();
   }catch(e){showToast("Error: "+e.message);}
