@@ -184,7 +184,7 @@
     .modifier-desc{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.4;}
     .modifier-pts{font-size:11px;font-weight:700;color:var(--gold);background:rgba(212,175,55,0.12);padding:2px 8px;border-radius:10px;flex-shrink:0;}
 
-    /* ── Weekly Spotlight ── */
+    /* ── SMAC Spotlight ── */
     .spotlight-card{background:linear-gradient(135deg,#1a1400,#2d2200);border:2px solid var(--gold);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px;position:relative;overflow:hidden;}
     .spotlight-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#f5d27a,var(--gold));}
     .spotlight-label{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
@@ -704,11 +704,11 @@
       </div>
     </div>
 
-    <!-- Admin: Weekly Spotlight -->
+    <!-- Admin: SMAC Spotlight -->
     <div class="compose-box admin-compose" id="admin-spotlight-compose" style="display:none;">
       <div class="admin-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:14px;">
         <span class="admin-banner-icon">⭐</span>
-        <div><div class="admin-banner-title">Post Weekly Spotlight</div><div class="admin-banner-sub">Featured at top of Feed with gold banner</div></div>
+        <div><div class="admin-banner-title">Post SMAC Spotlight</div><div class="admin-banner-sub">Featured at top of Feed with gold banner</div></div>
       </div>
       <input class="auth-input" id="spotlight-member" type="text" placeholder="Member name..." style="margin-bottom:8px;" />
       <input class="auth-input" id="spotlight-url" type="url" placeholder="Instagram post URL..." style="margin-bottom:8px;" />
@@ -5059,7 +5059,8 @@ window.submitSpotlight = async function(){
     member, url: url||"", caption: caption||"",
     imageBase64: _pendingSpotlightImg||"",
     weekIdx: getWeekIndex(Date.now()),
-    ts: Date.now()
+    ts: Date.now(),
+    archived: false
   };
   try{
     if(!useLocalFallback&&db){
@@ -5086,11 +5087,17 @@ window.loadSpotlights = async function(){
   if(!list) return;
   try{
     if(!useLocalFallback&&db){
-      const {getDocs,collection:col,query:q,orderBy:ob,limit:lim} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      const snap = await getDocs(q(col(db,"spotlights"), ob("ts","desc"), lim(5)));
-      renderSpotlights(snap.docs.map(d=>({id:d.id,...d.data()})));
+      const {getDocs,collection:col,query:q,orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap = await getDocs(q(col(db,"spotlights"), ob("ts","desc")));
+      const all = snap.docs.map(d=>({id:d.id,...d.data()}));
+      const active = all.filter(s=>!s.archived);
+      window._archivedSpotlights = all.filter(s=>s.archived);
+      renderSpotlights(active.slice(0,5));
     } else {
-      renderSpotlights((lsGet("smac_spotlights")||[]).slice(0,5));
+      const all = (lsGet("smac_spotlights")||[]);
+      const active = all.filter(s=>!s.archived);
+      window._archivedSpotlights = all.filter(s=>s.archived);
+      renderSpotlights(active.slice(0,5));
     }
   }catch(e){ list.innerHTML=""; }
 };
@@ -5098,30 +5105,131 @@ window.loadSpotlights = async function(){
 function renderSpotlights(items){
   const list = document.getElementById("spotlight-list");
   if(!list) return;
-  if(!items.length){ list.innerHTML=""; return; }
-  list.innerHTML = items.map(s=>`
-    <div class="spotlight-card">
-      <div class="spotlight-label">⭐ Weekly Spotlight</div>
+  if(!items.length){ list.innerHTML=""; }
+  else {
+    list.innerHTML = items.map(s=>`
+    <div class="spotlight-card" id="spotlight-card-${esc(s.id)}">
+      <div class="spotlight-label">⭐ SMAC Spotlight</div>
       ${s.imageBase64 ? `<img src="${esc(s.imageBase64)}" class="spotlight-thumb" />` : ""}
       <div class="spotlight-member">${esc(s.member)}</div>
       ${s.caption ? `<div class="spotlight-caption">${esc(s.caption)}</div>` : ""}
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener" class="spotlight-view-btn">View Post ↗</a>` : ""}
+        ${currentUser&&currentUser.isAdmin ? `<button onclick="archiveSpotlight('${esc(s.id)}')" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;" title="Archive">📦 Archive</button>` : ""}
         ${currentUser&&currentUser.isAdmin ? `<button onclick="deleteSpotlight('${esc(s.id)}')" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;">🗑 Remove</button>` : ""}
       </div>
     </div>`).join("");
+  }
+  // Previous Spotlights trigger button
+  let trigger = document.getElementById("spotlight-archive-trigger");
+  if(!trigger){
+    trigger = document.createElement("button");
+    trigger.id = "spotlight-archive-trigger";
+    trigger.className = "ann-archive-trigger";
+    trigger.onclick = function(){ window.openSpotlightArchiveModal(); };
+    list.parentNode.insertBefore(trigger, list.nextSibling);
+  }
+  const archived = window._archivedSpotlights||[];
+  if(archived.length){
+    trigger.style.display = "flex";
+    trigger.innerHTML = '<span class="ann-archive-trigger-icon">⭐</span><span>Previous Spotlights</span><span class="ann-archive-count">'+archived.length+'</span>';
+  } else {
+    trigger.style.display = "none";
+  }
 }
+
+window.archiveSpotlight = async function(id){
+  if(!currentUser||!currentUser.isAdmin) return;
+  try{
+    const {updateDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await updateDoc(dcRef(db,"spotlights",id),{archived:true});
+    showToast("Spotlight archived.");
+    loadSpotlights();
+  }catch(e){ showToast("Error: "+e.message); }
+};
+
+window.restoreSpotlight = async function(id){
+  if(!currentUser||!currentUser.isAdmin) return;
+  try{
+    const {updateDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await updateDoc(dcRef(db,"spotlights",id),{archived:false});
+    showToast("Spotlight restored to feed.");
+    const remaining = (window._archivedSpotlights||[]).filter(s=>s.id!==id);
+    window._archivedSpotlights = remaining;
+    renderSpotlightArchiveModal(remaining);
+    loadSpotlights();
+  }catch(e){ showToast("Error: "+e.message); }
+};
 
 window.deleteSpotlight = async function(id){
   if(!currentUser||!currentUser.isAdmin) return;
-  if(!confirm("Remove this spotlight?")) return;
+  if(!confirm("Permanently remove this spotlight? This cannot be undone.\n\nTip: use Archive to keep it in Previous Spotlights.")) return;
   try{
     const {deleteDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     await deleteDoc(dcRef(db,"spotlights",id));
     loadSpotlights();
-    showToast("Spotlight removed");
+    showToast("Spotlight removed.");
   }catch(e){ showToast("Error: "+e.message); }
 };
+
+window.deleteArchivedSpotlight = async function(id){
+  if(!currentUser||!currentUser.isAdmin) return;
+  if(!confirm("Permanently delete this spotlight?")) return;
+  try{
+    const {deleteDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await deleteDoc(dcRef(db,"spotlights",id));
+    const remaining = (window._archivedSpotlights||[]).filter(s=>s.id!==id);
+    window._archivedSpotlights = remaining;
+    renderSpotlightArchiveModal(remaining);
+    loadSpotlights();
+    showToast("Spotlight deleted.");
+  }catch(e){ showToast("Error: "+e.message); }
+};
+
+window.openSpotlightArchiveModal = function(){
+  const overlay = document.getElementById("spotlight-archive-overlay");
+  if(!overlay) return;
+  renderSpotlightArchiveModal(window._archivedSpotlights||[]);
+  overlay.classList.add("open");
+  document.body.style.overflow = "hidden";
+  const closeBtn = document.getElementById("spotlight-archive-close-btn");
+  if(closeBtn) closeBtn.onclick = window.closeSpotlightArchiveModal;
+  overlay.onclick = function(e){ if(e.target===overlay) window.closeSpotlightArchiveModal(); };
+};
+
+window.closeSpotlightArchiveModal = function(){
+  const overlay = document.getElementById("spotlight-archive-overlay");
+  if(overlay) overlay.classList.remove("open");
+  document.body.style.overflow = "";
+};
+
+function renderSpotlightArchiveModal(items){
+  const body = document.getElementById("spotlight-archive-modal-body");
+  if(!body) return;
+  if(!items||!items.length){
+    body.innerHTML = '<div class="ann-archive-modal-empty">No archived spotlights yet.</div>';
+    return;
+  }
+  body.innerHTML = items.map((s,idx)=>{
+    const sep = idx>0 ? '<div style="height:1px;background:var(--border);margin:0 0 16px;"></div>' : "";
+    const adminHtml = (currentUser&&currentUser.isAdmin) ?
+      `<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <button class="react-btn" onclick="restoreSpotlight('${esc(s.id)}')">↩ Restore to Feed</button>
+        <button class="react-btn" onclick="deleteArchivedSpotlight('${esc(s.id)}')" style="color:#e74c3c;">🗑 Delete</button>
+      </div>` : "";
+    return sep +
+      `<div style="margin-bottom:16px;">
+        ${s.imageBase64 ? `<img src="${esc(s.imageBase64)}" style="width:100%;border-radius:8px;max-height:160px;object-fit:cover;margin-bottom:10px;border:1px solid rgba(212,175,55,0.3);" />` : ""}
+        <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px;">${esc(s.member)}</div>
+        ${s.caption ? `<div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">${esc(s.caption)}</div>` : ""}
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener" class="spotlight-view-btn" style="font-size:11px;padding:5px 11px;">View Post ↗</a>` : "<span></span>"}
+          <span style="font-size:11px;color:var(--text-muted);">${timeAgo(s.ts)}</span>
+        </div>
+        ${adminHtml}
+      </div>`;
+  }).join("");
+}
 
 // ─────────────────────────────────────────────
 //  ROUND MILESTONES PROGRESS BAR
@@ -6729,6 +6837,22 @@ if(installProfileBtn){
       <button class="ann-archive-modal-close" id="ann-archive-close-btn">&#x2715;</button>
     </div>
     <div class="ann-archive-modal-body" id="ann-archive-modal-body">
+      <div class="ann-archive-modal-empty">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- PREVIOUS SPOTLIGHTS MODAL -->
+<div class="ann-archive-overlay" id="spotlight-archive-overlay">
+  <div class="ann-archive-modal">
+    <div class="ann-archive-modal-header">
+      <div>
+        <div class="ann-archive-modal-title">Previous Spotlights</div>
+        <div class="ann-archive-modal-sub">Archived spotlights — visible to all members</div>
+      </div>
+      <button class="ann-archive-modal-close" id="spotlight-archive-close-btn">&#x2715;</button>
+    </div>
+    <div class="ann-archive-modal-body" id="spotlight-archive-modal-body">
       <div class="ann-archive-modal-empty">Loading...</div>
     </div>
   </div>
