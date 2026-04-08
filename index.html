@@ -2998,15 +2998,18 @@ window.saveEditResource=async function(id){
   if(!title)return;
   const tags=tagsRaw?tagsRaw.split(",").map(t=>t.trim()).filter(Boolean):[];
   const updated={title,desc,body,url,urlLabel,source,sourceUrl,emoji,tags};
-  if(!useLocalFallback&&db){
-    const {updateDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    await updateDoc(dc(db,"resources",id),updated).catch(e=>console.error("Update resource error:",e));
-  } else {
-    const list=lsGet("smac_resources")||[];
-    const idx=list.findIndex(r=>r.id===id);
-    if(idx>-1){list[idx]={...list[idx],...updated};lsSet("smac_resources",list);}
-    loadResources();
-  }
+  try{
+    if(!useLocalFallback&&db){
+      const {updateDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await updateDoc(dc(db,"resources",id),updated);
+      loadResources();
+    } else {
+      const list=lsGet("smac_resources")||[];
+      const idx=list.findIndex(r=>r.id===id);
+      if(idx>-1){list[idx]={...list[idx],...updated};lsSet("smac_resources",list);}
+      loadResources();
+    }
+  }catch(e){showToast("Error saving resource: "+e.message);return;}
   // Reset compose box back to Add mode
   ["res-title","res-desc","res-body","res-url","res-url-label","res-tags","res-source","res-source-url","res-emoji"].forEach(fid=>document.getElementById(fid).value="");
   const btn=document.querySelector("#admin-res-compose .btn-post");
