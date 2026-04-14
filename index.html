@@ -4294,10 +4294,14 @@ async function loadMyEngLog(){
     return;
   }
   const totalPts=engs.reduce((a,e)=>a+(e.pts||2),0);
-  totalEl.innerHTML=`<strong>${totalPts} pts</strong> · ${engs.length} engagement${engs.length!==1?"s":""}`;
+  const thisWeekEngs=engs.filter(e=>e.weekIdx===weekIdx);
+  const prevEngs=engs.filter(e=>e.weekIdx!==weekIdx);
+  const thisWeekCount=thisWeekEngs.length;
+  const weekUsedColor=thisWeekCount>=MAX_ENG_PER_WEEK?"#e74c3c":thisWeekCount>=3?"var(--gold)":"#27ae60";
+  totalEl.innerHTML=`<strong>${totalPts} pts</strong> · ${engs.length} engagement${engs.length!==1?"s":""} total`;
   const WEEK_LABELS=["W1","W2","W3","W4","W5","W6","W7","W8","W9","W10","W11","W12"];
-  list.innerHTML=engs.map(e=>`
-    <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+  function engCardHTML(e){
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
       ${e.screenshotBase64?`<img src="${e.screenshotBase64}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:120px;object-fit:cover;border:1px solid var(--border);" />`:""}
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="flex:1;">
@@ -4322,7 +4326,23 @@ async function loadMyEngLog(){
           <button class="btn-sm" onclick="toggleEngEdit('${e.id}')">Cancel</button>
         </div>
       </div>
-    </div>`).join("");
+    </div>`;
+  }
+  let html="";
+  html+=`<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">${WEEK_LABELS[weekIdx]||"This Week"}</span>
+    <span style="font-size:13px;font-weight:700;color:${weekUsedColor};">${thisWeekCount} / ${MAX_ENG_PER_WEEK} used${thisWeekCount>=MAX_ENG_PER_WEEK?" · limit reached":""}</span>
+  </div>`;
+  if(thisWeekEngs.length){
+    html+=thisWeekEngs.map(engCardHTML).join("");
+  } else {
+    html+=`<div style="padding:10px 0;font-size:13px;color:var(--text-muted);">No engagements logged this week yet.</div>`;
+  }
+  if(prevEngs.length){
+    html+=`<div style="margin-top:14px;margin-bottom:6px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Previous Weeks</div>`;
+    html+=prevEngs.map(engCardHTML).join("");
+  }
+  list.innerHTML=html;
 }
 
 window.toggleEngEdit=function(engId){
