@@ -4277,6 +4277,7 @@ async function loadMyEngLog(){
   const list=document.getElementById("my-eng-log-list");
   const totalEl=document.getElementById("my-eng-log-total");
   if(!card||!list) return;
+  const weekIdx=getWeekIndex(Date.now());
   let engs=[];
   if(!useLocalFallback&&db){
     try{
