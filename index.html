@@ -260,7 +260,33 @@
     .res-tag{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:#fdf5e0;color:var(--gold-dark);padding:2px 8px;border-radius:20px;}
 
     /* RESOURCE MODAL */
-    .res-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:flex-end;justify-content:center;}
+    /* ── Zoom Replay Banner Card ── */
+    .zoom-replay-card{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,var(--gold-dark,#b8860b),var(--gold,#d4a017));border-radius:14px;padding:16px 20px;margin-bottom:16px;cursor:pointer;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,0.18);transition:opacity 0.15s;}
+    .zoom-replay-card:active{opacity:0.85;}
+    .zoom-replay-card-icon{font-size:28px;flex-shrink:0;}
+    .zoom-replay-card-text{flex:1;min-width:0;}
+    .zoom-replay-card-title{font-weight:700;font-size:15px;margin-bottom:2px;}
+    .zoom-replay-card-desc{font-size:13px;opacity:0.88;}
+    .zoom-replay-card-arrow{font-size:18px;flex-shrink:0;opacity:0.8;}
+    /* ── Zoom Replay Modal ── */
+    .replay-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;align-items:flex-end;justify-content:center;}
+    .replay-modal-overlay.open{display:flex;}
+    .replay-modal{background:var(--card-bg,#1e1e1e);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:80vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0);}
+    .replay-modal-header{padding:24px 20px 0;position:relative;text-align:center;}
+    .replay-modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);line-height:1;}
+    .replay-modal-icon{font-size:32px;margin-bottom:6px;}
+    .replay-modal-title{font-weight:700;font-size:18px;margin-bottom:4px;}
+    .replay-modal-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:16px;}
+    .replay-modal-divider{border:none;border-top:1px solid var(--border);margin:0 -20px;}
+    .replay-list{padding:16px 20px 24px;}
+    .replay-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .replay-item:last-child{border-bottom:none;}
+    .replay-item-thumb{width:52px;height:52px;border-radius:10px;background:var(--gold,#d4a017);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+    .replay-item-info{flex:1;min-width:0;}
+    .replay-item-title{font-weight:600;font-size:14px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .replay-item-meta{font-size:12px;color:var(--text-muted);}
+    .replay-item-btn{background:var(--gold,#d4a017);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;text-decoration:none;display:inline-block;}
+    .replay-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:flex-end;justify-content:center;}
     .res-modal-overlay.open{display:flex;}
     .res-modal{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:88vh;overflow-y:auto;position:relative;}
     .res-modal-header{padding:28px 24px 0;position:relative;}
@@ -875,6 +901,15 @@
       <input class="auth-input" id="res-source-url" type="url" placeholder="Source URL (optional)..." style="margin-bottom:8px;" />
       <input class="auth-input" id="res-emoji" type="text" placeholder="Emoji icon (e.g. 📄)" maxlength="4" style="margin-bottom:8px;" />
       <div class="compose-footer"><span></span><button class="btn-post" onclick="submitResource()">Add Resource</button></div>
+    </div>
+    <!-- Zoom Replay Banner -->
+    <div class="zoom-replay-card" onclick="openReplayModal()">
+      <div class="zoom-replay-card-icon">🎬</div>
+      <div class="zoom-replay-card-text">
+        <div class="zoom-replay-card-title">Previous Zoom Replays</div>
+        <div class="zoom-replay-card-desc">Watch recordings from past SMAC sessions</div>
+      </div>
+      <div class="zoom-replay-card-arrow">›</div>
     </div>
     <div class="resource-filter" id="resource-filter"></div>
     <div class="resource-grid" id="resource-grid"></div>
@@ -1541,6 +1576,22 @@
     </div>
     <div class="res-modal-body" id="rmd-body"></div>
     <div class="res-modal-footer" id="rmd-footer"></div>
+  </div>
+</div>
+
+<!-- ZOOM REPLAY MODAL -->
+<div class="replay-modal-overlay" id="replay-modal-overlay" onclick="closeReplayModal(event)">
+  <div class="replay-modal">
+    <div class="replay-modal-header">
+      <button class="replay-modal-close" onclick="closeReplayModalDirect()">✕</button>
+      <div class="replay-modal-icon">🎬</div>
+      <div class="replay-modal-title">Previous Zoom Replays</div>
+      <div class="replay-modal-subtitle">Click any session to watch the recording</div>
+      <hr class="replay-modal-divider">
+    </div>
+    <div class="replay-list" id="replay-list">
+      <!-- Replay items injected here -->
+    </div>
   </div>
 </div>
 
@@ -2951,6 +3002,32 @@ window.openResModal=function(r){
 };
 window.closeResModal=function(e){if(e.target===document.getElementById("res-modal-overlay"))closeResModalDirect();};
 window.closeResModalDirect=function(){document.getElementById("res-modal-overlay").classList.remove("open");document.body.style.overflow="";};
+
+// ── Zoom Replay Modal ──────────────────────────────────────────────────────
+const ZOOM_REPLAYS = [
+  { title:"SMAC Introductory Zoom", date:"March 16, 2026", url:"https://youtu.be/tZmFAoolhAU", emoji:"🎬" },
+  { title:"SMAC Guest Series w/ Dwayne Morris", date:"March 23, 2026", url:"https://youtu.be/j8kVi-uN4LE", emoji:"🎤" },
+  { title:"SMAC Guest Series w/ Chip Dizárd", date:"April 6, 2026", url:"https://youtu.be/g5OGBqeBWfg", emoji:"🎤" },
+  { title:"SMAC Show Your Face Zoom #1", date:"April 7, 2026", url:"https://youtu.be/jHffe-diVqU", emoji:"📹" },
+  { title:"SMAC Show Your Face Zoom #2", date:"April 14, 2026", url:"https://youtu.be/m6mJwlLgAMc", emoji:"📹" },
+  { title:"SMAC Show Your Face Zoom #3", date:"April 21, 2026", url:"https://youtu.be/VVK1DbBdAZA", emoji:"📹" },
+];
+window.openReplayModal=function(){
+  const list=document.getElementById("replay-list");
+  list.innerHTML=ZOOM_REPLAYS.map(r=>`
+    <div class="replay-item">
+      <div class="replay-item-thumb">${r.emoji||"🎬"}</div>
+      <div class="replay-item-info">
+        <div class="replay-item-title">${esc(r.title)}</div>
+        <div class="replay-item-meta">${esc(r.date)}</div>
+      </div>
+      <a class="replay-item-btn" href="${esc(r.url)}" target="_blank" rel="noopener">Watch ↗</a>
+    </div>`).join("");
+  document.getElementById("replay-modal-overlay").classList.add("open");
+  document.body.style.overflow="hidden";
+};
+window.closeReplayModal=function(e){if(e.target===document.getElementById("replay-modal-overlay"))closeReplayModalDirect();};
+window.closeReplayModalDirect=function(){document.getElementById("replay-modal-overlay").classList.remove("open");document.body.style.overflow="";};
 
 window.deleteResource=async function(id, title){
   if(!confirm(`Delete "${title}"? This cannot be undone.`))return;
