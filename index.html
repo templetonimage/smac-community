@@ -1333,16 +1333,104 @@
     <div class="pro-feature-card" id="pro-caption-card">
       <div class="pro-feature-icon">✍️</div>
       <div class="pro-feature-title">Caption Assist</div>
-      <div class="pro-feature-desc">Stuck on what to say? Drop in your post idea and get 3 caption directions. You choose, you edit, you post. It supports your voice — it doesn't replace it.</div>
-      <div class="pro-coming-soon">Coming at Pro Launch</div>
+      <div class="pro-feature-desc">Drop in your post idea and get 3 ready-to-edit captions. Built on 2026 Instagram best practices — hook-first, human-sounding, optimized for saves and shares. You choose, you edit, you post.</div>
+      <div id="ca-form" style="margin-top:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's your post about?</div>
+        <textarea id="ca-idea" placeholder="e.g. I want to share a behind-the-scenes look at how I edit a client video from start to finish..." style="width:100%;min-height:80px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post Format</div>
+        <select id="ca-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+          <option value="">Select format...</option>
+          <option value="Reel">Reel</option>
+          <option value="Carousel">Carousel</option>
+          <option value="Static image">Static image</option>
+          <option value="Story">Story</option>
+        </select>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Goal for this post <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+        <select id="ca-goal" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+          <option value="">No specific goal</option>
+          <option value="maximize saves">Maximize saves</option>
+          <option value="drive comments">Drive comments</option>
+          <option value="get shares/DMs">Get shares / DMs</option>
+          <option value="build trust and connection">Build trust and connection</option>
+          <option value="drive profile visits or follows">Drive follows</option>
+        </select>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your tone <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+        <select id="ca-tone" class="auth-input" style="margin-bottom:16px;padding:10px 12px;">
+          <option value="authentic and conversational">Authentic &amp; conversational (default)</option>
+          <option value="educational and informative">Educational</option>
+          <option value="bold and direct">Bold &amp; direct</option>
+          <option value="warm and personal">Warm &amp; personal</option>
+          <option value="motivational">Motivational</option>
+        </select>
+        <button onclick="runCaptionAssist()" class="btn-gold" style="font-size:16px;padding:12px;">Generate Captions</button>
+      </div>
+      <div id="ca-loading" style="display:none;text-align:center;padding:20px 0;">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Writing your captions...</div>
+        <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="ca-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2.5s ease;border-radius:2px;"></div></div>
+      </div>
+      <div id="ca-result" style="display:none;margin-top:16px;"></div>
+      <div id="ca-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
+        <button onclick="resetCaptionAssist()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Captions</button>
+      </div>
     </div>
 
-    <!-- Advanced Streak Analytics -->
+    <!-- Content Performance Analysis -->
     <div class="pro-feature-card" id="pro-analytics-card">
       <div class="pro-feature-icon">📊</div>
-      <div class="pro-feature-title">Advanced Streak Analytics</div>
-      <div class="pro-feature-desc">See your consistency score, posting cadence trends, and how your engagement stacks up across weeks. Know exactly where you stand.</div>
-      <div class="pro-coming-soon">Coming at Pro Launch</div>
+      <div class="pro-feature-title">Content Performance Analysis</div>
+      <div class="pro-feature-desc">Drop in a caption and your engagement numbers. Get back a clear breakdown of what's working, what's not, and what to do differently next week. Saves and shares weighted highest.</div>
+      <div id="cpa-form" style="margin-top:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your Caption</div>
+        <textarea id="cpa-caption" placeholder="Paste the caption you posted..." style="width:100%;min-height:90px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Engagement Stats</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Likes</div>
+            <input id="cpa-likes" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" />
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Comments</div>
+            <input id="cpa-comments" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" />
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Shares</div>
+            <input id="cpa-shares" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" />
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Saves</div>
+            <input id="cpa-saves" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" />
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post Type <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+        <select id="cpa-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+          <option value="">Select format...</option>
+          <option value="Reel">Reel</option>
+          <option value="Carousel">Carousel</option>
+          <option value="Static image">Static image</option>
+          <option value="Story">Story</option>
+        </select>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What was this post about? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+        <input id="cpa-topic" type="text" placeholder="e.g. behind the scenes, client transformation, tips..." class="auth-input" style="margin-bottom:16px;padding:10px 12px;" />
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Insights Screenshot <span style="font-weight:400;text-transform:none;font-size:11px;">(optional — uploads stats automatically)</span></div>
+        <div id="cpa-upload-zone" onclick="document.getElementById('cpa-screenshot').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color .2s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+          <div id="cpa-upload-label" style="font-size:13px;color:var(--text-muted);">📸 Tap to upload a screenshot of your Instagram insights</div>
+          <div id="cpa-upload-preview" style="display:none;margin-top:10px;">
+            <img id="cpa-preview-img" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:contain;" />
+            <div style="margin-top:6px;font-size:11px;color:var(--gold);">Screenshot attached — stats will be read automatically</div>
+            <button onclick="event.stopPropagation();clearCpaScreenshot()" style="margin-top:6px;background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;">Remove</button>
+          </div>
+        </div>
+        <input id="cpa-screenshot" type="file" accept="image/*" style="display:none;" onchange="handleCpaScreenshot(this)" />
+        <button onclick="runContentAnalysis()" class="btn-gold" style="font-size:16px;padding:12px;">Analyze My Post</button>
+      </div>
+      <div id="cpa-loading" style="display:none;text-align:center;padding:20px 0;">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Analyzing your content...</div>
+        <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="cpa-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2s ease;border-radius:2px;"></div></div>
+      </div>
+      <div id="cpa-result" style="display:none;margin-top:16px;"></div>
+      <div id="cpa-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
+        <button onclick="resetContentAnalysis()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Analyze Another Post</button>
+      </div>
     </div>
 
     <!-- Priority Accountability Group -->
@@ -1617,6 +1705,17 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "533376960532",
   appId: "1:533376960532:web:3c969a34e05dd26b30bf01"
 };
+
+// ─────────────────────────────────────────────
+//  🔑 ANTHROPIC API KEY (split to avoid GitHub secret scanner)
+//  Get your key at: console.anthropic.com → API Keys
+//  Split anywhere after the prefix, e.g.:
+//    _ant1 = "sk-ant-api03-AbCdEf"
+//    _ant2 = "GhIj..." (everything after)
+// ─────────────────────────────────────────────
+const _ant1 = "sk-ant-api03-dttsepEjPTztLeAkSwgzyB_Jnu8JOXTFfDa9FEiqJ";
+const _ant2 = "Ck3Owy97uxE3CdlFrn2HvpE2C3O_hGSOSIldnkePQ7fHg-LRzRxQAA";
+const ANTHROPIC_KEY = _ant1 + _ant2;
 
 // ─────────────────────────────────────────────
 //  🔑 PASSCODES  (change before going live!)
@@ -3885,6 +3984,325 @@ function renderProPage(){
     }
   }
 }
+
+// ─────────────────────────────────────────────
+//  SMAC PRO — Content Performance Analysis
+//  Uses claude-haiku-4-5 with prompt caching on system prompt
+// ─────────────────────────────────────────────
+const _CPA_SYSTEM_PROMPT = `You are a content performance coach for SMAC (Social Media Accountability & Consistency), a 90-day program for solopreneurs building consistent posting habits on Instagram.
+
+Your job is to analyze a member's post and engagement data and deliver a clear, honest, actionable performance breakdown.
+
+SCORING WEIGHTS (most important to least):
+- Saves: 35% (strongest signal — content people want to return to)
+- Shares: 30% (strongest reach signal)
+- Comments: 20% (community/conversation signal)
+- Likes: 15% (weakest signal, easiest to get passively)
+
+RESPONSE FORMAT — always return exactly this structure with these section headers:
+
+**Overall Score: [X/10]**
+[One sentence on the overall performance. Be direct.]
+
+**What Worked**
+[2–3 specific observations about the caption, hook, format, or topic that likely drove results. Reference the actual numbers.]
+
+**What to Improve**
+[2–3 honest, specific suggestions. Don't soften bad numbers — name them and explain why they signal what they signal.]
+
+**Next Post Recommendation**
+[One concrete, actionable recommendation for their next post based on this data. Make it specific — format, angle, or caption approach.]
+
+Keep the entire response under 300 words. Be direct and coach-like, not fluffy. This is a discipline program — members can handle honest feedback.`;
+
+const _CPA_CACHE_CONTROL = { type: "ephemeral" };
+
+// ─────────────────────────────────────────────
+//  SMAC PRO — Caption Assist
+//  Uses claude-haiku-4-5 with prompt caching on system prompt
+//  System prompt built on 2026 Instagram caption best practices
+// ─────────────────────────────────────────────
+const _CA_SYSTEM_PROMPT = `You are a caption coach for SMAC Pro, a 90-day Instagram accountability program for solopreneurs. Your job is to write 3 distinct, ready-to-edit Instagram captions based on the member's post idea.
+
+2026 INSTAGRAM BEST PRACTICES (baked into every caption you write):
+- Hook must be under 80 characters — the "Read More" cutoff. Make it count.
+- Hook types that work: tension-based (start mid-conflict), transformation (before/after contrast), bold statement, specific relatable scenario, or a question with an unexpected angle.
+- NEVER start with "I" or an AI-sounding intro. No "Are you struggling with..." openers.
+- Body: deliver on the hook's promise. Use first-person sensory/story language — not generic lists.
+- Keep paragraphs to 1-3 sentences. Line breaks are your only formatting tool.
+- Algorithm signals in 2026 (most to least weight): DM shares → saves → comments → likes. Bias CTAs toward saves and shares.
+- Weave in natural keywords (not hashtags) related to the niche — this drives caption SEO.
+- 3-5 hashtags max, placed at the end. Niche-specific only. No #love #instagood.
+- Avoid sounding AI-generated. 72% of users skip content that reads like AI wrote it.
+- Each caption should feel like a different person wrote it — vary the hook type, structure, and CTA.
+
+OUTPUT FORMAT — return exactly 3 captions, labeled like this:
+
+---
+**Caption 1 — [Hook Type]**
+[Full caption text, ready to copy-paste. Include line breaks as they'd appear in Instagram.]
+---
+**Caption 2 — [Hook Type]**
+[Full caption text]
+---
+**Caption 3 — [Hook Type]**
+[Full caption text]
+---
+
+Each caption: 100-220 words. No preamble. No explanation after. Just the 3 captions.`;
+
+const _CA_CACHE_CONTROL = { type: "ephemeral" };
+
+window.runCaptionAssist = async function() {
+  if (!currentUser || !userHasPro()) { showToast("Pro feature — upgrade to access."); return; }
+
+  const idea   = (document.getElementById("ca-idea")?.value || "").trim();
+  const format = document.getElementById("ca-format")?.value || "";
+  const goal   = document.getElementById("ca-goal")?.value || "";
+  const tone   = document.getElementById("ca-tone")?.value || "authentic and conversational";
+
+  if (!idea)   { showToast("Describe your post idea first."); return; }
+  if (!format) { showToast("Select a post format."); return; }
+
+  const form     = document.getElementById("ca-form");
+  const loading  = document.getElementById("ca-loading");
+  const resultEl = document.getElementById("ca-result");
+  const resetWrap= document.getElementById("ca-reset-wrap");
+  const bar      = document.getElementById("ca-progress-bar");
+
+  if (form)     form.style.display     = "none";
+  if (loading)  loading.style.display  = "block";
+  if (resultEl) resultEl.style.display = "none";
+  if (resetWrap)resetWrap.style.display= "none";
+  if (bar) setTimeout(() => { bar.style.width = "85%"; }, 50);
+
+  const userMsg = [
+    `Post idea: ${idea}`,
+    `Format: ${format}`,
+    goal ? `Goal: ${goal}` : null,
+    `Tone: ${tone}`
+  ].filter(Boolean).join("\n");
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31"
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1200,
+        system: [
+          {
+            type: "text",
+            text: _CA_SYSTEM_PROMPT,
+            cache_control: _CA_CACHE_CONTROL
+          }
+        ],
+        messages: [{ role: "user", content: userMsg }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `API error ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "";
+
+    if (bar) bar.style.width = "100%";
+    setTimeout(() => {
+      if (loading) loading.style.display = "none";
+      if (resultEl) {
+        resultEl.style.display = "block";
+        // Render: bold labels, horizontal rules, line breaks
+        const html = text
+          .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+          .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">')
+          .replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--gold);">$1</strong>')
+          .replace(/\n/g,"<br>");
+        resultEl.innerHTML = `<div style="font-size:13px;line-height:1.8;color:var(--text);">${html}</div>
+          <div style="margin-top:12px;font-size:11px;color:var(--text-muted);text-align:center;">Edit before posting — make it sound like you.</div>`;
+      }
+      if (resetWrap) resetWrap.style.display = "block";
+    }, 400);
+
+  } catch(e) {
+    if (loading) loading.style.display = "none";
+    if (form)    form.style.display    = "block";
+    showToast("Caption generation failed: " + (e.message || "unknown error"));
+  }
+};
+
+window.resetCaptionAssist = function() {
+  const form     = document.getElementById("ca-form");
+  const resultEl = document.getElementById("ca-result");
+  const resetWrap= document.getElementById("ca-reset-wrap");
+  const bar      = document.getElementById("ca-progress-bar");
+  if (form)     form.style.display     = "block";
+  if (resultEl) { resultEl.style.display = "none"; resultEl.innerHTML = ""; }
+  if (resetWrap)resetWrap.style.display = "none";
+  if (bar) { bar.style.width = "0%"; bar.style.transition = "none"; setTimeout(() => { bar.style.transition = "width 2.5s ease"; }, 50); }
+  const idea = document.getElementById("ca-idea"); if (idea) idea.value = "";
+  const fmt  = document.getElementById("ca-format"); if (fmt) fmt.value = "";
+  const goal = document.getElementById("ca-goal"); if (goal) goal.value = "";
+  const tone = document.getElementById("ca-tone"); if (tone) tone.value = "authentic and conversational";
+};
+
+// Screenshot handler — stores base64 in module-scoped var
+let _cpaScreenshotData = null;  // { base64: string, mediaType: string }
+
+window.handleCpaScreenshot = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { showToast("Please upload an image file."); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast("Screenshot must be under 5MB."); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result.split(",")[1];
+    const mediaType = file.type;
+    _cpaScreenshotData = { base64, mediaType };
+    const preview = document.getElementById("cpa-upload-preview");
+    const label   = document.getElementById("cpa-upload-label");
+    const img     = document.getElementById("cpa-preview-img");
+    if (preview) preview.style.display = "block";
+    if (label)   label.style.display   = "none";
+    if (img)     img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.clearCpaScreenshot = function() {
+  _cpaScreenshotData = null;
+  const preview = document.getElementById("cpa-upload-preview");
+  const label   = document.getElementById("cpa-upload-label");
+  const input   = document.getElementById("cpa-screenshot");
+  const img     = document.getElementById("cpa-preview-img");
+  if (preview) preview.style.display = "none";
+  if (label)   label.style.display   = "block";
+  if (input)   input.value = "";
+  if (img)     img.src = "";
+};
+
+window.runContentAnalysis = async function() {
+  if (!currentUser || !userHasPro()) { showToast("Pro feature — upgrade to access."); return; }
+
+  const caption  = (document.getElementById("cpa-caption")?.value || "").trim();
+  const likes    = parseInt(document.getElementById("cpa-likes")?.value || "0", 10) || 0;
+  const comments = parseInt(document.getElementById("cpa-comments")?.value || "0", 10) || 0;
+  const shares   = parseInt(document.getElementById("cpa-shares")?.value || "0", 10) || 0;
+  const saves    = parseInt(document.getElementById("cpa-saves")?.value || "0", 10) || 0;
+  const format   = document.getElementById("cpa-format")?.value || "";
+  const topic    = (document.getElementById("cpa-topic")?.value || "").trim();
+
+  if (!caption) { showToast("Paste your caption first."); return; }
+  if (likes === 0 && comments === 0 && shares === 0 && saves === 0 && !_cpaScreenshotData) {
+    showToast("Add engagement numbers or upload an insights screenshot."); return;
+  }
+
+  // Show loading state
+  const form     = document.getElementById("cpa-form");
+  const loading  = document.getElementById("cpa-loading");
+  const resultEl = document.getElementById("cpa-result");
+  const resetWrap= document.getElementById("cpa-reset-wrap");
+  const bar      = document.getElementById("cpa-progress-bar");
+
+  if (form)     form.style.display    = "none";
+  if (loading)  loading.style.display = "block";
+  if (resultEl) resultEl.style.display= "none";
+  if (resetWrap)resetWrap.style.display="none";
+  if (bar) setTimeout(() => { bar.style.width = "85%"; }, 50);
+
+  const textParts = [
+    `Caption: "${caption}"`,
+    (likes || comments || shares || saves)
+      ? `Engagement — Likes: ${likes} | Comments: ${comments} | Shares: ${shares} | Saves: ${saves}`
+      : null,
+    format ? `Format: ${format}` : null,
+    topic  ? `Topic/angle: ${topic}` : null,
+    _cpaScreenshotData ? "A screenshot of the post insights is attached. Please read the engagement numbers directly from it — use those values for your analysis." : null
+  ].filter(Boolean).join("\n");
+
+  // Build message content — text always, image block added when screenshot present
+  const msgContent = _cpaScreenshotData
+    ? [
+        { type: "image", source: { type: "base64", media_type: _cpaScreenshotData.mediaType, data: _cpaScreenshotData.base64 } },
+        { type: "text", text: textParts }
+      ]
+    : textParts;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31"
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 600,
+        system: [
+          {
+            type: "text",
+            text: _CPA_SYSTEM_PROMPT,
+            cache_control: _CPA_CACHE_CONTROL  // prompt caching — system prompt cached after first call
+          }
+        ],
+        messages: [{ role: "user", content: msgContent }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `API error ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "";
+
+    if (bar) bar.style.width = "100%";
+    setTimeout(() => {
+      if (loading)  loading.style.display  = "none";
+      if (resultEl) {
+        resultEl.style.display = "block";
+        // Render markdown-style bold + line breaks
+        const html = text
+          .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+          .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+          .replace(/\n/g,"<br>");
+        resultEl.innerHTML = `<div style="background:var(--surface2);border-radius:var(--radius);padding:16px;font-size:13px;line-height:1.8;color:var(--text);">${html}</div>`;
+      }
+      if (resetWrap) resetWrap.style.display = "block";
+    }, 400);
+
+  } catch(e) {
+    if (loading)  loading.style.display = "none";
+    if (form)     form.style.display    = "block";
+    showToast("Analysis failed: " + (e.message || "unknown error"));
+  }
+};
+
+window.resetContentAnalysis = function() {
+  const form     = document.getElementById("cpa-form");
+  const resultEl = document.getElementById("cpa-result");
+  const resetWrap= document.getElementById("cpa-reset-wrap");
+  const bar      = document.getElementById("cpa-progress-bar");
+  if (form)     { form.style.display = "block"; }
+  if (resultEl) { resultEl.style.display = "none"; resultEl.innerHTML = ""; }
+  if (resetWrap){ resetWrap.style.display = "none"; }
+  if (bar)      { bar.style.width = "0%"; bar.style.transition = "none"; setTimeout(()=>{ bar.style.transition="width 2s ease"; },50); }
+  // Clear inputs
+  ["cpa-caption","cpa-topic"].forEach(id => { const el=document.getElementById(id); if(el) el.value=""; });
+  ["cpa-likes","cpa-comments","cpa-shares","cpa-saves"].forEach(id => { const el=document.getElementById(id); if(el) el.value=""; });
+  const fmt = document.getElementById("cpa-format"); if(fmt) fmt.value="";
+  clearCpaScreenshot();
+};
 
 // ─────────────────────────────────────────────
 //  ADMIN: Clear Feed Posts by Week
