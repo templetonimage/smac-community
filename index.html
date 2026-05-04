@@ -1325,8 +1325,32 @@
     <div class="pro-feature-card" id="pro-action-plan-card">
       <div class="pro-feature-icon">🗓</div>
       <div class="pro-feature-title">Weekly Action Plan Generator</div>
-      <div class="pro-feature-desc">Get a personalized posting plan for the week — tailored to your niche, current streak, and this week's requirement. Reduces decision fatigue so you just execute.</div>
-      <div class="pro-coming-soon">Coming at Pro Launch</div>
+      <div class="pro-feature-desc">Get a personalized posting plan for the week — tailored to your niche, the current SMAC week, and your goals. No more deciding what to post. Just execute.</div>
+      <div id="wap-form" style="margin-top:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your niche / business <span style="font-weight:400;text-transform:none;font-size:11px;">(pulled from your profile)</span></div>
+        <input id="wap-niche" type="text" placeholder="e.g. wedding photographer, business coach, fitness trainer..." class="auth-input" style="margin-bottom:14px;padding:10px 12px;" />
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">How many posts are you aiming for this week?</div>
+        <select id="wap-freq" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+          <option value="3">3 posts</option>
+          <option value="4">4 posts</option>
+          <option value="5" selected>5 posts (recommended)</option>
+          <option value="6">6 posts</option>
+          <option value="7">7 posts (every day)</option>
+        </select>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What did you post about last week? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional — helps avoid repetition)</span></div>
+        <textarea id="wap-last-week" placeholder="e.g. behind the scenes reel, a client win carousel, a tips post..." style="width:100%;min-height:60px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Current focus or priority <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+        <input id="wap-focus" type="text" placeholder="e.g. launching a new offer, growing reach, building trust..." class="auth-input" style="margin-bottom:16px;padding:10px 12px;" />
+        <button onclick="runActionPlan()" class="btn-gold" style="font-size:16px;padding:12px;">Build My Week</button>
+      </div>
+      <div id="wap-loading" style="display:none;text-align:center;padding:20px 0;">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Building your plan...</div>
+        <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="wap-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2.5s ease;border-radius:2px;"></div></div>
+      </div>
+      <div id="wap-result" style="display:none;margin-top:16px;"></div>
+      <div id="wap-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
+        <button onclick="resetActionPlan()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Plan</button>
+      </div>
     </div>
 
     <!-- Caption Assist -->
@@ -3983,6 +4007,8 @@ function renderProPage(){
       trialBanner.style.display="none";
     }
   }
+  // Auto-fill niche field from profile
+  setTimeout(wapPrefillFromProfile, 100);
 }
 
 // ─────────────────────────────────────────────
@@ -4016,6 +4042,160 @@ RESPONSE FORMAT — always return exactly this structure with these section head
 Keep the entire response under 300 words. Be direct and coach-like, not fluffy. This is a discipline program — members can handle honest feedback.`;
 
 const _CPA_CACHE_CONTROL = { type: "ephemeral" };
+
+// ─────────────────────────────────────────────
+//  SMAC PRO — Weekly Action Plan Generator
+//  Uses claude-haiku-4-5 with prompt caching on system prompt
+// ─────────────────────────────────────────────
+const _WAP_SYSTEM_PROMPT = `You are a content strategist and accountability coach for SMAC Pro, a 90-day Instagram consistency program for solopreneurs. Your job is to build a practical, specific weekly posting plan.
+
+2026 INSTAGRAM CONTENT STRATEGY PRINCIPLES:
+- DM shares and saves are the strongest algorithm signals in 2026. Bias toward content that earns those.
+- Vary formats across the week — don't prescribe the same format every day.
+- Mix content pillars: educational, behind-the-scenes, social proof/results, personal/story, promotional (max 1 promotional post per week).
+- Hook angles matter as much as the topic. Give a specific hook direction for each post, not just a subject.
+- Reels: 30-90 seconds optimal. First 3 seconds critical. Suggest hook text overlay ideas.
+- Carousels: 6-10 slides. Slide 1 is the hook. Last slide = CTA or recap.
+- Static posts: pair with a strong caption since the image carries less algorithm weight alone.
+- Keywords in captions beat hashtag stuffing. 3-5 niche hashtags max.
+- Authenticity over polish in 2026. Raw, real, first-person content outperforms overly produced content.
+- Rest days are fine — plan should only include the number of posts requested.
+
+OUTPUT FORMAT — return exactly this structure:
+
+**Your Week [N] Plan — [X] posts**
+
+[One sentence framing the week's strategic theme.]
+
+---
+**[Day] — [Format]**
+Topic: [Specific topic, not generic]
+Hook angle: [Exact hook direction — what the first line/frame should do]
+Why this week: [One sentence on why this content makes sense right now]
+---
+
+[Repeat for each post day]
+
+---
+**This week's priority:** [One sentence on the single most important thing to focus on this week — the post or action most likely to move the needle.]
+
+Keep the full plan under 400 words. Be specific and direct. No filler.`;
+
+const _WAP_CACHE_CONTROL = { type: "ephemeral" };
+
+// Week labels matching SMAC Round 3 schedule
+const _WAP_WEEK_LABELS = [
+  "Week 1","Week 2","Week 3","Week 4","Week 5","Week 6",
+  "Week 7","Week 8","Week 9","Week 10","Week 11","Week 12"
+];
+
+window.runActionPlan = async function() {
+  if (!currentUser || !userHasPro()) { showToast("Pro feature — upgrade to access."); return; }
+
+  const niche    = (document.getElementById("wap-niche")?.value || "").trim();
+  const freq     = document.getElementById("wap-freq")?.value || "5";
+  const lastWeek = (document.getElementById("wap-last-week")?.value || "").trim();
+  const focus    = (document.getElementById("wap-focus")?.value || "").trim();
+
+  if (!niche) { showToast("Add your niche or business first."); return; }
+
+  const weekIdx  = getWeekIndex(Date.now());
+  const weekLabel = weekIdx >= 0 ? _WAP_WEEK_LABELS[weekIdx] || ("Week " + (weekIdx + 1)) : "current week";
+
+  const form     = document.getElementById("wap-form");
+  const loading  = document.getElementById("wap-loading");
+  const resultEl = document.getElementById("wap-result");
+  const resetWrap= document.getElementById("wap-reset-wrap");
+  const bar      = document.getElementById("wap-progress-bar");
+
+  if (form)     form.style.display     = "none";
+  if (loading)  loading.style.display  = "block";
+  if (resultEl) resultEl.style.display = "none";
+  if (resetWrap)resetWrap.style.display= "none";
+  if (bar) setTimeout(() => { bar.style.width = "85%"; }, 50);
+
+  const userMsg = [
+    `Niche / business: ${niche}`,
+    `SMAC challenge week: ${weekLabel} of 12`,
+    `Posts this week: ${freq}`,
+    lastWeek ? `Posted last week: ${lastWeek}` : null,
+    focus    ? `Current focus: ${focus}` : null
+  ].filter(Boolean).join("\n");
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31"
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 900,
+        system: [
+          {
+            type: "text",
+            text: _WAP_SYSTEM_PROMPT,
+            cache_control: _WAP_CACHE_CONTROL
+          }
+        ],
+        messages: [{ role: "user", content: userMsg }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `API error ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "";
+
+    if (bar) bar.style.width = "100%";
+    setTimeout(() => {
+      if (loading) loading.style.display = "none";
+      if (resultEl) {
+        resultEl.style.display = "block";
+        const html = text
+          .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+          .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">')
+          .replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--gold);">$1</strong>')
+          .replace(/\n/g, "<br>");
+        resultEl.innerHTML = `<div style="background:var(--surface2);border-radius:var(--radius);padding:16px;font-size:13px;line-height:1.8;color:var(--text);">${html}</div>`;
+      }
+      if (resetWrap) resetWrap.style.display = "block";
+    }, 400);
+
+  } catch(e) {
+    if (loading) loading.style.display = "none";
+    if (form)    form.style.display    = "block";
+    showToast("Plan generation failed: " + (e.message || "unknown error"));
+  }
+};
+
+window.resetActionPlan = function() {
+  const form     = document.getElementById("wap-form");
+  const resultEl = document.getElementById("wap-result");
+  const resetWrap= document.getElementById("wap-reset-wrap");
+  const bar      = document.getElementById("wap-progress-bar");
+  if (form)     form.style.display     = "block";
+  if (resultEl) { resultEl.style.display = "none"; resultEl.innerHTML = ""; }
+  if (resetWrap)resetWrap.style.display = "none";
+  if (bar) { bar.style.width = "0%"; bar.style.transition = "none"; setTimeout(() => { bar.style.transition = "width 2.5s ease"; }, 50); }
+  const lastWeek = document.getElementById("wap-last-week"); if (lastWeek) lastWeek.value = "";
+  const focus    = document.getElementById("wap-focus");    if (focus)    focus.value = "";
+};
+
+// Auto-fill niche from profile when Pro page loads
+function wapPrefillFromProfile() {
+  const nicheEl = document.getElementById("wap-niche");
+  if (!nicheEl || nicheEl.value) return;
+  const prof = lsGet("smac_profile_" + (currentUser?.uid || "")) || {};
+  const niche = prof.business || prof.type || "";
+  if (niche) nicheEl.value = niche;
+}
 
 // ─────────────────────────────────────────────
 //  SMAC PRO — Caption Assist
