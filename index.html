@@ -1348,8 +1348,18 @@
         <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="wap-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2.5s ease;border-radius:2px;"></div></div>
       </div>
       <div id="wap-result" style="display:none;margin-top:16px;"></div>
-      <div id="wap-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
+      <div id="wap-save-wrap" style="display:none;margin-top:10px;text-align:center;">
+        <button onclick="saveActionPlan()" id="wap-save-btn" style="background:none;border:1.5px solid var(--gold);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--gold);cursor:pointer;font-weight:600;">Save This Plan</button>
+      </div>
+      <div id="wap-reset-wrap" style="display:none;margin-top:8px;text-align:center;">
         <button onclick="resetActionPlan()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Plan</button>
+      </div>
+      <div id="wap-history-wrap" style="margin-top:20px;display:none;">
+        <div onclick="toggleWapHistory()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 0;border-top:1px solid var(--border);">
+          <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Previous Plans</span>
+          <span id="wap-history-chevron" style="font-size:12px;color:var(--text-muted);">▼</span>
+        </div>
+        <div id="wap-history-list" style="display:none;"></div>
       </div>
     </div>
 
@@ -1765,8 +1775,8 @@ const FIREBASE_CONFIG = {
 //    _ant1 = "sk-ant-api03-AbCdEf"
 //    _ant2 = "GhIj..." (everything after)
 // ─────────────────────────────────────────────
-const _ant1 = "sk-ant-api03-dttsepEjPTztLeAkSwgzyB_Jnu8JOXTFfDa9FEiqJ";
-const _ant2 = "Ck3Owy97uxE3CdlFrn2HvpE2C3O_hGSOSIldnkePQ7fHg-LRzRxQAA";
+const _ant1 = "PASTE_FIRST_HALF_HERE";
+const _ant2 = "PASTE_SECOND_HALF_HERE";
 const ANTHROPIC_KEY = _ant1 + _ant2;
 
 // ─────────────────────────────────────────────
@@ -4037,6 +4047,8 @@ function renderProPage(){
   }
   // Auto-fill niche field from profile
   setTimeout(wapPrefillFromProfile, 100);
+  // Load previous plans history
+  setTimeout(loadWapHistory, 150);
 }
 
 // ─────────────────────────────────────────────
@@ -4273,6 +4285,11 @@ const _WAP_WEEK_LABELS = [
   "Week 7","Week 8","Week 9","Week 10","Week 11","Week 12"
 ];
 
+// Module-level store for current plan text (used by saveActionPlan)
+let _wapCurrentPlanText = "";
+let _wapCurrentWeekIdx  = -1;
+let _wapCurrentWeekLabel = "";
+
 window.runActionPlan = async function() {
   if (!currentUser || !userHasPro()) { showToast("Pro feature — upgrade to access."); return; }
 
@@ -4283,27 +4300,52 @@ window.runActionPlan = async function() {
 
   if (!niche) { showToast("Add your niche or business first."); return; }
 
-  const weekIdx  = getWeekIndex(Date.now());
+  const weekIdx   = getWeekIndex(Date.now());
   const weekLabel = weekIdx >= 0 ? _WAP_WEEK_LABELS[weekIdx] || ("Week " + (weekIdx + 1)) : "current week";
+  _wapCurrentWeekIdx  = weekIdx;
+  _wapCurrentWeekLabel = weekLabel;
 
-  const form     = document.getElementById("wap-form");
-  const loading  = document.getElementById("wap-loading");
-  const resultEl = document.getElementById("wap-result");
-  const resetWrap= document.getElementById("wap-reset-wrap");
-  const bar      = document.getElementById("wap-progress-bar");
+  const form      = document.getElementById("wap-form");
+  const loading   = document.getElementById("wap-loading");
+  const resultEl  = document.getElementById("wap-result");
+  const resetWrap = document.getElementById("wap-reset-wrap");
+  const saveWrap  = document.getElementById("wap-save-wrap");
+  const bar       = document.getElementById("wap-progress-bar");
 
   if (form)     form.style.display     = "none";
   if (loading)  loading.style.display  = "block";
   if (resultEl) resultEl.style.display = "none";
   if (resetWrap)resetWrap.style.display= "none";
+  if (saveWrap) saveWrap.style.display = "none";
   if (bar) setTimeout(() => { bar.style.width = "85%"; }, 50);
+
+  // Fetch last 3 saved plans for context
+  let historyContext = "";
+  try {
+    const { collection, query, where, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const hSnap = await getDocs(query(
+      collection(db, "pro_plans"),
+      where("uid", "==", currentUser.uid),
+      orderBy("createdAt", "desc"),
+      limit(3)
+    ));
+    if (!hSnap.empty) {
+      const pastPlans = [];
+      hSnap.forEach(d => {
+        const pd = d.data();
+        pastPlans.push(`${pd.weekLabel}: ${pd.planSummary || pd.plan.substring(0, 300)}`);
+      });
+      historyContext = "\n\nPREVIOUS WEEKS (do NOT repeat these topics, formats, or hook angles):\n" + pastPlans.reverse().join("\n---\n");
+    }
+  } catch(e) { /* history fetch non-fatal */ }
 
   const userMsg = [
     `Niche / business: ${niche}`,
     `SMAC challenge week: ${weekLabel} of 12`,
     `Posts this week: ${freq}`,
     lastWeek ? `Posted last week: ${lastWeek}` : null,
-    focus    ? `Current focus: ${focus}` : null
+    focus    ? `Current focus: ${focus}` : null,
+    historyContext || null
   ].filter(Boolean).join("\n");
 
   try {
@@ -4336,6 +4378,7 @@ window.runActionPlan = async function() {
 
     const data = await resp.json();
     const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "";
+    _wapCurrentPlanText = text;
 
     if (bar) bar.style.width = "100%";
     setTimeout(() => {
@@ -4349,6 +4392,10 @@ window.runActionPlan = async function() {
           .replace(/\n/g, "<br>");
         resultEl.innerHTML = `<div style="background:var(--surface2);border-radius:var(--radius);padding:16px;font-size:13px;line-height:1.8;color:var(--text);">${html}</div>`;
       }
+      // Reset save button state
+      const saveBtn = document.getElementById("wap-save-btn");
+      if (saveBtn) { saveBtn.textContent = "Save This Plan"; saveBtn.disabled = false; saveBtn.style.opacity = "1"; }
+      if (saveWrap) saveWrap.style.display = "block";
       if (resetWrap) resetWrap.style.display = "block";
     }, 400);
 
@@ -4359,15 +4406,94 @@ window.runActionPlan = async function() {
   }
 };
 
+// Save current plan to Firestore pro_plans collection
+window.saveActionPlan = async function() {
+  if (!currentUser || !_wapCurrentPlanText) return;
+  const saveBtn = document.getElementById("wap-save-btn");
+  if (saveBtn) { saveBtn.textContent = "Saving..."; saveBtn.disabled = true; saveBtn.style.opacity = "0.6"; }
+  try {
+    const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    // Extract a short summary (first 200 chars of plan, stripped of markdown)
+    const planSummary = _wapCurrentPlanText.replace(/\*\*/g,"").replace(/^---$/gm,"").replace(/\n+/g," ").substring(0, 200).trim();
+    await addDoc(collection(db, "pro_plans"), {
+      uid:         currentUser.uid,
+      weekIdx:     _wapCurrentWeekIdx,
+      weekLabel:   _wapCurrentWeekLabel,
+      plan:        _wapCurrentPlanText,
+      planSummary: planSummary,
+      createdAt:   serverTimestamp()
+    });
+    if (saveBtn) { saveBtn.textContent = "Saved ✓"; saveBtn.style.color = "var(--gold)"; }
+    showToast("Plan saved to your history.");
+    // Reload history accordion
+    await loadWapHistory();
+    const histWrap = document.getElementById("wap-history-wrap");
+    if (histWrap) histWrap.style.display = "block";
+  } catch(e) {
+    if (saveBtn) { saveBtn.textContent = "Save This Plan"; saveBtn.disabled = false; saveBtn.style.opacity = "1"; }
+    showToast("Save failed: " + (e.message || "unknown error"));
+  }
+};
+
+// Load and render previous plans into the history accordion
+async function loadWapHistory() {
+  if (!currentUser) return;
+  const listEl = document.getElementById("wap-history-list");
+  const wrapEl = document.getElementById("wap-history-wrap");
+  if (!listEl) return;
+  try {
+    const { collection, query, where, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const snap = await getDocs(query(
+      collection(db, "pro_plans"),
+      where("uid", "==", currentUser.uid),
+      orderBy("createdAt", "desc"),
+      limit(12)
+    ));
+    if (snap.empty) { if (wrapEl) wrapEl.style.display = "none"; return; }
+    const items = [];
+    snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+    listEl.innerHTML = items.map(item => {
+      const planHtml = (item.plan || "")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">')
+        .replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--gold);">$1</strong>')
+        .replace(/\n/g,"<br>");
+      return `<details style="margin-bottom:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <summary style="padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);list-style:none;display:flex;justify-content:space-between;align-items:center;background:var(--surface2);">
+          <span>${esc(item.weekLabel || "Week ?")} Plan</span>
+          <span style="font-size:11px;color:var(--text-muted);font-weight:400;">${item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString("en-US",{month:"short",day:"numeric"}) : ""}</span>
+        </summary>
+        <div style="padding:14px;font-size:13px;line-height:1.8;color:var(--text);">${planHtml}</div>
+      </details>`;
+    }).join("");
+    if (wrapEl) wrapEl.style.display = "block";
+  } catch(e) { /* non-fatal */ }
+}
+
+// Toggle history accordion open/closed
+window.toggleWapHistory = function() {
+  const list    = document.getElementById("wap-history-list");
+  const chevron = document.getElementById("wap-history-chevron");
+  if (!list) return;
+  const isOpen = list.style.display !== "none";
+  list.style.display    = isOpen ? "none" : "block";
+  if (chevron) chevron.textContent = isOpen ? "▼" : "▲";
+};
+
 window.resetActionPlan = function() {
   const form     = document.getElementById("wap-form");
   const resultEl = document.getElementById("wap-result");
   const resetWrap= document.getElementById("wap-reset-wrap");
+  const saveWrap = document.getElementById("wap-save-wrap");
+  const saveBtn  = document.getElementById("wap-save-btn");
   const bar      = document.getElementById("wap-progress-bar");
   if (form)     form.style.display     = "block";
   if (resultEl) { resultEl.style.display = "none"; resultEl.innerHTML = ""; }
   if (resetWrap)resetWrap.style.display = "none";
+  if (saveWrap) saveWrap.style.display  = "none";
+  if (saveBtn)  { saveBtn.textContent = "Save This Plan"; saveBtn.disabled = false; saveBtn.style.opacity = "1"; saveBtn.style.color = "var(--gold)"; }
   if (bar) { bar.style.width = "0%"; bar.style.transition = "none"; setTimeout(() => { bar.style.transition = "width 2.5s ease"; }, 50); }
+  _wapCurrentPlanText = "";
   const lastWeek = document.getElementById("wap-last-week"); if (lastWeek) lastWeek.value = "";
   const focus    = document.getElementById("wap-focus");    if (focus)    focus.value = "";
 };
