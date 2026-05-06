@@ -1471,7 +1471,7 @@
     <div class="pro-feature-card" id="pro-hook-card">
       <div class="pro-feature-icon">🎣</div>
       <div class="pro-feature-title">Hook Generator</div>
-      <div class="pro-feature-desc">Your hook is the only thing standing between your post and the scroll. Drop in your topic and get 10 hooks across every style that works in 2026. Pick one, edit it, done.</div>
+      <div class="pro-feature-desc">Your hook is the only thing standing between your post and the scroll. Drop in your topic and get 5 hooks across different styles that work in 2026. Pick one, edit it, done.</div>
       <div id="hg-form" style="margin-top:16px;">
         <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's the post about?</div>
         <textarea id="hg-topic" placeholder="e.g. how I doubled my Instagram reach by posting less, a client result, my morning routine..." style="width:100%;min-height:70px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
@@ -1483,7 +1483,7 @@
           <option value="Carousel (slide 1 hook)">Carousel (slide 1)</option>
           <option value="Static post (caption hook — first line only)">Static post (caption)</option>
         </select>
-        <button onclick="runHookGenerator()" class="btn-gold" style="font-size:16px;padding:12px;">Generate 10 Hooks</button>
+        <button onclick="runHookGenerator()" class="btn-gold" style="font-size:16px;padding:12px;">Generate 5 Hooks</button>
       </div>
       <div id="hg-loading" style="display:none;text-align:center;padding:20px 0;">
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Writing your hooks...</div>
@@ -4083,7 +4083,7 @@ const _CPA_CACHE_CONTROL = { type: "ephemeral" };
 //  Uses claude-haiku-4-5 with prompt caching on system prompt
 //  Built on 2026 Instagram hook best practices
 // ─────────────────────────────────────────────
-const _HG_SYSTEM_PROMPT = `You are a hook-writing coach for SMAC Pro, a 90-day Instagram consistency program for solopreneurs. Your job is to generate 10 distinct, ready-to-use hooks for a single post topic.
+const _HG_SYSTEM_PROMPT = `You are a hook-writing coach for SMAC Pro, a 90-day Instagram consistency program for solopreneurs. Your job is to generate 5 distinct, ready-to-use hooks for a single post topic.
 
 2026 HOOK BEST PRACTICES (every hook you write must follow these):
 - You have 1.7 seconds. The hook either earns the next second or loses the viewer forever.
@@ -4094,17 +4094,12 @@ const _HG_SYSTEM_PROMPT = `You are a hook-writing coach for SMAC Pro, a 90-day I
 - Open loops beat closed statements. Create a gap the brain needs to close.
 - Each hook must feel like a different person wrote it — vary style, structure, and emotional register.
 
-THE 10 HOOK TYPES (write exactly one of each):
+THE 5 HOOK TYPES (write exactly one of each):
 1. Curiosity Gap — hint at something they need to know without revealing it
 2. Contrarian — challenge a common belief your audience holds
 3. Tension/Mid-Story — drop into the middle of a situation already in progress
 4. Transformation — compress a before/after into one line
-5. Specific Relatability — hyper-specific scenario that makes them think "that's exactly me"
-6. Bold Claim — make a statement they can't ignore, even if they want to disagree
-7. Social Proof / Result — lead with a concrete outcome or number
-8. Empathy — prove you understand their actual life before saying anything else
-9. Clear Promise — tell them exactly what they'll get, make it sound worth their time
-10. Conversational — sounds like the start of a real conversation with a friend, not a post
+5. Bold Claim — make a statement they can't ignore, even if they want to disagree
 
 OUTPUT FORMAT — return exactly this, no preamble:
 
@@ -4119,7 +4114,7 @@ OUTPUT FORMAT — return exactly this, no preamble:
 9. [Clear Promise] Hook text here
 10. [Conversational] Hook text here
 
-Nothing else. No explanations. No notes after. Just the 10 hooks.`;
+Nothing else. No explanations. No notes after. Just the 5 hooks.`;
 
 const _HG_CACHE_CONTROL = { type: "ephemeral" };
 
