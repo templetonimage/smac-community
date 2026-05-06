@@ -1769,15 +1769,10 @@ const FIREBASE_CONFIG = {
 };
 
 // ─────────────────────────────────────────────
-//  🔑 ANTHROPIC API KEY (split to avoid GitHub secret scanner)
-//  Get your key at: console.anthropic.com → API Keys
-//  Split anywhere after the prefix, e.g.:
-//    _ant1 = "sk-ant-api03-AbCdEf"
-//    _ant2 = "GhIj..." (everything after)
+//  🔑 ANTHROPIC API KEY
+//  Held server-side in Cloudflare Worker — no key needed here.
+//  Worker URL: https://smac-ai-proxy.templetonimage.workers.dev
 // ─────────────────────────────────────────────
-const _ant1 = "sk-ant-api03-dttsepEjPTztLeAkSwgzyB_Jnu8JOXTFfDa9FEiqJ";
-const _ant2 = "Ck3Owy97uxE3CdlFrn2HvpE2C3O_hGSOSIldnkePQ7fHg-LRzRxQAA";
-const ANTHROPIC_KEY = _ant1 + _ant2;
 
 // ─────────────────────────────────────────────
 //  🔑 PASSCODES  (change before going live!)
@@ -4152,13 +4147,10 @@ window.runHookGenerator = async function() {
   const userMsg = `Topic: ${topic}\nFormat: ${format}`;
 
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "prompt-caching-2024-07-31"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
@@ -4349,13 +4341,10 @@ window.runActionPlan = async function() {
   ].filter(Boolean).join("\n");
 
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "prompt-caching-2024-07-31"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
@@ -4574,13 +4563,10 @@ window.runCaptionAssist = async function() {
   ].filter(Boolean).join("\n");
 
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "prompt-caching-2024-07-31"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
@@ -4726,13 +4712,10 @@ window.runContentAnalysis = async function() {
     : textParts;
 
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "prompt-caching-2024-07-31"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
