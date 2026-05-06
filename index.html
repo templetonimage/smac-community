@@ -1316,212 +1316,7 @@
 </div>
   <!-- PRO PAGE (hidden from free users, visible to admin + Pro) -->
   <div class="page" id="page-pro">
-    <div class="pro-page-header">
-      <div class="pro-page-title">SMAC PRO</div>
-      <div class="pro-page-sub">Your 90-Day Content Discipline System</div>
-    </div>
-
-    <!-- Weekly Action Plan Generator -->
-    <div class="pro-feature-card" id="pro-action-plan-card">
-      <div class="pro-feature-icon">🗓</div>
-      <div class="pro-feature-title">Weekly Action Plan Generator</div>
-      <div class="pro-feature-desc">Get a personalized posting plan for the week — tailored to your niche, the current SMAC week, and your goals. No more deciding what to post. Just execute.</div>
-      <div id="wap-form" style="margin-top:16px;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your niche / business <span style="font-weight:400;text-transform:none;font-size:11px;">(pulled from your profile)</span></div>
-        <input id="wap-niche" type="text" placeholder="e.g. wedding photographer, business coach, fitness trainer..." class="auth-input" style="margin-bottom:14px;padding:10px 12px;" />
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">How many posts are you aiming for this week?</div>
-        <select id="wap-freq" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
-          <option value="3">3 posts</option>
-          <option value="4">4 posts</option>
-          <option value="5" selected>5 posts (recommended)</option>
-          <option value="6">6 posts</option>
-          <option value="7">7 posts (every day)</option>
-        </select>
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What did you post about last week? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional — helps avoid repetition)</span></div>
-        <textarea id="wap-last-week" placeholder="e.g. behind the scenes reel, a client win carousel, a tips post..." style="width:100%;min-height:60px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Current focus or priority <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-        <input id="wap-focus" type="text" placeholder="e.g. launching a new offer, growing reach, building trust..." class="auth-input" style="margin-bottom:16px;padding:10px 12px;" />
-        <button onclick="runActionPlan()" class="btn-gold" style="font-size:16px;padding:12px;">Build My Week</button>
-      </div>
-      <div id="wap-loading" style="display:none;text-align:center;padding:20px 0;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Building your plan...</div>
-        <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="wap-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2.5s ease;border-radius:2px;"></div></div>
-      </div>
-      <div id="wap-result" style="display:none;margin-top:16px;"></div>
-      <div id="wap-save-wrap" style="display:none;margin-top:10px;text-align:center;">
-        <button onclick="saveActionPlan()" id="wap-save-btn" style="background:none;border:1.5px solid var(--gold);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--gold);cursor:pointer;font-weight:600;">Save This Plan</button>
-      </div>
-      <div id="wap-reset-wrap" style="display:none;margin-top:8px;text-align:center;">
-        <button onclick="resetActionPlan()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Plan</button>
-      </div>
-      <div id="wap-history-wrap" style="margin-top:20px;display:none;">
-        <div onclick="toggleWapHistory()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 0;border-top:1px solid var(--border);">
-          <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Previous Plans</span>
-          <span id="wap-history-chevron" style="font-size:12px;color:var(--text-muted);">▼</span>
-        </div>
-        <div id="wap-history-list" style="display:none;"></div>
-      </div>
-    </div>
-
-    <!-- Caption Assist -->
-    <div class="pro-feature-card" id="pro-caption-card">
-      <div class="pro-feature-icon">✍️</div>
-      <div class="pro-feature-title">Caption Assist</div>
-      <div class="pro-feature-desc">Drop in your post idea and get 3 ready-to-edit captions. Built on 2026 Instagram best practices — hook-first, human-sounding, optimized for saves and shares. You choose, you edit, you post.</div>
-      <div id="ca-form" style="margin-top:16px;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's your post about?</div>
-        <textarea id="ca-idea" placeholder="e.g. I want to share a behind-the-scenes look at how I edit a client video from start to finish..." style="width:100%;min-height:80px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post Format</div>
-        <select id="ca-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
-          <option value="">Select format...</option>
-          <option value="Reel">Reel</option>
-          <option value="Carousel">Carousel</option>
-          <option value="Static image">Static image</option>
-          <option value="Story">Story</option>
-        </select>
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Goal for this post <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-        <select id="ca-goal" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
-          <option value="">No specific goal</option>
-          <option value="maximize saves">Maximize saves</option>
-          <option value="drive comments">Drive comments</option>
-          <option value="get shares/DMs">Get shares / DMs</option>
-          <option value="build trust and connection">Build trust and connection</option>
-          <option value="drive profile visits or follows">Drive follows</option>
-        </select>
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your tone <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-        <select id="ca-tone" class="auth-input" style="margin-bottom:16px;padding:10px 12px;">
-          <option value="authentic and conversational">Authentic &amp; conversational (default)</option>
-          <option value="educational and informative">Educational</option>
-          <option value="bold and direct">Bold &amp; direct</option>
-          <option value="warm and personal">Warm &amp; personal</option>
-          <option value="motivational">Motivational</option>
-        </select>
-        <button onclick="runCaptionAssist()" class="btn-gold" style="font-size:16px;padding:12px;">Generate Captions</button>
-      </div>
-      <div id="ca-loading" style="display:none;text-align:center;padding:20px 0;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Writing your captions...</div>
-        <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="ca-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2.5s ease;border-radius:2px;"></div></div>
-      </div>
-      <div id="ca-result" style="display:none;margin-top:16px;"></div>
-      <div id="ca-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
-        <button onclick="resetCaptionAssist()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Captions</button>
-      </div>
-    </div>
-
-    <!-- Content Performance Analysis -->
-    <div class="pro-feature-card" id="pro-analytics-card">
-      <div class="pro-feature-icon">📊</div>
-      <div class="pro-feature-title">Content Performance Analysis</div>
-      <div class="pro-feature-desc">Drop in a caption and your engagement numbers. Get back a clear breakdown of what's working, what's not, and what to do differently next week. Saves and shares weighted highest.</div>
-      <div id="cpa-form" style="margin-top:16px;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your Caption</div>
-        <textarea id="cpa-caption" placeholder="Paste the caption you posted..." style="width:100%;min-height:90px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Engagement Stats</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-          <div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Likes</div>
-            <input id="cpa-likes" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" />
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Comments</div>
-            <input id="cpa-comments" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" />
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Shares</div>
-            <input id="cpa-shares" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" />
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Saves</div>
-            <input id="cpa-saves" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" />
-          </div>
-        </div>
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post Type <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-        <select id="cpa-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
-          <option value="">Select format...</option>
-          <option value="Reel">Reel</option>
-          <option value="Carousel">Carousel</option>
-          <option value="Static image">Static image</option>
-          <option value="Story">Story</option>
-        </select>
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What was this post about? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-        <input id="cpa-topic" type="text" placeholder="e.g. behind the scenes, client transformation, tips..." class="auth-input" style="margin-bottom:16px;padding:10px 12px;" />
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Insights Screenshot <span style="font-weight:400;text-transform:none;font-size:11px;">(optional — uploads stats automatically)</span></div>
-        <div id="cpa-upload-zone" onclick="document.getElementById('cpa-screenshot').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color .2s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
-          <div id="cpa-upload-label" style="font-size:13px;color:var(--text-muted);">📸 Tap to upload a screenshot of your Instagram insights</div>
-          <div id="cpa-upload-preview" style="display:none;margin-top:10px;">
-            <img id="cpa-preview-img" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:contain;" />
-            <div style="margin-top:6px;font-size:11px;color:var(--gold);">Screenshot attached — stats will be read automatically</div>
-            <button onclick="event.stopPropagation();clearCpaScreenshot()" style="margin-top:6px;background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;">Remove</button>
-          </div>
-        </div>
-        <input id="cpa-screenshot" type="file" accept="image/*" style="display:none;" onchange="handleCpaScreenshot(this)" />
-        <button onclick="runContentAnalysis()" class="btn-gold" style="font-size:16px;padding:12px;">Analyze My Post</button>
-      </div>
-      <div id="cpa-loading" style="display:none;text-align:center;padding:20px 0;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Analyzing your content...</div>
-        <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="cpa-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2s ease;border-radius:2px;"></div></div>
-      </div>
-      <div id="cpa-result" style="display:none;margin-top:16px;"></div>
-      <div id="cpa-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
-        <button onclick="resetContentAnalysis()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Analyze Another Post</button>
-      </div>
-    </div>
-
-    <!-- Hook Generator -->
-    <div class="pro-feature-card" id="pro-hook-card">
-      <div class="pro-feature-icon">🎣</div>
-      <div class="pro-feature-title">Hook Generator</div>
-      <div class="pro-feature-desc">Your hook is the only thing standing between your post and the scroll. Drop in your topic and get 5 hooks across different styles that work in 2026. Pick one, edit it, done.</div>
-      <div id="hg-form" style="margin-top:16px;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's the post about?</div>
-        <textarea id="hg-topic" placeholder="e.g. how I doubled my Instagram reach by posting less, a client result, my morning routine..." style="width:100%;min-height:70px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post format</div>
-        <select id="hg-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
-          <option value="">Select format...</option>
-          <option value="Reel (spoken hook — first 3 seconds on camera)">Reel (spoken / on-camera)</option>
-          <option value="Reel (text overlay hook — appears on screen)">Reel (text overlay)</option>
-          <option value="Carousel (slide 1 hook)">Carousel (slide 1)</option>
-          <option value="Static post (caption hook — first line only)">Static post (caption)</option>
-        </select>
-        <button onclick="runHookGenerator()" class="btn-gold" style="font-size:16px;padding:12px;">Generate 5 Hooks</button>
-      </div>
-      <div id="hg-loading" style="display:none;text-align:center;padding:20px 0;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Writing your hooks...</div>
-        <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="hg-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2s ease;border-radius:2px;"></div></div>
-      </div>
-      <div id="hg-result" style="display:none;margin-top:16px;"></div>
-      <div id="hg-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
-        <button onclick="resetHookGenerator()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Hooks</button>
-      </div>
-    </div>
-
-    <!-- Priority Accountability Group -->
-    <div class="pro-feature-card" id="pro-priority-group-card">
-      <div class="pro-feature-icon">🔥</div>
-      <div class="pro-feature-title">Priority Accountability Group</div>
-      <div class="pro-feature-desc">A smaller, higher-commitment group inside SMAC. Tighter check-ins, faster feedback, and members who are all in at the same level.</div>
-      <div class="pro-coming-soon">Coming at Pro Launch</div>
-    </div>
-
-    <!-- Stronger Nudges -->
-    <div class="pro-feature-card" id="pro-nudges-card">
-      <div class="pro-feature-icon">🔔</div>
-      <div class="pro-feature-title">Stronger Nudges & Reminders</div>
-      <div class="pro-feature-desc">Smart weekly reminders timed to your submission window — so you never miss a deadline. You told us you wanted to be consistent. We'll hold you to it.</div>
-      <div class="pro-coming-soon">Coming at Pro Launch</div>
-    </div>
-
-    <!-- Early Access -->
-    <div class="pro-feature-card" id="pro-early-access-card">
-      <div class="pro-feature-icon">⚡</div>
-      <div class="pro-feature-title">Early Access to New Features</div>
-      <div class="pro-feature-desc">Pro members shape the product. You get every new feature first, plus direct input on what gets built next.</div>
-      <div class="pro-coming-soon">Coming at Pro Launch</div>
-    </div>
-
-    <div id="pro-trial-banner" style="display:none;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:1.5px solid #27ae60;border-radius:var(--radius);padding:14px 16px;margin-top:8px;font-size:13px;line-height:1.6;">
-      <strong style="color:#27ae60;">Trial Access Active</strong> — you have full Pro access through your trial period.
-    </div>
+    <div id="pro-dashboard-root"></div>
   </div>
 
   <!-- CHAT -->
@@ -4026,25 +3821,385 @@ function showProNotification(type, title, message){
 // ─────────────────────────────────────────────
 //  SMAC PRO — Pro Page Renderer
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+//  PRO WEEKLY TARGETS (ramping: Month 1=3, Month 2=4, Month 3=5)
+// ─────────────────────────────────────────────
+const PRO_WEEK_TARGETS = [3,3,3,3, 4,4,4,4, 5,5,5,5];
+
 function renderProPage(){
-  const page=document.getElementById("page-pro");
-  if(!page)return;
-  // Do NOT set inline display style — let the .page / .page.active CSS class system handle visibility
-  // Trial banner
-  const trialBanner=document.getElementById("pro-trial-banner");
-  if(trialBanner){
-    if(userHasTrial()){
-      trialBanner.style.display="block";
-      trialBanner.innerHTML=`<strong style="color:#27ae60;">Trial Access Active</strong> — expires ${getTrialExpiryStr()}. Upgrade to keep full access.`;
-    } else {
-      trialBanner.style.display="none";
-    }
-  }
-  // Auto-fill niche field from profile
-  setTimeout(wapPrefillFromProfile, 100);
-  // Load previous plans history
-  setTimeout(loadWapHistory, 150);
+  renderProDashboard();
 }
+
+// ─────────────────────────────────────────────
+//  PRO DASHBOARD — main grid view
+// ─────────────────────────────────────────────
+window.renderProDashboard = async function(){
+  const root = document.getElementById("pro-dashboard-root");
+  if(!root) return;
+  const scroller = document.getElementById("app-scroll");
+  if(scroller) scroller.scrollTop = 0;
+
+  // Show loading skeleton
+  root.innerHTML = `<div style="padding:20px 0;text-align:center;color:var(--text-muted);font-size:13px;">Loading your Pro dashboard...</div>`;
+
+  // Fetch data
+  let totalPts = 0, postsThisWeek = 0, proTarget = 3, weekCounts = [];
+  try {
+    const {getDocs,collection:col,query:q,where,getDoc,doc:dc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const uid = currentUser.uid;
+    const registryId = currentUser.registryId || uid;
+    const now = Date.now();
+    const currentWeekIdx = getWeekIndex(now);
+
+    const [regSnap, subSnap] = await Promise.all([
+      getDoc(dc(db,'smac_registry',registryId)),
+      getDocs(q(col(db,'submissions'),where('uid','==',uid)))
+    ]);
+
+    const regData = regSnap.exists() ? regSnap.data() : {};
+    totalPts = regData.points || 0;
+    const subs = subSnap.docs.map(d => ({...d.data(), id:d.id}));
+
+    // Posts this week (vs Pro target)
+    if(currentWeekIdx >= 0){
+      postsThisWeek = subs.filter(s => s.weekIdx === currentWeekIdx).length;
+      proTarget = PRO_WEEK_TARGETS[currentWeekIdx] || 3;
+    }
+
+    // Weekly counts for chart (12 weeks)
+    weekCounts = WEEKS.map((w, i) => subs.filter(s => s.weekIdx === i).length);
+
+  } catch(e) {
+    console.error("Pro dashboard load error:", e);
+  }
+
+  const now2 = Date.now();
+  const currentWeekIdx = getWeekIndex(now2);
+  const weekLabel = currentWeekIdx >= 0 ? `Week ${currentWeekIdx+1} of 12` : "—";
+  const trialHtml = userHasTrial()
+    ? `<div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:1.5px solid #27ae60;border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.5;"><strong style="color:#27ae60;">Trial Access Active</strong> — expires ${getTrialExpiryStr()}. Upgrade to keep full access.</div>`
+    : "";
+
+  // Build chart bars
+  const maxCount = Math.max(...weekCounts, proTarget, 1);
+  const chartBars = WEEKS.map((w,i) => {
+    const count = weekCounts[i] || 0;
+    const target = PRO_WEEK_TARGETS[i] || 3;
+    const pct = Math.round((count / maxCount) * 100);
+    const isCurrent = i === currentWeekIdx;
+    const isPast = i < currentWeekIdx;
+    const isFuture = i > currentWeekIdx;
+    const met = count >= target;
+    const barColor = isFuture ? "var(--surface2)" : (isCurrent ? "var(--gold)" : (met ? "rgba(212,175,55,0.55)" : "rgba(212,175,55,0.25))"));
+    const labelColor = isCurrent ? "var(--gold)" : (isFuture ? "var(--text-muted)" : "var(--text-muted)");
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0;">
+        <div style="font-size:10px;color:${labelColor};font-weight:${isCurrent?'700':'400'};min-height:14px;">${isFuture?'':count||''}</div>
+        <div style="width:100%;background:var(--surface2);border-radius:4px;height:60px;display:flex;align-items:flex-end;overflow:hidden;">
+          <div style="width:100%;height:${pct}%;background:${barColor};border-radius:4px;transition:height .4s ease;min-height:${count>0?'4px':'0'};"></div>
+        </div>
+        <div style="font-size:9px;color:${labelColor};font-weight:${isCurrent?'700':'400'};text-align:center;line-height:1.2;white-space:nowrap;">W${i+1}</div>
+      </div>`;
+  }).join("");
+
+  // Tool cards
+  const tools = [
+    {id:'wap',    icon:'🗓', name:'Weekly Action Plan',     desc:'Build your personalized posting plan for the week', live:true},
+    {id:'caption',icon:'✍️', name:'Caption Assist',         desc:'Turn a post idea into 3 ready-to-edit captions',    live:true},
+    {id:'analytics',icon:'📊',name:'Content Performance',  desc:'Analyze your Instagram insights with AI',            live:true},
+    {id:'hooks',  icon:'🪝', name:'Hook Generator',         desc:'Get scroll-stopping hooks for your next post',       live:true},
+    {id:'group',  icon:'🔥', name:'Priority Group',         desc:'Tighter check-ins with high-commitment members',     live:false},
+    {id:'nudges', icon:'🔔', name:'Stronger Nudges',        desc:'Smart reminders timed to your submission window',    live:false},
+    {id:'early',  icon:'⚡', name:'Early Access',           desc:'Shape what gets built next',                         live:false},
+  ];
+
+  const toolGrid = tools.map(t => {
+    if(t.live){
+      return `
+        <div onclick="renderProTool('${t.id}')" style="background:var(--surface);border:1.5px solid var(--gold);border-radius:var(--radius);padding:18px 14px;cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:box-shadow .15s,transform .15s;-webkit-tap-highlight-color:transparent;"
+          onmouseenter="this.style.boxShadow='0 4px 18px rgba(212,175,55,0.18)';this.style.transform='translateY(-1px)'"
+          onmouseleave="this.style.boxShadow='none';this.style.transform='none'">
+          <div style="font-size:26px;line-height:1;">${t.icon}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:var(--text);line-height:1.2;">${t.name}</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.4;">${t.desc}</div>
+          <div style="margin-top:auto;padding-top:8px;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.06em;">Open →</div>
+        </div>`;
+    } else {
+      return `
+        <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px 14px;display:flex;flex-direction:column;gap:8px;opacity:0.45;cursor:default;">
+          <div style="font-size:26px;line-height:1;">${t.icon}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:var(--text);line-height:1.2;">${t.name}</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.4;">${t.desc}</div>
+          <div style="margin-top:auto;padding-top:8px;"><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;background:var(--surface2);padding:3px 8px;border-radius:20px;">Coming Soon</span></div>
+        </div>`;
+    }
+  }).join("");
+
+  // Posts this week pip row
+  const pips = Array.from({length: proTarget}, (_,i) =>
+    `<div style="width:10px;height:10px;border-radius:50%;background:${i < postsThisWeek ? 'var(--gold)' : 'var(--surface2)'};border:1.5px solid ${i < postsThisWeek ? 'var(--gold)' : 'var(--border)'};"></div>`
+  ).join("");
+
+  root.innerHTML = `
+    ${trialHtml}
+    <!-- Header -->
+    <div style="margin-bottom:20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:0.06em;line-height:1;color:var(--gold);">SMAC PRO</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${weekLabel} &nbsp;·&nbsp; You've built the habit. Now make it count.</div>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+      <div class="dash-stat-card highlight" style="border:1.5px solid var(--gold);">
+        <span class="dash-stat-icon">⚡</span>
+        <div class="dash-stat-value" id="pro-val-pts">0</div>
+        <div class="dash-stat-label">Total Points</div>
+      </div>
+      <div class="dash-stat-card" style="border:1.5px solid var(--border);">
+        <span class="dash-stat-icon">📅</span>
+        <div style="font-size:22px;font-weight:700;font-family:'Bebas Neue',sans-serif;letter-spacing:0.02em;line-height:1;">${postsThisWeek} <span style="font-size:14px;font-weight:400;color:var(--text-muted);">/ ${proTarget}</span></div>
+        <div class="dash-stat-label">Posts This Week</div>
+        <div style="display:flex;gap:5px;margin-top:8px;justify-content:center;">${pips}</div>
+      </div>
+    </div>
+
+    <!-- Weekly chart -->
+    <div class="card" style="margin-bottom:20px;padding:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Posting History · Round 3</div>
+      <div style="display:flex;gap:3px;align-items:flex-end;">${chartBars}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px;">
+        <div style="font-size:10px;color:var(--text-muted);">March</div>
+        <div style="font-size:10px;color:var(--text-muted);">April</div>
+        <div style="font-size:10px;color:var(--text-muted);">May</div>
+      </div>
+    </div>
+
+    <!-- Tools heading -->
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;margin-bottom:12px;">Pro Tools</div>
+
+    <!-- Tools grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+      ${toolGrid}
+    </div>
+  `;
+
+  // Count-up total points
+  const ptEl = document.getElementById("pro-val-pts");
+  if(ptEl){
+    const start = performance.now();
+    const dur = 900;
+    function frame(now){
+      const p = Math.min((now-start)/dur,1);
+      const ease = 1-Math.pow(1-p,3);
+      ptEl.textContent = Math.floor(ease*totalPts);
+      if(p<1) requestAnimationFrame(frame);
+      else ptEl.textContent = totalPts;
+    }
+    requestAnimationFrame(frame);
+  }
+};
+
+// ─────────────────────────────────────────────
+//  PRO TOOL VIEW — renders a tool with back nav
+// ─────────────────────────────────────────────
+window.renderProTool = function(toolId){
+  const root = document.getElementById("pro-dashboard-root");
+  if(!root) return;
+  const scroller = document.getElementById("app-scroll");
+  if(scroller) scroller.scrollTop = 0;
+
+  const toolDefs = {
+    wap: {
+      title: "Weekly Action Plan",
+      icon: "🗓",
+      html: `
+        <div class="pro-feature-card" id="pro-action-plan-card" style="margin-top:0;">
+          <div class="pro-feature-desc" style="margin-bottom:16px;">Get a personalized posting plan for the week — tailored to your niche, the current SMAC week, and your goals.</div>
+          <div id="wap-form">
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your niche / business <span style="font-weight:400;text-transform:none;font-size:11px;">(pulled from your profile)</span></div>
+            <input id="wap-niche" type="text" placeholder="e.g. wedding photographer, business coach, fitness trainer..." class="auth-input" style="margin-bottom:14px;padding:10px 12px;" />
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">How many posts are you aiming for this week?</div>
+            <select id="wap-freq" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+              <option value="3">3 posts</option>
+              <option value="4">4 posts</option>
+              <option value="5" selected>5 posts (recommended)</option>
+              <option value="6">6 posts</option>
+              <option value="7">7 posts (every day)</option>
+            </select>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What did you post about last week? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+            <textarea id="wap-last-week" placeholder="e.g. behind the scenes reel, a client win carousel, a tips post..." style="width:100%;min-height:60px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Current focus or priority <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+            <input id="wap-focus" type="text" placeholder="e.g. launching a new offer, growing reach, building trust..." class="auth-input" style="margin-bottom:16px;padding:10px 12px;" />
+            <button onclick="runActionPlan()" class="btn-gold" style="font-size:16px;padding:12px;">Build My Week</button>
+          </div>
+          <div id="wap-loading" style="display:none;text-align:center;padding:20px 0;">
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Building your plan...</div>
+            <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="wap-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2.5s ease;border-radius:2px;"></div></div>
+          </div>
+          <div id="wap-result" style="display:none;margin-top:16px;"></div>
+          <div id="wap-save-wrap" style="display:none;margin-top:10px;text-align:center;">
+            <button onclick="saveActionPlan()" id="wap-save-btn" style="background:none;border:1.5px solid var(--gold);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--gold);cursor:pointer;font-weight:600;">Save This Plan</button>
+          </div>
+          <div id="wap-reset-wrap" style="display:none;margin-top:8px;text-align:center;">
+            <button onclick="resetActionPlan()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Plan</button>
+          </div>
+          <div id="wap-history-wrap" style="margin-top:20px;display:none;">
+            <div onclick="toggleWapHistory()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 0;border-top:1px solid var(--border);">
+              <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Previous Plans</span>
+              <span id="wap-history-chevron" style="font-size:12px;color:var(--text-muted);">▼</span>
+            </div>
+            <div id="wap-history-list" style="display:none;"></div>
+          </div>
+        </div>`
+    },
+    caption: {
+      title: "Caption Assist",
+      icon: "✍️",
+      html: `
+        <div class="pro-feature-card" id="pro-caption-card" style="margin-top:0;">
+          <div class="pro-feature-desc" style="margin-bottom:16px;">Drop in your post idea and get 3 ready-to-edit captions. Hook-first, human-sounding, optimized for saves and shares.</div>
+          <div id="ca-form">
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's your post about?</div>
+            <textarea id="ca-idea" placeholder="e.g. I want to share a behind-the-scenes look at how I edit a client video from start to finish..." style="width:100%;min-height:80px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post Format</div>
+            <select id="ca-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+              <option value="">Select format...</option>
+              <option value="Reel">Reel</option>
+              <option value="Carousel">Carousel</option>
+              <option value="Static image">Static image</option>
+              <option value="Story">Story</option>
+            </select>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Goal for this post <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+            <select id="ca-goal" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+              <option value="">No specific goal</option>
+              <option value="maximize saves">Maximize saves</option>
+              <option value="drive comments">Drive comments</option>
+              <option value="get shares/DMs">Get shares / DMs</option>
+              <option value="build trust and connection">Build trust and connection</option>
+              <option value="drive profile visits or follows">Drive follows</option>
+            </select>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your tone <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+            <select id="ca-tone" class="auth-input" style="margin-bottom:16px;padding:10px 12px;">
+              <option value="authentic and conversational">Authentic &amp; conversational (default)</option>
+              <option value="educational and informative">Educational</option>
+              <option value="bold and direct">Bold &amp; direct</option>
+              <option value="warm and personal">Warm &amp; personal</option>
+              <option value="motivational">Motivational</option>
+            </select>
+            <button onclick="runCaptionAssist()" class="btn-gold" style="font-size:16px;padding:12px;">Generate Captions</button>
+          </div>
+          <div id="ca-loading" style="display:none;text-align:center;padding:20px 0;">
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Writing your captions...</div>
+            <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="ca-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2.5s ease;border-radius:2px;"></div></div>
+          </div>
+          <div id="ca-result" style="display:none;margin-top:16px;"></div>
+          <div id="ca-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
+            <button onclick="resetCaptionAssist()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Captions</button>
+          </div>
+        </div>`
+    },
+    analytics: {
+      title: "Content Performance",
+      icon: "📊",
+      html: `
+        <div class="pro-feature-card" id="pro-analytics-card" style="margin-top:0;">
+          <div class="pro-feature-desc" style="margin-bottom:16px;">Drop in a caption and your engagement numbers. Get back a clear breakdown of what's working, what's not, and what to do differently next week.</div>
+          <div id="cpa-form">
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your Caption</div>
+            <textarea id="cpa-caption" placeholder="Paste the caption you posted..." style="width:100%;min-height:90px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Engagement Stats</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Likes</div><input id="cpa-likes" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" /></div>
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Comments</div><input id="cpa-comments" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" /></div>
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Shares</div><input id="cpa-shares" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" /></div>
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Saves</div><input id="cpa-saves" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" /></div>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post Type <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+            <select id="cpa-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+              <option value="">Select format...</option>
+              <option value="Reel">Reel</option>
+              <option value="Carousel">Carousel</option>
+              <option value="Static image">Static image</option>
+              <option value="Story">Story</option>
+            </select>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What was this post about? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+            <input id="cpa-topic" type="text" placeholder="e.g. behind the scenes, client transformation, tips..." class="auth-input" style="margin-bottom:16px;padding:10px 12px;" />
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Insights Screenshot <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
+            <div id="cpa-upload-zone" onclick="document.getElementById('cpa-screenshot').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color .2s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+              <div id="cpa-upload-label" style="font-size:13px;color:var(--text-muted);">📸 Tap to upload a screenshot of your Instagram insights</div>
+              <div id="cpa-upload-preview" style="display:none;margin-top:10px;">
+                <img id="cpa-preview-img" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:contain;" />
+                <div style="margin-top:6px;font-size:11px;color:var(--gold);">Screenshot attached — stats will be read automatically</div>
+                <button onclick="event.stopPropagation();clearCpaScreenshot()" style="margin-top:6px;background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;">Remove</button>
+              </div>
+            </div>
+            <input id="cpa-screenshot" type="file" accept="image/*" style="display:none;" onchange="handleCpaScreenshot(this)" />
+            <button onclick="runContentAnalysis()" class="btn-gold" style="font-size:16px;padding:12px;">Analyze My Post</button>
+          </div>
+          <div id="cpa-loading" style="display:none;text-align:center;padding:20px 0;">
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Analyzing your content...</div>
+            <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="cpa-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2s ease;border-radius:2px;"></div></div>
+          </div>
+          <div id="cpa-result" style="display:none;margin-top:16px;"></div>
+          <div id="cpa-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
+            <button onclick="resetContentAnalysis()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Analyze Another Post</button>
+          </div>
+        </div>`
+    },
+    hooks: {
+      title: "Hook Generator",
+      icon: "🪝",
+      html: `
+        <div class="pro-feature-card" id="pro-hook-card" style="margin-top:0;">
+          <div class="pro-feature-desc" style="margin-bottom:16px;">Drop in your topic and get 5 hooks across different styles that work in 2026. Pick one, edit it, done.</div>
+          <div id="hg-form">
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's the post about?</div>
+            <textarea id="hg-topic" placeholder="e.g. how I doubled my Instagram reach by posting less, a client result, my morning routine..." style="width:100%;min-height:70px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post format</div>
+            <select id="hg-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+              <option value="">Select format...</option>
+              <option value="Reel (spoken hook — first 3 seconds on camera)">Reel (spoken / on-camera)</option>
+              <option value="Reel (text overlay hook — appears on screen)">Reel (text overlay)</option>
+              <option value="Carousel (slide 1 hook)">Carousel (slide 1)</option>
+              <option value="Static post (caption hook — first line only)">Static post (caption)</option>
+            </select>
+            <button onclick="runHookGenerator()" class="btn-gold" style="font-size:16px;padding:12px;">Generate 5 Hooks</button>
+          </div>
+          <div id="hg-loading" style="display:none;text-align:center;padding:20px 0;">
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Writing your hooks...</div>
+            <div style="width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div id="hg-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2s ease;border-radius:2px;"></div></div>
+          </div>
+          <div id="hg-result" style="display:none;margin-top:16px;"></div>
+          <div id="hg-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
+            <button onclick="resetHookGenerator()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Hooks</button>
+          </div>
+        </div>`
+    }
+  };
+
+  const t = toolDefs[toolId];
+  if(!t){ renderProDashboard(); return; }
+
+  root.innerHTML = `
+    <!-- Back nav -->
+    <div onclick="renderProDashboard()" style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:20px;color:var(--gold);font-size:13px;font-weight:600;-webkit-tap-highlight-color:transparent;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Pro Dashboard
+    </div>
+    <!-- Tool header -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <span style="font-size:28px;">${t.icon}</span>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;">${t.title}</div>
+    </div>
+    ${t.html}
+  `;
+
+  // Post-render hooks for WAP
+  if(toolId === 'wap'){
+    setTimeout(wapPrefillFromProfile, 100);
+    setTimeout(loadWapHistory, 150);
+  }
+};
 
 // ─────────────────────────────────────────────
 //  SMAC PRO — Content Performance Analysis
