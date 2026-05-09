@@ -1576,7 +1576,185 @@ const FIREBASE_CONFIG = {
 // Admin account: nate@templetonimage.com (set password in Firebase Auth console)
 // Members: created via Zapier with auto-generated passwords sent by email
 const ADMIN_EMAIL = "nate@templetonimage.com";
-const CURRENT_ROUND = "R2"; // ← Change to "R3", "R4" etc. at the start of each new Round
+// ─────────────────────────────────────────────
+//  ROUND CONFIGS — add a new entry here for each round.
+//  That's the only change needed between rounds.
+//  weeks: array of 12 [startUTC, endUTC] pairs (midnight ET = UTC-4 in summer, UTC-5 in winter)
+//  weekDefs: label, dates, month, required posts for that week
+// ─────────────────────────────────────────────
+const ROUND_CONFIGS = {
+  R2: {
+    weeks: [
+      // Week 1: Mar 1–7 (EST UTC-5)
+      [Date.UTC(2026,2,1,5,0,0),   Date.UTC(2026,2,8,4,59,59,999)],
+      // Week 2: Mar 8–14 (spans DST → EDT UTC-4)
+      [Date.UTC(2026,2,8,5,0,0),   Date.UTC(2026,2,15,3,59,59,999)],
+      // Week 3: Mar 15–21 (EDT)
+      [Date.UTC(2026,2,15,4,0,0),  Date.UTC(2026,2,22,3,59,59,999)],
+      // Week 4: Mar 22–31
+      [Date.UTC(2026,2,22,4,0,0),  Date.UTC(2026,3,1,3,59,59,999)],
+      // Week 5: Apr 1–7
+      [Date.UTC(2026,3,1,4,0,0),   Date.UTC(2026,3,8,3,59,59,999)],
+      // Week 6: Apr 8–14
+      [Date.UTC(2026,3,8,4,0,0),   Date.UTC(2026,3,15,3,59,59,999)],
+      // Week 7: Apr 15–21
+      [Date.UTC(2026,3,15,4,0,0),  Date.UTC(2026,3,22,3,59,59,999)],
+      // Week 8: Apr 22–30
+      [Date.UTC(2026,3,22,4,0,0),  Date.UTC(2026,4,1,3,59,59,999)],
+      // Week 9: May 1–7
+      [Date.UTC(2026,4,1,4,0,0),   Date.UTC(2026,4,8,3,59,59,999)],
+      // Week 10: May 8–14
+      [Date.UTC(2026,4,8,4,0,0),   Date.UTC(2026,4,15,3,59,59,999)],
+      // Week 11: May 15–21
+      [Date.UTC(2026,4,15,4,0,0),  Date.UTC(2026,4,22,3,59,59,999)],
+      // Week 12: May 22–31
+      [Date.UTC(2026,4,22,4,0,0),  Date.UTC(2026,5,1,3,59,59,999)],
+    ],
+    weekDefs: [
+      {id:"w1", label:"Week 1",  dates:"Mar 1–7",   month:"March", required:1},
+      {id:"w2", label:"Week 2",  dates:"Mar 8–14",  month:"March", required:1},
+      {id:"w3", label:"Week 3",  dates:"Mar 15–21", month:"March", required:1},
+      {id:"w4", label:"Week 4",  dates:"Mar 22–31", month:"March", required:1},
+      {id:"w5", label:"Week 1",  dates:"Apr 1–7",   month:"April", required:2},
+      {id:"w6", label:"Week 2",  dates:"Apr 8–14",  month:"April", required:2},
+      {id:"w7", label:"Week 3",  dates:"Apr 15–21", month:"April", required:2},
+      {id:"w8", label:"Week 4",  dates:"Apr 22–30", month:"April", required:2},
+      {id:"w9", label:"Week 1",  dates:"May 1–7",   month:"May",   required:3},
+      {id:"w10",label:"Week 2",  dates:"May 8–14",  month:"May",   required:3},
+      {id:"w11",label:"Week 3",  dates:"May 15–21", month:"May",   required:3},
+      {id:"w12",label:"Week 4",  dates:"May 22–31", month:"May",   required:3},
+    ],
+    months: ["March","April","May"],
+    monthReqs: {"March":"1 post/week","April":"2 posts/week","May":"3 posts/week"},
+  },
+  R3: {
+    weeks: [
+      // Week 1: Jun 1–7 (EDT UTC-4)
+      [Date.UTC(2026,5,1,4,0,0),   Date.UTC(2026,5,7,3,59,59,999)],
+      // Week 2: Jun 7–14
+      [Date.UTC(2026,5,7,4,0,0),   Date.UTC(2026,5,14,3,59,59,999)],
+      // Week 3: Jun 15–21
+      [Date.UTC(2026,5,15,4,0,0),  Date.UTC(2026,5,21,3,59,59,999)],
+      // Week 4: Jun 22–30
+      [Date.UTC(2026,5,22,4,0,0),  Date.UTC(2026,5,30,3,59,59,999)],
+      // Week 5: Jul 1–7
+      [Date.UTC(2026,6,1,4,0,0),   Date.UTC(2026,6,7,3,59,59,999)],
+      // Week 6: Jul 7–14
+      [Date.UTC(2026,6,7,4,0,0),   Date.UTC(2026,6,14,3,59,59,999)],
+      // Week 7: Jul 15–21
+      [Date.UTC(2026,6,15,4,0,0),  Date.UTC(2026,6,21,3,59,59,999)],
+      // Week 8: Jul 22–31
+      [Date.UTC(2026,6,22,4,0,0),  Date.UTC(2026,6,31,3,59,59,999)],
+      // Week 9: Aug 1–7
+      [Date.UTC(2026,7,1,4,0,0),   Date.UTC(2026,7,7,3,59,59,999)],
+      // Week 10: Aug 7–14
+      [Date.UTC(2026,7,7,4,0,0),   Date.UTC(2026,7,14,3,59,59,999)],
+      // Week 11: Aug 15–21
+      [Date.UTC(2026,7,15,4,0,0),  Date.UTC(2026,7,21,3,59,59,999)],
+      // Week 12: Aug 22–31
+      [Date.UTC(2026,7,22,4,0,0),  Date.UTC(2026,7,31,3,59,59,999)],
+    ],
+    weekDefs: [
+      {id:"w1", label:"Week 1",  dates:"Jun 1–7",   month:"June", required:1},
+      {id:"w2", label:"Week 2",  dates:"Jun 7–14",  month:"June", required:1},
+      {id:"w3", label:"Week 3",  dates:"Jun 15–21", month:"June", required:1},
+      {id:"w4", label:"Week 4",  dates:"Jun 22–30", month:"June", required:1},
+      {id:"w5", label:"Week 1",  dates:"Jul 1–7",   month:"July", required:2},
+      {id:"w6", label:"Week 2",  dates:"Jul 7–14",  month:"July", required:2},
+      {id:"w7", label:"Week 3",  dates:"Jul 15–21", month:"July", required:2},
+      {id:"w8", label:"Week 4",  dates:"Jul 22–31", month:"July", required:2},
+      {id:"w9", label:"Week 1",  dates:"Aug 1–7",   month:"August", required:3},
+      {id:"w10",label:"Week 2",  dates:"Aug 7–14",  month:"August", required:3},
+      {id:"w11",label:"Week 3",  dates:"Aug 15–21", month:"August", required:3},
+      {id:"w12",label:"Week 4",  dates:"Aug 22–31", month:"August", required:3},
+    ],
+    months: ["June","July","August"],
+    monthReqs: {"June":"1 post/week","July":"2 posts/week","August":"3 posts/week"},
+  },
+  // ── ADD FUTURE ROUNDS BELOW ──
+  // After R4 ends Nov 30, the platform resets Dec 1 for SMAC 2027 R1.
+  // Add R1_2027 (or whatever key convention you choose) following the same pattern.
+  R4: {
+    weeks: [
+      // Week 1: Sep 1–7 (EDT UTC-4)
+      [Date.UTC(2026,8,1,4,0,0),  Date.UTC(2026,8,7,3,59,59,999)],
+      // Week 2: Sep 7–14
+      [Date.UTC(2026,8,7,4,0,0),  Date.UTC(2026,8,14,3,59,59,999)],
+      // Week 3: Sep 15–21
+      [Date.UTC(2026,8,15,4,0,0), Date.UTC(2026,8,21,3,59,59,999)],
+      // Week 4: Sep 22–30
+      [Date.UTC(2026,8,22,4,0,0), Date.UTC(2026,8,30,3,59,59,999)],
+      // Week 5: Oct 1–7 (EDT UTC-4)
+      [Date.UTC(2026,9,1,4,0,0),  Date.UTC(2026,9,7,3,59,59,999)],
+      // Week 6: Oct 7–14
+      [Date.UTC(2026,9,7,4,0,0),  Date.UTC(2026,9,14,3,59,59,999)],
+      // Week 7: Oct 15–21
+      [Date.UTC(2026,9,15,4,0,0), Date.UTC(2026,9,21,3,59,59,999)],
+      // Week 8: Oct 22–31
+      [Date.UTC(2026,9,22,4,0,0), Date.UTC(2026,9,31,3,59,59,999)],
+      // Week 9: Nov 1–7 (DST ends Nov 1 2am: start EDT UTC-4, end EST UTC-5)
+      [Date.UTC(2026,10,1,4,0,0), Date.UTC(2026,10,7,4,59,59,999)],
+      // Week 10: Nov 7–14 (EST UTC-5)
+      [Date.UTC(2026,10,7,5,0,0), Date.UTC(2026,10,14,4,59,59,999)],
+      // Week 11: Nov 15–21 (EST UTC-5)
+      [Date.UTC(2026,10,15,5,0,0),Date.UTC(2026,10,21,4,59,59,999)],
+      // Week 12: Nov 22–30 (EST UTC-5)
+      [Date.UTC(2026,10,22,5,0,0),Date.UTC(2026,10,30,4,59,59,999)],
+    ],
+    weekDefs: [
+      {id:"w1", label:"Week 1",  dates:"Sep 1–7",   month:"September", required:1},
+      {id:"w2", label:"Week 2",  dates:"Sep 7–14",  month:"September", required:1},
+      {id:"w3", label:"Week 3",  dates:"Sep 15–21", month:"September", required:1},
+      {id:"w4", label:"Week 4",  dates:"Sep 22–30", month:"September", required:1},
+      {id:"w5", label:"Week 1",  dates:"Oct 1–7",   month:"October",   required:2},
+      {id:"w6", label:"Week 2",  dates:"Oct 7–14",  month:"October",   required:2},
+      {id:"w7", label:"Week 3",  dates:"Oct 15–21", month:"October",   required:2},
+      {id:"w8", label:"Week 4",  dates:"Oct 22–31", month:"October",   required:2},
+      {id:"w9", label:"Week 1",  dates:"Nov 1–7",   month:"November",  required:3},
+      {id:"w10",label:"Week 2",  dates:"Nov 7–14",  month:"November",  required:3},
+      {id:"w11",label:"Week 3",  dates:"Nov 15–21", month:"November",  required:3},
+      {id:"w12",label:"Week 4",  dates:"Nov 22–30", month:"November",  required:3},
+    ],
+    months: ["September","October","November"],
+    monthReqs: {"September":"1 post/week","October":"2 posts/week","November":"3 posts/week"},
+  },
+  // R1_2027: { weeks: [...], weekDefs: [...], months: [...], monthReqs: {...} },
+};
+
+// ─────────────────────────────────────────────
+//  AUTO-DETECT ACTIVE ROUND
+//  Picks whichever round's schedule contains today.
+//  Falls back to the most recent past round so the app
+//  never goes blank between rounds.
+//  Admin banner fires if no round is active (prompts you to add the next config).
+// ─────────────────────────────────────────────
+(function _resolveActiveRound(){
+  const now = Date.now();
+  const keys = Object.keys(ROUND_CONFIGS);
+
+  // Find a round whose schedule contains now
+  let activeKey = keys.find(k => {
+    const ws = ROUND_CONFIGS[k].weeks;
+    return now >= ws[0][0] && now <= ws[ws.length-1][1];
+  });
+
+  // No active round: warn and fall back to most recent past round
+  if(!activeKey){
+    console.warn('[SMAC] No active round detected. Add the next round config to ROUND_CONFIGS.');
+    // Pick the latest round whose end has passed (most recent)
+    const pastKeys = keys.filter(k => now > ROUND_CONFIGS[k].weeks[11][1]);
+    activeKey = pastKeys.length ? pastKeys[pastKeys.length-1] : keys[keys.length-1];
+    window._NO_ACTIVE_ROUND = true; // flag for admin banner
+  }
+
+  const cfg = ROUND_CONFIGS[activeKey];
+  window.CURRENT_ROUND   = activeKey.replace('R','');
+  window.WEEK_SCHEDULE   = cfg.weeks;
+  window.WEEKS           = cfg.weekDefs;
+  window.MONTHS          = cfg.months;
+  window.MONTH_REQS      = cfg.monthReqs;
+})();
+
 // ─────────────────────────────────────────────
 //  POINTS CONFIG
 // ─────────────────────────────────────────────
@@ -1587,37 +1765,6 @@ const PTS_CAROUSEL  = 2;
 const PTS_ENGAGEMENT   = 2;
 const MAX_ENG_PER_WEEK = 5; // max engagement submissions per week
 
-// Fixed calendar schedule for Round 2 (ET = UTC-5 in March/April, UTC-4 in May)
-// Each entry: [start, end] as UTC timestamps matching ET midnight boundaries
-const WEEK_SCHEDULE = [
-  // Week 1: Mar 1–7 (already past, kept for completeness)
-  [Date.UTC(2026,2,1,5,0,0),   Date.UTC(2026,2,8,4,59,59,999)],
-  // Week 2: Mar 8–14 (spans DST change Mar 8)
-  [Date.UTC(2026,2,8,5,0,0),   Date.UTC(2026,2,15,3,59,59,999)],
-  // Week 3: Mar 15–21 (post-DST, EDT = UTC-4)
-  [Date.UTC(2026,2,15,4,0,0),  Date.UTC(2026,2,22,3,59,59,999)],
-  // Week 4: Mar 22–31 (EDT = UTC-4)
-  [Date.UTC(2026,2,22,4,0,0),  Date.UTC(2026,3,1,3,59,59,999)],
-  // Week 5: Apr 1–7 (EDT = UTC-4)
-  [Date.UTC(2026,3,1,4,0,0),   Date.UTC(2026,3,8,3,59,59,999)],
-  // Week 6: Apr 8–14
-  [Date.UTC(2026,3,8,4,0,0),   Date.UTC(2026,3,15,3,59,59,999)],
-  // Week 7: Apr 15–21
-  [Date.UTC(2026,3,15,4,0,0),  Date.UTC(2026,3,22,3,59,59,999)],
-  // Week 8: Apr 22–30
-  [Date.UTC(2026,3,22,4,0,0),  Date.UTC(2026,4,1,3,59,59,999)],
-  // Week 9: May 1–7 (EDT = UTC-4)
-  [Date.UTC(2026,4,1,4,0,0),   Date.UTC(2026,4,8,3,59,59,999)],
-  // Week 10: May 8–14
-  [Date.UTC(2026,4,8,4,0,0),   Date.UTC(2026,4,15,3,59,59,999)],
-  // Week 11: May 15–21
-  [Date.UTC(2026,4,15,4,0,0),  Date.UTC(2026,4,22,3,59,59,999)],
-  // Week 12: May 22–31
-  [Date.UTC(2026,4,22,4,0,0),  Date.UTC(2026,4,1,3,59,59,999)+Date.UTC(2026,5,1,3,59,59,999)-Date.UTC(2026,4,1,3,59,59,999)],
-];
-// Fix Week 12 end: Jun 1 00:00 ET = Jun 1 04:00 UTC
-WEEK_SCHEDULE[11][1] = Date.UTC(2026,5,1,3,59,59,999);
-
 // Get which week index (0-11) a timestamp falls in, or -1 if outside schedule
 function getWeekIndex(ts){
   return WEEK_SCHEDULE.findIndex(([start,end])=>ts>=start&&ts<=end);
@@ -1626,26 +1773,6 @@ function getWeekIndex(ts){
 function getWeekDeadline(weekIdx){
   return WEEK_SCHEDULE[weekIdx]?WEEK_SCHEDULE[weekIdx][1]:null;
 }
-
-// ─────────────────────────────────────────────
-//  SCHEDULE
-// ─────────────────────────────────────────────
-const WEEKS = [
-  {id:"w1", label:"Week 1",  dates:"Mar 1–7",   month:"March", required:1},
-  {id:"w2", label:"Week 2",  dates:"Mar 8–14",  month:"March", required:1},
-  {id:"w3", label:"Week 3",  dates:"Mar 15–21", month:"March", required:1},
-  {id:"w4", label:"Week 4",  dates:"Mar 22–31", month:"March", required:1},
-  {id:"w5", label:"Week 1",  dates:"Apr 1–7",   month:"April", required:2},
-  {id:"w6", label:"Week 2",  dates:"Apr 8–14",  month:"April", required:2},
-  {id:"w7", label:"Week 3",  dates:"Apr 15–21", month:"April", required:2},
-  {id:"w8", label:"Week 4",  dates:"Apr 22–30", month:"April", required:2},
-  {id:"w9", label:"Week 1",  dates:"May 1–7",   month:"May",   required:3},
-  {id:"w10",label:"Week 2",  dates:"May 8–14",  month:"May",   required:3},
-  {id:"w11",label:"Week 3",  dates:"May 15–21", month:"May",   required:3},
-  {id:"w12",label:"Week 4",  dates:"May 22–31", month:"May",   required:3},
-];
-const MONTHS=["March","April","May"];
-const MONTH_REQS={"March":"1 post/week","April":"2 posts/week","May":"3 posts/week"};
 
 // ─────────────────────────────────────────────
 //  MEMBER SANITIZER — fills missing Firestore fields with safe defaults
@@ -1898,6 +2025,7 @@ function bootApp(){
     const _clearFeedTool=document.getElementById("admin-clear-feed-tool");
     if(_clearFeedTool)_clearFeedTool.style.display="block";
     showFirebaseSetupCard();
+    if(window._NO_ACTIVE_ROUND&&!document.getElementById("no-round-admin-banner")){const _b=document.createElement("div");_b.id="no-round-admin-banner";_b.style.cssText="position:fixed;top:60px;left:0;right:0;z-index:999;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;";_b.textContent="⚠️ No active round detected — add the next round config to ROUND_CONFIGS in the source file.";document.body.appendChild(_b);}
   } else {
     document.getElementById("admin-compose").style.display="none";
     document.getElementById("admin-res-compose").style.display="none";
@@ -3860,14 +3988,20 @@ window.renderProDashboard = async function(){
     totalPts = regData.points || 0;
     const subs = subSnap.docs.map(d => ({...d.data(), id:d.id}));
 
-    // Posts this week (vs Pro target)
+    // Posts this week (vs Pro target) — scoped to current round
+    const thisWeekStart = currentWeekIdx >= 0 ? WEEK_SCHEDULE[currentWeekIdx][0] : 0;
+    const thisWeekEnd   = currentWeekIdx >= 0 ? WEEK_SCHEDULE[currentWeekIdx][1] : 0;
     if(currentWeekIdx >= 0){
-      postsThisWeek = subs.filter(s => s.weekIdx === currentWeekIdx).length;
+      postsThisWeek = subs.filter(s => s.weekIdx === currentWeekIdx && s.ts >= thisWeekStart && s.ts <= thisWeekEnd).length;
       proTarget = PRO_WEEK_TARGETS[currentWeekIdx] || 3;
     }
 
     // Weekly counts for chart (12 weeks)
-    weekCounts = WEEKS.map((w, i) => subs.filter(s => s.weekIdx === i).length);
+    // Only count submissions that fall within the current round's schedule
+    const roundStart = WEEK_SCHEDULE[0][0];
+    const roundEnd   = WEEK_SCHEDULE[WEEK_SCHEDULE.length - 1][1];
+    const roundSubs  = subs.filter(s => s.ts >= roundStart && s.ts <= roundEnd);
+    weekCounts = WEEKS.map((w, i) => roundSubs.filter(s => s.weekIdx === i).length);
 
   } catch(e) {
     console.error("Pro dashboard load error:", e);
