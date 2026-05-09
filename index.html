@@ -1271,14 +1271,6 @@
       <button class="notif-btn" id="enable-notif-btn" onclick="requestPushPermission()">Enable</button>
     </div>
 
-    <!-- SMAC Pro Upgrade Card (free members only) -->
-    <div class="card" id="profile-upgrade-card" style="margin-top:16px;display:none;background:linear-gradient(135deg,#1a1500,#2d2000);border:1.5px solid var(--gold);">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;color:var(--gold);margin-bottom:6px;">★ Upgrade to SMAC Pro</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:16px;">You've built the habit. Now make it count. Pro unlocks AI-powered tools, SMS deadline reminders, and priority accountability — all inside SMAC.</div>
-      <a href="https://buy.stripe.com/00w4gzdq34IT1Ho0KBbo407" target="_blank" rel="noopener" class="btn-upgrade" style="width:100%;justify-content:center;box-sizing:border-box;">Upgrade to Pro — $65 →</a>
-      <div style="font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-top:10px;">Introductory rate. Secure checkout via Stripe.</div>
-    </div>
-
     <!-- Add to Home Screen card -->
     <div class="card" id="install-card" style="margin-top:16px;display:none;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">📲 Add SMAC to Your Home Screen</div>
@@ -1324,6 +1316,9 @@
 </div>
   <!-- PRO PAGE (hidden from free users, visible to admin + Pro) -->
   <div class="page" id="page-pro">
+    <div id="pro-dashboard-root"></div>
+    <!-- TOOL FORM TEMPLATES (hidden, rendered by renderProTool) -->
+    <div id="pro-tool-templates" style="display:none;">
     <div class="pro-page-header">
       <div class="pro-page-title">SMAC PRO</div>
       <div class="pro-page-sub">Your 90-Day Content Discipline System</div>
@@ -1511,51 +1506,12 @@
       <div class="pro-coming-soon">Coming at Pro Launch</div>
     </div>
 
-    <!-- SMS Reminders Opt-In -->
+    <!-- Stronger Nudges -->
     <div class="pro-feature-card" id="pro-nudges-card">
       <div class="pro-feature-icon">🔔</div>
-      <div class="pro-feature-title">SMS Deadline Reminders</div>
-      <div class="pro-feature-desc">Get text reminders before your weekly submission window closes. No app required — straight to your phone.</div>
-      <!-- State A: Opt-in form (shown when smsOptIn is null/undefined) -->
-      <div id="sms-optin-form" style="display:none;margin-top:14px;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your mobile number</div>
-        <input id="sms-phone-input" type="tel" placeholder="+1 (312) 555-0000" class="auth-input" style="margin-bottom:10px;padding:10px 12px;" />
-        <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;cursor:pointer;">
-          <input type="checkbox" id="sms-consent-check" style="margin-top:3px;accent-color:var(--gold);flex-shrink:0;" />
-          I agree to receive SMS reminders from SMAC about weekly submission deadlines. Message & data rates may apply. Reply STOP to unsubscribe.
-        </label>
-        <div style="display:flex;gap:10px;">
-          <button onclick="saveSmsOptIn()" class="btn-gold" style="font-size:15px;padding:10px 20px;flex:1;">Turn On Reminders</button>
-          <button onclick="dismissSmsOptIn()" style="background:none;border:1.5px solid var(--border);border-radius:var(--radius);padding:10px 16px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Not now</button>
-        </div>
-        <div id="sms-optin-error" style="display:none;color:#c0392b;font-size:12px;margin-top:8px;"></div>
-      </div>
-      <!-- State B: Already opted in -->
-      <div id="sms-optin-active" style="display:none;margin-top:12px;">
-        <div style="display:flex;align-items:center;gap:8px;background:#f0faf4;border:1px solid #27ae60;border-radius:8px;padding:10px 14px;margin-bottom:10px;">
-          <span style="font-size:16px;">✅</span>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#1a6b3a;">SMS reminders active</div>
-            <div id="sms-phone-display" style="font-size:12px;color:var(--text-muted);margin-top:1px;"></div>
-          </div>
-        </div>
-        <button onclick="showSmsEdit()" style="background:none;border:none;font-size:12px;color:var(--text-muted);cursor:pointer;text-decoration:underline;padding:0;">Update number or unsubscribe</button>
-      </div>
-      <!-- State C: Edit/unsubscribe form -->
-      <div id="sms-edit-form" style="display:none;margin-top:12px;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Update your number</div>
-        <input id="sms-edit-input" type="tel" placeholder="+1 (312) 555-0000" class="auth-input" style="margin-bottom:10px;padding:10px 12px;" />
-        <div style="display:flex;gap:10px;">
-          <button onclick="updateSmsPhone()" class="btn-gold" style="font-size:15px;padding:10px 20px;flex:1;">Save Number</button>
-          <button onclick="unsubscribeSms()" style="background:none;border:1.5px solid #c0392b;border-radius:var(--radius);padding:10px 16px;font-family:'DM Sans',sans-serif;font-size:13px;color:#c0392b;cursor:pointer;">Unsubscribe</button>
-        </div>
-        <button onclick="cancelSmsEdit()" style="background:none;border:none;font-size:12px;color:var(--text-muted);cursor:pointer;text-decoration:underline;margin-top:8px;padding:0;">Cancel</button>
-      </div>
-      <!-- State D: Opted out -->
-      <div id="sms-optin-off" style="display:none;margin-top:12px;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">SMS reminders are off.</div>
-        <button onclick="showSmsOptInForm()" style="background:none;border:1.5px solid var(--gold);border-radius:8px;padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--gold);cursor:pointer;font-weight:600;">Turn on reminders</button>
-      </div>
+      <div class="pro-feature-title">Stronger Nudges & Reminders</div>
+      <div class="pro-feature-desc">Smart weekly reminders timed to your submission window — so you never miss a deadline. You told us you wanted to be consistent. We'll hold you to it.</div>
+      <div class="pro-coming-soon">Coming at Pro Launch</div>
     </div>
 
     <!-- Early Access -->
@@ -1569,7 +1525,8 @@
     <div id="pro-trial-banner" style="display:none;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:1.5px solid #27ae60;border-radius:var(--radius);padding:14px 16px;margin-top:8px;font-size:13px;line-height:1.6;">
       <strong style="color:#27ae60;">Trial Access Active</strong> — you have full Pro access through your trial period.
     </div>
-  </div>
+    </div><!-- /pro-tool-templates -->
+  </div><!-- /page-pro -->
 
   <!-- CHAT -->
   <div class="page" id="page-chat" style="padding:6px;max-width:100%;width:100%;box-sizing:border-box;">
@@ -4073,156 +4030,195 @@ function showProNotification(type, title, message){
 // ─────────────────────────────────────────────
 //  SMAC PRO — Pro Page Renderer
 // ─────────────────────────────────────────────
+// Pro weekly posting targets (Month 1: 3/wk, Month 2: 4/wk, Month 3: 5/wk)
+const PRO_WEEK_TARGETS = [3,3,3,3, 4,4,4,4, 5,5,5,5];
+
+// Tool metadata for grid + renderProTool header
+const PRO_TOOLS = [
+  { id:'wap',     icon:'🗓', name:'Weekly Action Plan',        live:true  },
+  { id:'caption', icon:'✍️', name:'Caption Assist',            live:true  },
+  { id:'cpa',     icon:'📊', name:'Content Performance Analysis', live:true  },
+  { id:'hook',    icon:'🎣', name:'Hook Generator',             live:true  },
+  { id:'group',   icon:'🔥', name:'Priority Accountability Group', live:false },
+  { id:'nudges',  icon:'🔔', name:'Stronger Nudges & Reminders',  live:false },
+  { id:'early',   icon:'⚡', name:'Early Access to New Features',  live:false },
+];
+
+// Maps tool id -> HTML element id in #pro-tool-templates
+const PRO_TOOL_CARD_IDS = {
+  wap: 'pro-action-plan-card',
+  caption: 'pro-caption-card',
+  cpa: 'pro-analytics-card',
+  hook: 'pro-hook-card',
+};
+
 function renderProPage(){
-  const page=document.getElementById("page-pro");
-  if(!page)return;
-  // Do NOT set inline display style — let the .page / .page.active CSS class system handle visibility
-  // Trial banner
-  const trialBanner=document.getElementById("pro-trial-banner");
-  if(trialBanner){
-    if(userHasTrial()){
-      trialBanner.style.display="block";
-      trialBanner.innerHTML=`<strong style="color:#27ae60;">Trial Access Active</strong> — expires ${getTrialExpiryStr()}. Upgrade to keep full access.`;
-    } else {
-      trialBanner.style.display="none";
-    }
+  renderProDashboard();
+}
+
+async function renderProDashboard(){
+  const root = document.getElementById('pro-dashboard-root');
+  if(!root) return;
+  const scroller = document.getElementById('app-scroll');
+  if(scroller) scroller.scrollTop = 0;
+
+  // ── Fetch live data ──
+  let totalPoints = currentUser ? (currentUser.points||0) : 0;
+  let weeklySubmissions = [];
+  let postsThisWeek = 0;
+
+  if(currentUser && db && !useLocalFallback){
+    try {
+      const [regSnap, subSnaps] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDoc,doc:dc})=>
+          getDoc(dc(db,"smac_registry",currentUser.registryId))
+        ),
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDocs,collection,query,where})=>
+          getDocs(query(collection(db,"submissions"),where("uid","==",currentUser.uid)))
+        )
+      ]);
+      if(regSnap.exists()) totalPoints = regSnap.data().points || 0;
+
+      const now = Date.now();
+      const weekIdx = getWeekIndex(now); // 0-indexed
+      // Build weekly counts array (12 weeks)
+      const counts = new Array(12).fill(0);
+      subSnaps.forEach(d=>{
+        const wi = d.data().weekIdx;
+        if(typeof wi==='number' && wi>=0 && wi<12) counts[wi]++;
+      });
+      weeklySubmissions = counts;
+      postsThisWeek = (weekIdx>=0 && weekIdx<12) ? counts[weekIdx] : 0;
+    } catch(e){ console.warn('Pro dashboard fetch error',e); }
   }
-  // Auto-fill niche field from profile
-  setTimeout(wapPrefillFromProfile, 100);
-  // Load previous plans history
-  setTimeout(loadWapHistory, 150);
-  // Render SMS opt-in card state
-  setTimeout(renderSmsCard, 200);
+
+  const now = Date.now();
+  const weekIdx = getWeekIndex(now);
+  const weekNum = weekIdx >= 0 ? weekIdx + 1 : '—';
+  const target = (weekIdx>=0 && weekIdx<12) ? PRO_WEEK_TARGETS[weekIdx] : 3;
+  const monthLabels = ['March','April','May'];
+
+  // ── Trial banner ──
+  const trialHtml = (userHasTrial())
+    ? `<div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:1.5px solid #27ae60;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6;"><strong style="color:#27ae60;">Trial Access Active</strong> — expires ${getTrialExpiryStr()}. Upgrade to keep full access.</div>`
+    : '';
+
+  // ── Stats pips ──
+  const pips = Array.from({length:target},(_,i)=>
+    `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${i<postsThisWeek?'var(--gold)':'var(--border)'};margin:0 2px;"></span>`
+  ).join('');
+
+  // ── Posting history chart (12 bars) ──
+  const maxCount = Math.max(...weeklySubmissions, 1);
+  const barHtml = weeklySubmissions.map((cnt,i)=>{
+    const isPast = i < weekIdx;
+    const isCurrent = i === weekIdx;
+    const barColor = isCurrent ? 'var(--gold)' : isPast ? 'rgba(212,175,55,0.45)' : 'var(--surface2)';
+    const heightPct = Math.max(8, Math.round((cnt/maxCount)*80));
+    const monthStart = i===0?'March':i===4?'April':i===8?'May':'';
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;">
+      <div style="font-size:9px;color:var(--text-muted);margin-bottom:2px;height:12px;line-height:12px;">${cnt>0?cnt:''}</div>
+      <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;height:60px;">
+        <div style="width:70%;background:${barColor};border-radius:3px 3px 0 0;height:${heightPct}%;min-height:4px;transition:height .3s;"></div>
+      </div>
+      <div style="font-size:8px;color:${isCurrent?'var(--gold)':'var(--text-muted)'};margin-top:2px;font-weight:${isCurrent?700:400};">W${i+1}</div>
+      <div style="font-size:8px;color:var(--text-muted);height:10px;">${monthStart}</div>
+    </div>`;
+  }).join('');
+
+  // ── Tool grid ──
+  const toolCards = PRO_TOOLS.map(t=>{
+    if(!t.live) return `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:16px;opacity:0.45;cursor:default;">
+      <div style="font-size:22px;margin-bottom:6px;">${t.icon}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;">${t.name}</div>
+      <div style="margin-top:8px;display:inline-block;background:var(--border);color:var(--text-muted);font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Coming Soon</div>
+    </div>`;
+    return `<div onclick="renderProTool('${t.id}')" style="background:var(--surface);border:1.5px solid var(--gold);border-radius:12px;padding:16px;cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='scale(1.02)';this.style.boxShadow='0 4px 16px rgba(212,175,55,0.18)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+      <div style="font-size:22px;margin-bottom:6px;">${t.icon}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;">${t.name}</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--gold);font-weight:600;">Open →</div>
+    </div>`;
+  }).join('');
+
+  root.innerHTML = `
+    ${trialHtml}
+    <div style="margin-bottom:20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:0.06em;color:var(--gold);line-height:1;">SMAC PRO</div>
+      <div style="font-size:13px;color:rgba(201,168,76,.7);margin-top:2px;">Week ${weekNum} &nbsp;·&nbsp; You've built the habit. Now make it count.</div>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Total Points</div>
+        <div id="pro-dash-pts" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);">0</div>
+      </div>
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Posts This Week</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);">${postsThisWeek}<span style="font-size:16px;color:var(--text-muted);">/${target}</span></div>
+        <div style="margin-top:6px;">${pips}</div>
+      </div>
+    </div>
+
+    <!-- Posting history chart -->
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Posting History</div>
+      <div style="display:flex;gap:2px;align-items:flex-end;">${barHtml}</div>
+    </div>
+
+    <!-- Pro Tools grid -->
+    <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Pro Tools</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">${toolCards}</div>
+  `;
+
+  // Count-up animation for points
+  const ptsEl = document.getElementById('pro-dash-pts');
+  if(ptsEl && totalPoints > 0){
+    let start = 0;
+    const duration = 800;
+    const step = totalPoints / (duration/16);
+    const timer = setInterval(()=>{
+      start = Math.min(start+step, totalPoints);
+      ptsEl.textContent = Math.round(start);
+      if(start >= totalPoints) clearInterval(timer);
+    },16);
+  } else if(ptsEl){
+    ptsEl.textContent = totalPoints;
+  }
 }
 
-// ─────────────────────────────────────────────
-//  SMS OPT-IN — PRO MEMBERS ONLY
-// ─────────────────────────────────────────────
+function renderProTool(toolId){
+  const root = document.getElementById('pro-dashboard-root');
+  if(!root) return;
+  const scroller = document.getElementById('app-scroll');
+  if(scroller) scroller.scrollTop = 0;
 
-function renderSmsCard(){
-  if(!userHasPro())return;
-  const member=currentUser;
-  // Read smsOptIn from registry doc loaded at login
-  // currentUser carries isPro, proSince etc — smsOptIn needs a live read
-  if(!db||useLocalFallback||!member.registryId)return;
-  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDoc,doc:dc})=>{
-    getDoc(dc(db,"smac_registry",member.registryId)).then(snap=>{
-      if(!snap.exists())return;
-      const d=snap.data();
-      const optIn=d.smsOptIn;
-      const phone=d.phone||"";
-      if(optIn===true){
-        // State B: opted in
-        document.getElementById("sms-optin-form").style.display="none";
-        document.getElementById("sms-optin-active").style.display="block";
-        document.getElementById("sms-optin-off").style.display="none";
-        document.getElementById("sms-edit-form").style.display="none";
-        const disp=document.getElementById("sms-phone-display");
-        if(disp)disp.textContent=phone||"Number on file";
-      } else if(optIn===false){
-        // State D: explicitly opted out
-        document.getElementById("sms-optin-form").style.display="none";
-        document.getElementById("sms-optin-active").style.display="none";
-        document.getElementById("sms-optin-off").style.display="block";
-        document.getElementById("sms-edit-form").style.display="none";
-      } else {
-        // State A: never set — show form
-        document.getElementById("sms-optin-form").style.display="block";
-        document.getElementById("sms-optin-active").style.display="none";
-        document.getElementById("sms-optin-off").style.display="none";
-        document.getElementById("sms-edit-form").style.display="none";
-      }
-    }).catch(()=>{});
-  });
-}
+  const tool = PRO_TOOLS.find(t=>t.id===toolId);
+  if(!tool) return;
 
-function _formatPhone(raw){
-  // Accept digits only, enforce E.164 for US numbers
-  const digits=raw.replace(/\D/g,"");
-  if(digits.length===10) return "+1"+digits;
-  if(digits.length===11&&digits[0]==="1") return "+"+digits;
-  return null;
-}
+  // Clone the form card from hidden templates
+  const cardIdMap = { wap:'pro-action-plan-card', caption:'pro-caption-card', cpa:'pro-analytics-card', hook:'pro-hook-card' };
+  const srcId = cardIdMap[toolId];
+  const src = srcId ? document.getElementById(srcId) : null;
+  const formHtml = src ? src.innerHTML : '<p style="color:var(--text-muted);">Tool not found.</p>';
 
-window.saveSmsOptIn=async function(){
-  const rawPhone=document.getElementById("sms-phone-input").value.trim();
-  const consent=document.getElementById("sms-consent-check").checked;
-  const errEl=document.getElementById("sms-optin-error");
-  errEl.style.display="none";
-  if(!consent){errEl.textContent="Please check the consent box to continue.";errEl.style.display="block";return;}
-  const phone=_formatPhone(rawPhone);
-  if(!phone){errEl.textContent="Enter a valid 10-digit US mobile number.";errEl.style.display="block";return;}
-  if(!db||!currentUser.registryId){showToast("Unable to save — please try again.");return;}
-  try{
-    const {updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    await updateDoc(docRef(db,"smac_registry",currentUser.registryId),{phone,smsOptIn:true});
-    showToast("SMS reminders on! We'll text you before deadlines.");
-    renderSmsCard();
-  }catch(e){errEl.textContent="Error saving — try again.";errEl.style.display="block";}
-};
+  root.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;cursor:pointer;" onclick="renderProDashboard()">
+      <span style="font-size:20px;color:var(--gold);">←</span>
+      <span style="font-size:13px;font-weight:600;color:var(--gold);">Pro Dashboard</span>
+    </div>
+    <div style="margin-bottom:20px;">
+      <div style="font-size:28px;margin-bottom:4px;">${tool.icon}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.05em;">${tool.name}</div>
+    </div>
+    <div id="pro-tool-inner">${formHtml}</div>
+  `;
 
-window.dismissSmsOptIn=async function(){
-  if(!db||!currentUser.registryId)return;
-  try{
-    const {updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    await updateDoc(docRef(db,"smac_registry",currentUser.registryId),{smsOptIn:false});
-    renderSmsCard();
-  }catch(e){}
-};
-
-window.showSmsEdit=function(){
-  const activeDiv=document.getElementById("sms-optin-active");
-  const editDiv=document.getElementById("sms-edit-form");
-  if(activeDiv)activeDiv.style.display="none";
-  if(editDiv)editDiv.style.display="block";
-};
-
-window.cancelSmsEdit=function(){
-  const activeDiv=document.getElementById("sms-optin-active");
-  const editDiv=document.getElementById("sms-edit-form");
-  if(editDiv)editDiv.style.display="none";
-  if(activeDiv)activeDiv.style.display="block";
-};
-
-window.updateSmsPhone=async function(){
-  const rawPhone=document.getElementById("sms-edit-input").value.trim();
-  const phone=_formatPhone(rawPhone);
-  if(!phone){showToast("Enter a valid 10-digit US mobile number.");return;}
-  if(!db||!currentUser.registryId)return;
-  try{
-    const {updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    await updateDoc(docRef(db,"smac_registry",currentUser.registryId),{phone,smsOptIn:true});
-    showToast("Phone number updated.");
-    document.getElementById("sms-edit-input").value="";
-    renderSmsCard();
-  }catch(e){showToast("Error updating — try again.");}
-};
-
-window.unsubscribeSms=async function(){
-  if(!confirm("Turn off SMS reminders?"))return;
-  if(!db||!currentUser.registryId)return;
-  try{
-    const {updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    await updateDoc(docRef(db,"smac_registry",currentUser.registryId),{smsOptIn:false});
-    showToast("SMS reminders off. You can turn them back on any time.");
-    renderSmsCard();
-  }catch(e){showToast("Error — try again.");}
-};
-
-window.showSmsOptInForm=function(){
-  document.getElementById("sms-optin-off").style.display="none";
-  document.getElementById("sms-optin-form").style.display="block";
-};
-
-// ─────────────────────────────────────────────
-//  PROFILE — Upgrade card visibility
-// ─────────────────────────────────────────────
-
-function renderProfileUpgradeCard(){
-  const card=document.getElementById("profile-upgrade-card");
-  if(!card)return;
-  // Show only for non-admin, non-Pro members
-  card.style.display=(!currentUser.isAdmin&&!userHasPro())?"block":"none";
+  // Re-trigger deferred inits
+  if(toolId==='wap'){
+    setTimeout(wapPrefillFromProfile, 100);
+    setTimeout(loadWapHistory, 150);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -7277,7 +7273,6 @@ function loadProfile(){
   window._removePhoto=false;
 
   renderProfileHero(prof);
-  renderProfileUpgradeCard();
 }
 async function renderProfileHero(prof){
   const initials=(prof.name||currentUser.name).split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
