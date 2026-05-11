@@ -1748,7 +1748,7 @@ const ROUND_CONFIGS = {
   }
 
   const cfg = ROUND_CONFIGS[activeKey];
-  window.CURRENT_ROUND   = activeKey.replace('R','');
+  window.CURRENT_ROUND   = activeKey; // e.g. "R2" — matches rounds array values in Firestore
   window.WEEK_SCHEDULE   = cfg.weeks;
   window.WEEKS           = cfg.weekDefs;
   window.MONTHS          = cfg.months;
