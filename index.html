@@ -672,12 +672,7 @@
         <span class="dash-quick-btn-label">Get Weekly Google Calendar Reminders<span class="dash-quick-btn-sub">Never miss a post — add to your calendar</span></span>
         <svg style="flex-shrink:0;margin-left:auto;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </a>
-      <a href="https://calendar.app.google/w5c7cvg6zqAGcdFK9" target="_blank" rel="noopener noreferrer" class="dash-cal-btn">
-        <span class="dash-cal-btn-icon">🎥</span>
-        <span class="dash-quick-btn-label">Add the Show Your Face Zoom on 5/12 @ 8pm ET<span class="dash-quick-btn-sub">Tap to save the Zoom event to your calendar</span></span>
-        <svg style="flex-shrink:0;margin-left:auto;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      </a>
-
+      <div id="dash-zoom-card-wrap"></div>
     </div>
     <!-- Weekly Challenge on Dashboard -->
     <div id="dash-challenge-banner" class="dash-animate" style="animation-delay:0.53s;margin-bottom:4px;"></div>
@@ -1216,6 +1211,40 @@
         </div>
         <button class="btn-sm" onclick="clearFeedPostsByWeek()" style="background:#e74c3c;color:#fff;border-color:#e74c3c;">🗑 Clear Feed Posts for Selected Week</button>
         <div id="clear-feed-status" style="display:none;margin-top:12px;font-size:13px;color:var(--text-muted);padding:8px;background:var(--surface2);border-radius:6px;"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN: Zoom Card Editor -->
+    <div id="admin-zoom-card-editor" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🎥 Zoom Card Editor</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Update the weekly Zoom card shown on every member's dashboard. Toggle visibility to hide the card when there's no upcoming session.</div>
+      <div class="card" style="border:1.5px solid var(--border);">
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Card Title</label>
+          <input id="zoom-editor-title" class="auth-input" type="text" placeholder="e.g. Join the Live Zoom on 6/10 @ 8pm ET" style="width:100%;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Subtext</label>
+          <input id="zoom-editor-subtext" class="auth-input" type="text" placeholder="e.g. Tap to save the Zoom event to your calendar" style="width:100%;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Calendar / Zoom URL</label>
+          <input id="zoom-editor-url" class="auth-input" type="url" placeholder="https://calendar.app.google/..." style="width:100%;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+          <label style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input id="zoom-editor-visible" type="checkbox" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;" />
+            Show card on dashboard
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button class="btn-sm" onclick="saveZoomCard()" style="background:var(--gold);color:#fff;border-color:var(--gold);">Save Zoom Card</button>
+          <div id="zoom-editor-status" style="font-size:13px;color:var(--text-muted);"></div>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Preview</div>
+          <div id="zoom-editor-preview"></div>
+        </div>
       </div>
     </div>
 
@@ -2024,6 +2053,9 @@ function bootApp(){
     // Clear Feed tool always visible to admin
     const _clearFeedTool=document.getElementById("admin-clear-feed-tool");
     if(_clearFeedTool)_clearFeedTool.style.display="block";
+    // Zoom Card editor always visible to admin
+    const _zoomEditor=document.getElementById("admin-zoom-card-editor");
+    if(_zoomEditor){_zoomEditor.style.display="block";loadZoomEditor();}
     showFirebaseSetupCard();
     if(window._NO_ACTIVE_ROUND&&!document.getElementById("no-round-admin-banner")){const _b=document.createElement("div");_b.id="no-round-admin-banner";_b.style.cssText="position:fixed;top:60px;left:0;right:0;z-index:999;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;";_b.textContent="⚠️ No active round detected — add the next round config to ROUND_CONFIGS in the source file.";document.body.appendChild(_b);}
   } else {
@@ -2195,6 +2227,7 @@ window.navTo=function(page,el){
 // ─────────────────────────────────────────────
 window.loadDashboard=async function(){
   if(!currentUser)return;
+  loadZoomCard();
 
   // ── Reset animations so they replay on every visit ──
   document.querySelectorAll('#page-dashboard .dash-animate').forEach(el=>{
@@ -3081,6 +3114,86 @@ window.openResModal=function(r){
 };
 window.closeResModal=function(e){if(e.target===document.getElementById("res-modal-overlay"))closeResModalDirect();};
 window.closeResModalDirect=function(){document.getElementById("res-modal-overlay").classList.remove("open");document.body.style.overflow="";};
+
+// ── Zoom Card (Dynamic Dashboard Card) ────────────────────────────────────
+const SVG_EXTERNAL = `<svg style="flex-shrink:0;margin-left:auto;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+
+function buildZoomCardHTML(cfg) {
+  if (!cfg || !cfg.visible) return "";
+  const safeUrl = (cfg.url || "").replace(/"/g, "&quot;");
+  const safeTitle = esc(cfg.title || "");
+  const safeSub = esc(cfg.subtext || "Tap to save the Zoom event to your calendar");
+  return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="dash-cal-btn">
+    <span class="dash-cal-btn-icon">🎥</span>
+    <span class="dash-quick-btn-label">${safeTitle}<span class="dash-quick-btn-sub">${safeSub}</span></span>
+    ${SVG_EXTERNAL}
+  </a>`;
+}
+
+async function loadZoomCard() {
+  const wrap = document.getElementById("dash-zoom-card-wrap");
+  if (!wrap) return;
+  try {
+    const snap = await getDoc(doc(db, "smac_config", "zoom_card"));
+    const cfg = snap.exists() ? snap.data() : null;
+    wrap.innerHTML = buildZoomCardHTML(cfg);
+  } catch(e) { wrap.innerHTML = ""; }
+}
+
+// Admin: load current config into editor fields
+async function loadZoomEditor() {
+  try {
+    const snap = await getDoc(doc(db, "smac_config", "zoom_card"));
+    const cfg = snap.exists() ? snap.data() : {};
+    document.getElementById("zoom-editor-title").value = cfg.title || "";
+    document.getElementById("zoom-editor-subtext").value = cfg.subtext || "";
+    document.getElementById("zoom-editor-url").value = cfg.url || "";
+    document.getElementById("zoom-editor-visible").checked = !!cfg.visible;
+    updateZoomPreview();
+  } catch(e) {}
+}
+
+function updateZoomPreview() {
+  const cfg = {
+    title: document.getElementById("zoom-editor-title").value.trim(),
+    subtext: document.getElementById("zoom-editor-subtext").value.trim(),
+    url: document.getElementById("zoom-editor-url").value.trim(),
+    visible: document.getElementById("zoom-editor-visible").checked
+  };
+  const preview = document.getElementById("zoom-editor-preview");
+  if (!preview) return;
+  if (!cfg.visible || !cfg.title) {
+    preview.innerHTML = `<div style="font-size:13px;color:var(--text-muted);font-style:italic;">Card hidden — toggle visibility on to show.</div>`;
+  } else {
+    preview.innerHTML = buildZoomCardHTML(cfg);
+  }
+}
+
+window.saveZoomCard = async function() {
+  const title = document.getElementById("zoom-editor-title").value.trim();
+  const subtext = document.getElementById("zoom-editor-subtext").value.trim();
+  const url = document.getElementById("zoom-editor-url").value.trim();
+  const visible = document.getElementById("zoom-editor-visible").checked;
+  const status = document.getElementById("zoom-editor-status");
+  if (!title || !url) { status.textContent = "Title and URL are required."; status.style.color = "#e74c3c"; return; }
+  status.textContent = "Saving..."; status.style.color = "var(--text-muted)";
+  try {
+    await setDoc(doc(db, "smac_config", "zoom_card"), { title, subtext, url, visible, updatedAt: Date.now() });
+    status.textContent = "Saved! Dashboard card updated."; status.style.color = "#27ae60";
+    // Refresh the live card on the dashboard if it's visible
+    loadZoomCard();
+  } catch(e) { status.textContent = "Error: " + e.message; status.style.color = "#e74c3c"; }
+};
+
+// Wire up live preview on input changes — deferred until DOM ready
+setTimeout(() => {
+  ["zoom-editor-title","zoom-editor-subtext","zoom-editor-url"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", updateZoomPreview);
+  });
+  const cb = document.getElementById("zoom-editor-visible");
+  if (cb) cb.addEventListener("change", updateZoomPreview);
+}, 500);
 
 // ── Zoom Replay Modal ──────────────────────────────────────────────────────
 const ZOOM_REPLAYS = [
