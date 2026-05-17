@@ -4529,14 +4529,20 @@ async function renderSmsCard(){
   } else {
     // State A: Never set — show opt-in form
     inner.innerHTML=`
-      <div style="font-size:14px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">Get deadline reminders sent to your phone. You'll hear from us twice per week — Day 4 check-in and a final call the night it closes.</div>
-      <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your mobile number</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">Get deadline reminders sent to your phone. You'll hear from us twice per week — a Day 4 check-in and a final call the night the week closes.</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Mobile phone number</div>
       <input id="sms-phone-input" type="tel" placeholder="(443) 555-0000" class="auth-input" style="margin-bottom:12px;padding:10px 12px;" />
-      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer;">
-        <input type="checkbox" id="sms-consent" style="margin-top:3px;accent-color:var(--gold);" />
-        <span style="font-size:12px;color:var(--text-muted);line-height:1.5;">I agree to receive SMS reminders from SMAC. Message & data rates may apply. Reply STOP to unsubscribe at any time.</span>
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;cursor:pointer;">
+        <input type="checkbox" id="sms-consent" style="margin-top:3px;accent-color:var(--gold);flex-shrink:0;" />
+        <span style="font-size:12px;color:var(--text-muted);line-height:1.5;">Yes, I would like to receive automated SMS deadline reminders from Accountability Challenge Co. (SMAC). Consent is not required to participate in the program.</span>
       </label>
-      <button onclick="saveSmsOptIn()" class="btn-gold" style="font-size:16px;padding:12px;">Enable SMS Reminders</button>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:16px;padding:10px 12px;background:var(--surface2);border-radius:8px;">
+        <strong>Message frequency:</strong> Up to 2 messages per week during your active round.<br>
+        <strong>Rates:</strong> Message and data rates may apply.<br>
+        <strong>Help &amp; Stop:</strong> Reply HELP for help or STOP to cancel at any time.<br>
+        <a href="https://www.joinsmac.com/privacy" target="_blank" style="color:var(--gold);text-decoration:none;">Terms &amp; Privacy Policy</a>
+      </div>
+      <button onclick="saveSmsOptIn()" class="btn-gold" style="font-size:16px;padding:12px;">Yes, sign me up!</button>
       <div id="sms-status" style="font-size:13px;color:var(--text-muted);margin-top:10px;display:none;"></div>`;
   }
 }
