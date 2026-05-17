@@ -1852,6 +1852,14 @@ function userHasPro(){
   if(currentUser.trialUntil && Date.now() < currentUser.trialUntil) return true;
   return false;
 }
+// Returns true if user has SMS access — Pro members always do; base members need hasSMS add-on
+function userHasSMS(){
+  if(!currentUser) return false;
+  if(currentUser.isAdmin) return true;
+  if(userHasPro()) return true;
+  if(currentUser.hasSMS === true) return true;
+  return false;
+}
 // Returns true if user has trial access (but not full Pro)
 function userHasTrial(){
   if(!currentUser) return false;
@@ -1980,7 +1988,7 @@ window.handleLogin=async function(){
         await signOut(auth);
         return;
       }
-      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null};
+      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null,hasSMS:member.hasSMS||false};
       // Write uid to registry doc if missing — self-healing, runs once per member
       if(!member.uid&&member.id&&!useLocalFallback&&db){
         import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:_dc})=>{
@@ -4156,7 +4164,7 @@ window.renderProDashboard = async function(){
     {id:'analytics',icon:'📊',name:'Content Performance',  desc:'Analyze your Instagram insights with AI',            live:true},
     {id:'hooks',  icon:'🪝', name:'Hook Generator',         desc:'Get scroll-stopping hooks for your next post',       live:true},
     {id:'group',  icon:'🔥', name:'Priority Group',         desc:'Tighter check-ins with high-commitment members',     live:false},
-    {id:'nudges', icon:'🔔', name:'Stronger Nudges',        desc:'Smart reminders timed to your submission window',    live:false},
+    {id:'nudges', icon:'🔔', name:'SMS Reminders',          desc:'Deadline reminders sent straight to your phone',     live:true},
     {id:'early',  icon:'⚡', name:'Early Access',           desc:'Shape what gets built next',                         live:false},
   ];
 
@@ -4421,6 +4429,11 @@ window.renderProTool = function(toolId){
             <button onclick="resetHookGenerator()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Hooks</button>
           </div>
         </div>`
+    },
+    nudges: {
+      title: "SMS Reminders",
+      icon: "🔔",
+      html: `<div class="pro-feature-card" id="pro-nudges-card" style="margin-top:0;"><div id="sms-card-inner">Loading...</div></div>`
     }
   };
 
@@ -4446,7 +4459,140 @@ window.renderProTool = function(toolId){
     setTimeout(wapPrefillFromProfile, 100);
     setTimeout(loadWapHistory, 150);
   }
+  // Post-render hook for SMS
+  if(toolId === 'nudges'){
+    setTimeout(renderSmsCard, 100);
+  }
 };
+
+// ─────────────────────────────────────────────
+//  SMAC PRO — SMS Deadline Reminders
+//  Access: Pro members (userHasPro) OR base members with $19 add-on (hasSMS)
+//  States: A=opt-in form, B=active, C=edit, D=opted-out
+// ─────────────────────────────────────────────
+function _formatPhone(raw){
+  const digits=raw.replace(/\D/g,"");
+  if(digits.length===10) return "+1"+digits;
+  if(digits.length===11&&digits[0]==="1") return "+"+digits;
+  return "+"+digits;
+}
+
+async function renderSmsCard(){
+  const inner=document.getElementById("sms-card-inner");
+  if(!inner) return;
+
+  // Gate: needs SMS access (Pro or add-on)
+  if(!userHasSMS()){
+    // Show split CTA for base members
+    inner.innerHTML=`
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:20px;line-height:1.6;">Get deadline reminders sent straight to your phone — so you never miss a submission window.</div>
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Get Access</div>
+      <a href="https://buy.stripe.com/6oUeVdbhVb7hdq6ctjbo408" target="_blank" class="btn-gold" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px;font-size:16px;padding:13px;">Add SMS Reminders — $19</a>
+      <a href="https://buy.stripe.com/00w4gzdq34IT1Ho0KBbo407" target="_blank" style="display:block;text-align:center;text-decoration:none;border:1.5px solid var(--border);border-radius:var(--radius);padding:12px;font-size:13px;color:var(--text-muted);font-weight:600;">Upgrade to SMAC Pro — $65</a>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:10px;text-align:center;">Pro includes SMS + all AI tools</div>`;
+    return;
+  }
+
+  // Load current state from Firestore
+  let phone="", smsOptIn=null;
+  if(db && !useLocalFallback && currentUser){
+    try{
+      const {getDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const regId=currentUser.registryId||currentUser.uid;
+      const snap=await getDoc(dcRef(db,"smac_registry",regId));
+      if(snap.exists()){
+        phone=snap.data().phone||"";
+        smsOptIn=snap.data().smsOptIn??null;
+      }
+    }catch(e){ console.warn("SMS card load error:",e); }
+  }
+
+  if(smsOptIn===true){
+    // State B: Active
+    inner.innerHTML=`
+      <div style="background:#f0faf0;border:1.5px solid #4caf50;border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">✅</span>
+        <div><div style="font-size:13px;font-weight:700;color:#2e7d32;">SMS Reminders Active</div><div style="font-size:12px;color:#388e3c;margin-top:2px;">Sending to ${phone}</div></div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">You'll get a heads-up on Day 4 of each week and a final call the night the week closes.</div>
+      <button onclick="showSmsEdit()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:9px 18px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;margin-right:10px;">Edit Number</button>
+      <button onclick="unsubscribeSms()" style="background:none;border:none;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;text-decoration:underline;">Unsubscribe</button>`;
+  } else if(smsOptIn===false){
+    // State D: Opted out
+    inner.innerHTML=`
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:16px;">You've opted out of SMS reminders.</div>
+      <button onclick="showSmsOptInForm()" class="btn-gold" style="font-size:15px;padding:12px;">Re-enable SMS Reminders</button>`;
+  } else {
+    // State A: Never set — show opt-in form
+    inner.innerHTML=`
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">Get deadline reminders sent to your phone. You'll hear from us twice per week — Day 4 check-in and a final call the night it closes.</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your mobile number</div>
+      <input id="sms-phone-input" type="tel" placeholder="(443) 555-0000" class="auth-input" style="margin-bottom:12px;padding:10px 12px;" />
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer;">
+        <input type="checkbox" id="sms-consent" style="margin-top:3px;accent-color:var(--gold);" />
+        <span style="font-size:12px;color:var(--text-muted);line-height:1.5;">I agree to receive SMS reminders from SMAC. Message & data rates may apply. Reply STOP to unsubscribe at any time.</span>
+      </label>
+      <button onclick="saveSmsOptIn()" class="btn-gold" style="font-size:16px;padding:12px;">Enable SMS Reminders</button>
+      <div id="sms-status" style="font-size:13px;color:var(--text-muted);margin-top:10px;display:none;"></div>`;
+  }
+}
+
+window.saveSmsOptIn = async function(){
+  const phoneRaw=document.getElementById("sms-phone-input")?.value||"";
+  const consent=document.getElementById("sms-consent")?.checked;
+  const statusEl=document.getElementById("sms-status");
+  if(!phoneRaw.trim()){showToast("Enter your mobile number.");return;}
+  if(!consent){showToast("Please check the consent box.");return;}
+  const phone=_formatPhone(phoneRaw);
+  if(phone.length<10){showToast("Enter a valid US phone number.");return;}
+  if(statusEl){statusEl.style.display="block";statusEl.textContent="Saving...";}
+  try{
+    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const regId=currentUser.registryId||currentUser.uid;
+    await updateDoc(dcRef(db,"smac_registry",regId),{phone,smsOptIn:true});
+    showToast("SMS reminders enabled!");
+    renderSmsCard();
+  }catch(e){if(statusEl){statusEl.textContent="Error: "+e.message;}}
+};
+
+window.unsubscribeSms = async function(){
+  if(!confirm("Unsubscribe from SMS reminders?")) return;
+  try{
+    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const regId=currentUser.registryId||currentUser.uid;
+    await updateDoc(dcRef(db,"smac_registry",regId),{smsOptIn:false});
+    showToast("Unsubscribed from SMS reminders.");
+    renderSmsCard();
+  }catch(e){showToast("Error: "+e.message);}
+};
+
+window.showSmsEdit = function(){
+  const inner=document.getElementById("sms-card-inner");
+  if(!inner) return;
+  inner.innerHTML=`
+    <div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:10px;">Update your phone number</div>
+    <input id="sms-phone-input" type="tel" placeholder="(443) 555-0000" class="auth-input" style="margin-bottom:12px;padding:10px 12px;" />
+    <button onclick="updateSmsPhone()" class="btn-gold" style="font-size:15px;padding:11px;margin-bottom:10px;">Save Number</button>
+    <button onclick="renderSmsCard()" style="background:none;border:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;display:block;">Cancel</button>
+    <div id="sms-status" style="font-size:13px;color:var(--text-muted);margin-top:8px;display:none;"></div>`;
+};
+
+window.updateSmsPhone = async function(){
+  const phoneRaw=document.getElementById("sms-phone-input")?.value||"";
+  const statusEl=document.getElementById("sms-status");
+  if(!phoneRaw.trim()){showToast("Enter a phone number.");return;}
+  const phone=_formatPhone(phoneRaw);
+  if(statusEl){statusEl.style.display="block";statusEl.textContent="Saving...";}
+  try{
+    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const regId=currentUser.registryId||currentUser.uid;
+    await updateDoc(dcRef(db,"smac_registry",regId),{phone});
+    showToast("Phone number updated.");
+    renderSmsCard();
+  }catch(e){if(statusEl){statusEl.textContent="Error: "+e.message;}}
+};
+
+window.showSmsOptInForm = function(){ renderSmsCard(); };
 
 // ─────────────────────────────────────────────
 //  SMAC PRO — Content Performance Analysis
