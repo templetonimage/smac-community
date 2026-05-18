@@ -1100,7 +1100,32 @@
       </div>
     </div>
 
-    <!-- ADMIN: Engagement Viewer -->
+    <!-- ADMIN: Archive Round Tool (end-of-round lifetime points rollup) -->
+    <div id="archive-round-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🏁 Archive Round</div>
+      <div class="card" style="border:1.5px solid var(--gold);">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+          Run this <strong>once</strong> when a round ends. For every member it adds their current round points to <strong>lifetimePoints</strong>, records a <strong>roundHistory</strong> entry, then sets <strong>points</strong> back to 0 for the next round.
+          <br><br>
+          This does <strong>not</strong> change <code>CURRENT_ROUND</code>, clear trackers, or delete submissions — handle those separately.
+        </div>
+
+        <button class="btn-sm" id="archive-round-preview-btn" onclick="previewArchiveRound()">
+          Preview Archive for <span id="archive-round-label">this round</span>
+        </button>
+
+        <!-- Preview area -->
+        <div id="archive-round-preview" style="display:none;margin-top:16px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px;line-height:1.7;">
+          <div style="font-weight:700;margin-bottom:8px;">Archive preview:</div>
+          <div id="archive-round-preview-body"></div>
+        </div>
+
+        <button class="btn-sm" id="archive-round-run-btn" onclick="runArchiveRound()" style="display:none;margin-top:14px;background:var(--gold);color:#000;border-color:var(--gold);">
+          🏁 Confirm Archive for <span id="archive-round-run-label">this round</span>
+        </button>
+        <div id="archive-round-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
+      </div>
+    </div>
     <div id="eng-viewer" style="display:none;margin-bottom:28px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;">🤝 Engagement Posts</div>
@@ -2163,6 +2188,7 @@ function bootApp(){
     document.getElementById("uid-sync-tool").style.display="block";
     document.getElementById("admin-sub-viewer").style.display="block";
     document.getElementById("member-reset-tool").style.display="block";
+    document.getElementById("archive-round-tool").style.display="block";
     document.getElementById("eng-viewer").style.display="block";
     document.getElementById("bug-reports-viewer").style.display="block";
     document.getElementById("admin-spotlight-compose").style.display="block";
@@ -2186,6 +2212,7 @@ function bootApp(){
     document.getElementById("uid-sync-tool").style.display="none";
     document.getElementById("admin-sub-viewer").style.display="none";
     document.getElementById("member-reset-tool").style.display="none";
+    document.getElementById("archive-round-tool").style.display="none";
     document.getElementById("eng-viewer").style.display="none";
     document.getElementById("bug-reports-viewer").style.display="none";
     document.getElementById("admin-spotlight-compose").style.display="none";
@@ -6473,7 +6500,147 @@ window.runMemberReset = async function(){
   }
 };
 
+// ─────────────────────────────────────────────
+//  ARCHIVE ROUND — end-of-round lifetime points rollup
+//  For each member: lifetimePoints += points,
+//  push {round, points, endedAt} to roundHistory, set points = 0.
+//  Does NOT touch CURRENT_ROUND, trackers, or submissions.
+// ─────────────────────────────────────────────
+let _archiveRoundTarget = null;
 
+window.previewArchiveRound = async function(){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const round = window.CURRENT_ROUND || "";
+  const previewEl   = document.getElementById("archive-round-preview");
+  const previewBody = document.getElementById("archive-round-preview-body");
+  const runBtn      = document.getElementById("archive-round-run-btn");
+  const statusEl    = document.getElementById("archive-round-status");
+  const labelEls    = [document.getElementById("archive-round-label"),
+                       document.getElementById("archive-round-run-label")];
+  labelEls.forEach(el=>{ if(el) el.textContent = "Round " + round.replace("R",""); });
+
+  statusEl.style.display = "none";
+  runBtn.style.display = "none";
+  _archiveRoundTarget = null;
+
+  if(useLocalFallback||!db){
+    previewBody.textContent = "Firestore not available — cannot archive.";
+    previewEl.style.display = "block";
+    return;
+  }
+  if(!round){
+    previewBody.textContent = "CURRENT_ROUND is not set — cannot archive.";
+    previewEl.style.display = "block";
+    return;
+  }
+
+  previewEl.style.display = "block";
+  previewBody.textContent = "Reading registry...";
+
+  try{
+    const {getDocs,collection:col} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await getDocs(col(db,"smac_registry"));
+
+    const members = [];
+    let alreadyArchived = 0, totalPts = 0;
+    snap.docs.forEach(d=>{
+      const data = d.data();
+      const hist = Array.isArray(data.roundHistory) ? data.roundHistory : [];
+      const done = hist.some(h => h && h.round === round);
+      if(done) alreadyArchived++;
+      const pts = data.points || 0;
+      totalPts += pts;
+      members.push({ id:d.id, name:data.name||"(unnamed)", points:pts, alreadyArchived:done });
+    });
+
+    const toArchive = members.filter(m=>!m.alreadyArchived);
+
+    _archiveRoundTarget = { round, members:toArchive };
+
+    let warn = "";
+    if(alreadyArchived > 0){
+      warn = `<div style="margin:8px 0;padding:8px;background:#fdecea;border-radius:6px;color:#c0392b;">
+        ${alreadyArchived} member(s) already have a <strong>${round}</strong> roundHistory entry — they will be <strong>skipped</strong> to prevent double-counting.
+      </div>`;
+    }
+
+    previewBody.innerHTML = `
+      ${warn}
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr><td style="padding:4px 0;color:var(--text-muted);">Round being archived</td><td style="text-align:right;font-weight:700;">${round}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-muted);">Members in registry</td><td style="text-align:right;">${members.length}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-muted);">Will be archived now</td><td style="text-align:right;font-weight:700;color:#27ae60;">${toArchive.length}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-muted);">Already archived (skipped)</td><td style="text-align:right;">${alreadyArchived}</td></tr>
+        <tr style="border-top:1px solid var(--border);"><td style="padding:6px 0 2px;font-weight:700;">Total points to roll into lifetime</td><td style="text-align:right;font-weight:700;">${members.filter(m=>!m.alreadyArchived).reduce((s,m)=>s+m.points,0)}</td></tr>
+      </table>
+      <div style="margin-top:10px;color:var(--text-muted);">After archiving, each member's <strong>points</strong> field resets to 0.</div>`;
+
+    if(toArchive.length === 0){
+      previewBody.innerHTML += `<div style="margin-top:10px;font-style:italic;color:var(--text-muted);">Nothing to archive — every member already has a ${round} entry.</div>`;
+      runBtn.style.display = "none";
+    } else {
+      runBtn.style.display = "block";
+    }
+  }catch(e){
+    previewBody.textContent = "Preview failed: " + e.message;
+  }
+};
+
+window.runArchiveRound = async function(){
+  if(!currentUser||!currentUser.isAdmin||!_archiveRoundTarget) return;
+  const { round, members } = _archiveRoundTarget;
+  if(!members || members.length === 0) return;
+
+  if(!confirm(`Archive ${round}?\n\nThis will, for ${members.length} member(s):\n- Add current points to lifetimePoints\n- Add a ${round} entry to roundHistory\n- Reset points to 0\n\nRun this only once per round. Continue?`)) return;
+
+  const runBtn   = document.getElementById("archive-round-run-btn");
+  const statusEl = document.getElementById("archive-round-status");
+  runBtn.disabled = true;
+  runBtn.textContent = "Archiving...";
+  statusEl.style.display = "block";
+
+  try{
+    const {updateDoc,doc:dcRef,getDoc,increment,arrayUnion} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    const endedAt = Date.now();
+    let done = 0, skipped = 0, failed = 0;
+
+    for(const m of members){
+      try{
+        // Re-read live to guard against a concurrent archive / stale preview
+        const ref = dcRef(db,"smac_registry",m.id);
+        const snap = await getDoc(ref);
+        if(!snap.exists()){ failed++; continue; }
+        const data = snap.data();
+        const hist = Array.isArray(data.roundHistory) ? data.roundHistory : [];
+        if(hist.some(h => h && h.round === round)){ skipped++; continue; }
+        const pts = data.points || 0;
+        await updateDoc(ref,{
+          lifetimePoints: increment(pts),
+          roundHistory: arrayUnion({ round, points: pts, endedAt }),
+          points: 0
+        });
+        done++;
+      }catch(err){
+        failed++;
+      }
+      statusEl.textContent = `Archiving... ${done+skipped+failed}/${members.length}`;
+    }
+
+    statusEl.innerHTML = `<span style="color:#27ae60;font-weight:700;">Done.</span> ${done} archived` +
+      (skipped?`, ${skipped} skipped (already done)`:"") +
+      (failed?`, <span style="color:#e74c3c;">${failed} failed — check Firestore</span>`:"") + `.`;
+    runBtn.style.display = "none";
+    _archiveRoundTarget = null;
+    showToast(`${round} archived — ${done} member(s)`);
+  }catch(e){
+    statusEl.innerHTML = `<span style="color:#e74c3c;">Error: ${e.message}</span> — some members may be partially archived. Re-run Preview; already-archived members will be skipped.`;
+    runBtn.disabled = false;
+    runBtn.textContent = `Confirm Archive for Round ${round.replace("R","")}`;
+  }
+};
 
 // ─────────────────────────────────────────────
 //  POLLS
@@ -7775,7 +7942,7 @@ async function renderProfileHero(prof){
   const isAllStar=WEEKS.every((w,i)=>{const c=tracked[w.id]||[];return c.filter(Boolean).length>=weekRequirement(i);});
 
   // Pull live points from Firestore registry (points still come from submissions)
-  let pts=0, totalPosts=trackerPostCount;
+  let pts=0, totalPosts=trackerPostCount, lifetimePts=0, roundHistory=[];
   if(currentUser.isAdmin){
     pts=parseInt(localStorage.getItem("smac_admin_pts")||"0",10);
     totalPosts=0;
@@ -7783,10 +7950,17 @@ async function renderProfileHero(prof){
     try{
       const {getDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       const snap=await getDoc(dc(db,"smac_registry",currentUser.registryId));
-      if(snap.exists()){const d=snap.data();pts=d.points||0;}
+      if(snap.exists()){
+        const d=snap.data();
+        pts=d.points||0;
+        lifetimePts=d.lifetimePoints||0;
+        roundHistory=Array.isArray(d.roundHistory)?d.roundHistory:[];
+      }
       // totalPosts always from tracker — not registry — for real-time accuracy
     }catch(e){}
   }
+  // Lifetime = archived total + current round's live points
+  const lifetimeTotal=lifetimePts+pts;
 
   document.getElementById("profile-hero").innerHTML=`
     ${avatarHTML(prof.name||currentUser.name, currentUser.uid, "profile-avatar")}
@@ -7807,7 +7981,47 @@ async function renderProfileHero(prof){
         <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;">Posts</div>
       </div>
     </div>
-    ${buildMilestoneBar(tracked)}`;
+    ${buildMilestoneBar(tracked)}
+    ${currentUser.isAdmin?"":buildLifetimeCard(lifetimeTotal, pts, roundHistory)}`;
+}
+// ─────────────────────────────────────────────
+//  LIFETIME POINTS CARD
+//  lifetimeTotal = archived rounds + current live points
+//  currentPts    = this round's live points (in-progress row)
+//  history       = roundHistory array [{round, points, endedAt}]
+// ─────────────────────────────────────────────
+function buildLifetimeCard(lifetimeTotal, currentPts, history){
+  const rounds=Array.isArray(history)?history.slice():[];
+  // Sort archived rounds chronologically by round label (R2, R3, ...)
+  rounds.sort((a,b)=>{
+    const na=parseInt(String(a.round||"").replace(/\D/g,""))||0;
+    const nb=parseInt(String(b.round||"").replace(/\D/g,""))||0;
+    return na-nb;
+  });
+  const curLabel=(window.CURRENT_ROUND||"").replace("R","");
+  const rowStyle="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;";
+  let rowsHTML="";
+  rounds.forEach(r=>{
+    const lbl=String(r.round||"").replace("R","");
+    rowsHTML+=`<div style="${rowStyle}">
+      <span style="color:var(--text);">Round ${lbl}</span>
+      <span style="font-weight:700;color:var(--text);">${r.points||0} pts</span>
+    </div>`;
+  });
+  // Current round, in-progress
+  rowsHTML+=`<div style="${rowStyle}border-bottom:none;">
+    <span style="color:var(--text);">Round ${curLabel} <span style="font-size:11px;color:var(--gold);font-weight:600;">· in progress</span></span>
+    <span style="font-weight:700;color:var(--gold);">${currentPts} pts</span>
+  </div>`;
+  return `
+  <div class="card" style="margin-top:16px;text-align:left;border:1.5px solid var(--gold);background:#fffbf0;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:2px;">🏅 Lifetime Points</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Your total SMAC points across every round.</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:46px;color:var(--gold);line-height:1;margin-bottom:4px;">${lifetimeTotal}</div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:16px;">Total Earned</div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px;">By Round</div>
+    ${rowsHTML}
+  </div>`;
 }
 // ─────────────────────────────────────────────
 //  PROFILE PHOTO UPLOAD
