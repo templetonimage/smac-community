@@ -577,8 +577,6 @@
     .toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
     input:checked+.toggle-slider{background:var(--gold);}
     input:checked+.toggle-slider:before{transform:translateX(20px);}
-    .pro-global-danger{background:#fff5f5;border:1.5px solid #e74c3c;border-radius:var(--radius);padding:14px;margin-top:12px;}
-    .pro-global-danger-title{font-family:'Bebas Neue',sans-serif;font-size:16px;color:#e74c3c;margin-bottom:4px;}
     /* In-app notification bell */
     .pro-notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--surface);}
     .nav-notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--surface);display:none;pointer-events:none;}
@@ -701,6 +699,18 @@
       <div id="dash-lb-list"><div class="empty-state" style="padding:24px;"><div class="empty-icon">🏆</div><div class="empty-title">Loading...</div></div></div>
       <button class="dash-view-all-btn" onclick="navTo('leaderboard',document.getElementById('nav-leaderboard'));loadLeaderboard();">
         View Full Leaderboard
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <!-- ROUND 3 RENEWAL CARD -->
+    <div class="dash-card dash-animate" id="dash-renew-card" style="animation-delay:0.72s;border:1.5px solid var(--gold);background:#fffbf0;">
+      <div class="dash-card-title-row">
+        <div class="dash-card-title">🔁 Round 3 Starts June 1</div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Keep your momentum going. Renew your spot for the next 90-day round, or upgrade to SMAC Pro.</div>
+      <button class="dash-view-all-btn" onclick="openRenewModal()">
+        Renew for Round 3
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
@@ -1169,18 +1179,7 @@
     <!-- ADMIN: SMAC Pro Management (hidden until _PRO_GLOBAL_ACTIVE) -->
     <div id="admin-pro-panel" style="display:none;margin-bottom:28px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">★ SMAC Pro Management</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Global Pro controls — inactive until Pro launch. Per-member Pro toggle and trial access are in the Member Directory.</div>
-
-      <div class="pro-admin-section">
-        <div class="pro-admin-title">Global Enable Pro</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Sets <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:11px;">isPro: true</code> on every member in the registry at once. Use this at Pro launch after members have paid. This runs client-side in a loop — takes ~2–3 seconds for 50 members.</div>
-        <div class="pro-global-danger">
-          <div class="pro-global-danger-title">⚠️ One-Way Action</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;">This grants Pro to everyone currently in the registry. Requires double confirmation. Use per-member toggle in Directory for individual access.</div>
-          <button class="btn-sm" onclick="enableProForAll()" style="background:#e74c3c;color:#fff;border-color:#e74c3c;">Grant Pro to All Members</button>
-        </div>
-        <div id="pro-global-status" style="display:none;margin-top:10px;font-size:13px;color:var(--text-muted);padding:8px;background:var(--surface2);border-radius:6px;"></div>
-      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Pro access is purchase-only and granted per member. Use the per-member Pro toggle and trial access in the Member Directory.</div>
     </div>
 
     <!-- ADMIN: Clear Feed Posts by Week -->
@@ -1255,6 +1254,14 @@
   <div class="page" id="page-profile">
     <div class="page-header"><h1 class="page-title">Profile</h1></div>
     <div class="profile-hero" id="profile-hero"></div>
+
+    <!-- ROUND 3 RENEWAL -->
+    <div class="card" style="border:1.5px solid var(--gold);background:#fffbf0;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:6px;">🔁 Round 3 — June 1</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Renew your spot for the next 90-day round, or upgrade to SMAC Pro for higher goals and AI-powered tools.</div>
+      <button class="btn-post" style="width:100%;" onclick="openRenewModal()">Renew for Round 3</button>
+    </div>
+
     <div class="card">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Edit Profile</div>
       <div class="profile-form-field">
@@ -1453,7 +1460,8 @@
     Feed
     <span class="nav-notif-dot" id="dot-feed"></span>
   </button>
-  <button class="nav-item" id="nav-chat" onclick="navTo('chat',this);loadChat();" style="position:relative;">
+  <!-- CHAT nav hidden for Round 3 (low usage). Page/functions retained for easy re-enable. -->
+  <button class="nav-item" id="nav-chat" onclick="navTo('chat',this);loadChat();" style="position:relative;display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     Chat
     <span class="nav-notif-dot" id="dot-chat"></span>
@@ -1535,6 +1543,36 @@
   <div class="member-modal" id="member-modal-content">
     <button class="member-modal-close" onclick="closeMemberModalDirect()">✕</button>
     <div id="member-modal-body"></div>
+  </div>
+</div>
+
+<!-- ROUND 3 RENEWAL MODAL -->
+<div class="member-modal-overlay" id="renew-modal-overlay" onclick="closeRenewModal(event)">
+  <div class="member-modal" id="renew-modal-content" style="max-width:440px;">
+    <button class="member-modal-close" onclick="closeRenewModalDirect()">✕</button>
+    <div style="padding:4px 2px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Round 3 Starts June 1</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;">You've built momentum. Keep it going — renew your spot for the next 90-day round.</div>
+
+      <div style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:8px;">Why continue</div>
+        <div style="font-size:13px;line-height:1.7;">
+          • Stay consistent with weekly accountability<br>
+          • Keep your streak and All-Star progress alive<br>
+          • Group feed, props, and the full member community<br>
+          • A fresh 90-day round to level up your Instagram presence
+        </div>
+      </div>
+
+      <div style="background:#fffbf0;border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.04em;margin-bottom:4px;">★ Or upgrade to SMAC Pro</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">You've built the habit. Now make it count — higher weekly goals plus AI-powered tools for captions, hooks, action plans, and content analysis.</div>
+      </div>
+
+      <a href="https://joinsmac.com" target="_blank" rel="noopener" class="btn-post" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px;">See Plans &amp; Renew →</a>
+
+      <button onclick="dismissRenewModal()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:12px;padding:6px;cursor:pointer;text-decoration:underline;">I've already renewed — don't show this again</button>
+    </div>
   </div>
 </div>
 
@@ -1924,6 +1962,29 @@ function primePhotoCache(registryDocs){
   });
 }
 
+// Pro-status cache: uid/docId -> true. Primed from registry on load.
+// Dual-keyed (doc ID + uid) for the same reason as _photoCache —
+// Make.com registry docs use random doc IDs, not Auth UIDs.
+let _proCache={};
+function primeProCache(registryDocs){
+  registryDocs.forEach(m=>{
+    const docId=m.id||m._docId||"";
+    const uid=m.uid||"";
+    if(m.isPro===true){
+      if(docId) _proCache[docId]=true;
+      if(uid && uid!==docId) _proCache[uid]=true;
+    }
+  });
+}
+// True if a given uid/docId belongs to a Pro member.
+function isUidPro(uid){
+  return !!(uid && _proCache[uid]===true);
+}
+// Small inline PRO badge for feed/member contexts.
+function proBadgeFor(uid){
+  return isUidPro(uid) ? '<span class="pro-badge" style="font-size:9px;padding:1px 6px;margin-left:5px;">PRO</span>' : '';
+}
+
 let _firebaseApp=null;
 function initFirebase(){
   try {
@@ -2123,6 +2184,7 @@ function bootApp(){
           getDocs(col(db,"trackers"))
         ]);
         primePhotoCache(regSnap.docs.map(d=>sanitizeMember({id:d.id,uid:d.id,...d.data()})));
+        primeProCache(regSnap.docs.map(d=>({id:d.id,uid:d.id,...d.data()})));
         trackerSnap.docs.forEach(d=>{ _trackerCache[d.id]=d.data(); });
         // Ensure all members have grace weeks (W1/W2) seeded in their tracker docs.
         // Handles two cases: (1) no tracker doc yet, (2) doc exists but grace weeks missing.
@@ -2208,6 +2270,11 @@ function bootApp(){
   if(currentUser.isAdmin)setTimeout(initPasswordField,500);
   // New features
   setTimeout(showWelcomeModal, 600);
+  // Round 3 renewal prompt — only if the welcome modal isn't showing
+  setTimeout(()=>{
+    const wOpen=document.getElementById("welcome-overlay")?.classList.contains("open");
+    if(!wOpen) maybeShowRenewModal();
+  }, 900);
   setTimeout(initPushNotifications, 1000);
   setTimeout(checkRoundEnd, 300);
   setTimeout(initRanksWatcher, 3000);
@@ -2540,7 +2607,7 @@ function renderFeed(posts){
     return `<div class="card">
       <div class="card-meta">
         ${avatarHTML(p.author, p.uid, "avatar")}
-        <div><div class="card-author">${esc(p.author)}</div><div class="card-time">${timeAgo(p.ts)}</div></div>
+        <div><div class="card-author">${esc(p.author)}${proBadgeFor(p.uid)}</div><div class="card-time">${timeAgo(p.ts)}</div></div>
       </div>
       <div class="card-body">${linkify(p.text)}</div>
       ${hasLink?`<a class="card-link" href="${esc(p.link)}" target="_blank" rel="noopener">View Post ↗</a>`:""}
@@ -3569,7 +3636,7 @@ function renderMemberGrid(members, list, isAdmin){
     if(!a.isAllStar&&b.isAllStar)return 1;
     return a.name.localeCompare(b.name);
   });
-  sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; const _dk=m.id||""; const _uk=m.uid||""; if(m.photoURL){ if(_dk)_photoCache[_dk]=m.photoURL; if(_uk&&_uk!==_dk)_photoCache[_uk]=m.photoURL; } });
+  sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; const _dk=m.id||""; const _uk=m.uid||""; if(m.photoURL){ if(_dk)_photoCache[_dk]=m.photoURL; if(_uk&&_uk!==_dk)_photoCache[_uk]=m.photoURL; } if(m.isPro===true){ if(_dk)_proCache[_dk]=true; if(_uk&&_uk!==_dk)_proCache[_uk]=true; } });
   list.innerHTML=`<div class="member-grid">${sorted.map(m=>{
     const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";const mapKey=m.id||m.uid||m.name;
     const isAdminCard=m._isAdmin===true;
@@ -4038,34 +4105,8 @@ window.setTrialAccess=async function(docId, memberName){
 const _PRO_GLOBAL_ACTIVE = false; // <-- flip to true at Pro launch to enable global Pro toggle UI
 const _PRO_NOTIFS_ACTIVE = false; // <-- flip to true at Pro launch to enable in-app notification sequence
 
-// Global "Enable Pro for All" — sets isPro=true on every free registry doc
-// Run once at Pro launch. Shown in admin panel only when _PRO_GLOBAL_ACTIVE=true.
-window.enableProForAll=async function(){
-  if(!currentUser||!currentUser.isAdmin)return;
-  if(!confirm("This will grant Pro access to ALL current members in the registry.\n\nThis action cannot be undone automatically. Confirm?"))return;
-  if(!confirm("Second confirmation: Grant Pro to all members now?"))return;
-  if(!db||useLocalFallback){showToast("Firestore required.");return;}
-  const statusEl=document.getElementById("pro-global-status");
-  if(statusEl){statusEl.style.display="block";statusEl.textContent="Processing...";}
-  try{
-    const {getDocs,collection:col,updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const snap=await getDocs(col(db,"smac_registry"));
-    let count=0;
-    for(const d of snap.docs){
-      const m=d.data();
-      if(!m.isPro){
-        await updateDoc(docRef(db,"smac_registry",d.id),{isPro:true,proSince:Date.now()});
-        count++;
-      }
-    }
-    if(statusEl){statusEl.textContent=`Done — ${count} member${count!==1?"s":""} upgraded to Pro.`;}
-    showToast(`Pro enabled for ${count} members ★`);
-    loadDirectory();
-  }catch(e){
-    if(statusEl){statusEl.textContent="Error: "+e.message;}
-    showToast("Error: "+e.message);
-  }
-};
+// NOTE: "Enable Pro for All" bulk-grant removed for Round 3.
+// Pro is purchase-only and granted per member via toggleProAccess (Member Directory).
 
 // ─────────────────────────────────────────────
 //  SMAC PRO — In-App Notification Sequence
@@ -4549,7 +4590,7 @@ async function renderSmsCard(){
       <div style="font-size:14px;color:var(--text-muted);margin-bottom:20px;line-height:1.6;">Get deadline reminders sent straight to your phone — so you never miss a submission window.</div>
       <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Get Access</div>
       <a href="https://buy.stripe.com/6oUeVdbhVb7hdq6ctjbo408" target="_blank" class="btn-gold" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px;font-size:16px;padding:13px;">Add SMS Reminders — $19</a>
-      <a href="https://buy.stripe.com/00w4gzdq34IT1Ho0KBbo407" target="_blank" style="display:block;text-align:center;text-decoration:none;border:1.5px solid var(--border);border-radius:var(--radius);padding:12px;font-size:13px;color:var(--text-muted);font-weight:600;">Upgrade to SMAC Pro — $65</a>
+      <a href="https://joinsmac.com" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;border:1.5px solid var(--border);border-radius:var(--radius);padding:12px;font-size:13px;color:var(--text-muted);font-weight:600;">Upgrade to SMAC Pro →</a>
       <div style="font-size:11px;color:var(--text-muted);margin-top:10px;text-align:center;">Pro includes SMS + all AI tools</div>`;
     return;
   }
@@ -7974,6 +8015,40 @@ window.closeWelcomeModal = function(){
   const key = "smac_welcomed_" + (currentUser?.uid||"");
   localStorage.setItem(key, "1");
 };
+
+// ─────────────────────────────────────────────
+//  ROUND 3 RENEWAL MODAL
+//  Member-dismissible. Dismissal stored per-user in localStorage.
+// ─────────────────────────────────────────────
+function _renewDismissKey(){ return "smac_renew_r3_dismissed_" + (currentUser?.uid||""); }
+
+// Open the renewal modal (used by Dashboard card + Profile button).
+window.openRenewModal = function(){
+  const ov=document.getElementById("renew-modal-overlay");
+  if(ov) ov.classList.add("open");
+};
+window.closeRenewModalDirect = function(){
+  const ov=document.getElementById("renew-modal-overlay");
+  if(ov) ov.classList.remove("open");
+};
+window.closeRenewModal = function(e){
+  if(e && e.target && e.target.id!=="renew-modal-overlay") return;
+  closeRenewModalDirect();
+};
+// "I've already renewed" — stops the auto-pop permanently for this user.
+window.dismissRenewModal = function(){
+  try{ localStorage.setItem(_renewDismissKey(),"1"); }catch(_){}
+  closeRenewModalDirect();
+  if(typeof showToast==="function") showToast("Got it — we won't show this again.");
+};
+// Auto-pop once per login if not dismissed. Skips admins.
+function maybeShowRenewModal(){
+  if(!currentUser || currentUser.isAdmin) return;
+  let dismissed=false;
+  try{ dismissed = localStorage.getItem(_renewDismissKey())==="1"; }catch(_){}
+  if(dismissed) return;
+  setTimeout(()=>{ openRenewModal(); }, 1200);
+}
 
 // ─────────────────────────────────────────────
 //  PUSH NOTIFICATIONS
