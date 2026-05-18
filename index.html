@@ -1871,6 +1871,29 @@ function totalRequirementForCurrentUser(){
 }
 
 // ─────────────────────────────────────────────
+//  ALL-STAR EVALUATION — single source of truth
+//  A member is All-Star when EVERY month total meets the per-tier
+//  requirement for that month. Respects admin per-month overrides.
+//  Used by the admin Reports page and anywhere else All-Star is shown.
+//  - tracked:   the member's { weekId: [bool,...] } map
+//  - overrides: optional { monthKeyLowercase: number } admin overrides
+//  - isPro:     this member's Pro flag (NOT the current user's)
+// ─────────────────────────────────────────────
+function evaluateAllStar(tracked, overrides, isPro){
+  tracked   = tracked   || {};
+  overrides = overrides || {};
+  return MONTHS.every(month => {
+    const mWeeks = WEEKS.filter(w => w.month === month);
+    if(!mWeeks.length) return true;
+    const mRequired = mWeeks.reduce((s,w)=>s+weekRequirementFor(WEEKS.indexOf(w), isPro===true), 0);
+    const mKey = month.toLowerCase();
+    if(overrides[mKey] !== undefined) return overrides[mKey] >= mRequired;
+    const mCompleted = mWeeks.reduce((s,w)=>s+((tracked[w.id]||[]).filter(Boolean).length), 0);
+    return mCompleted >= mRequired;
+  });
+}
+
+// ─────────────────────────────────────────────
 //  MEMBER SANITIZER — fills missing Firestore fields with safe defaults
 // ─────────────────────────────────────────────
 function sanitizeMember(m){
@@ -3735,14 +3758,16 @@ async function loadTrackerReport(){
 
     // Merge: use tracker doc if exists, else create empty placeholder
     // Tracker docs are keyed by Firebase Auth UID (m.uid), NOT registry doc ID (m.id)
+    // isPro lives ONLY on the registry doc — thread it into every row as _isPro.
     const mergedDocs = registryMembers.map(m => {
+      const isProMember = (m.isPro === true);
       const trackerByUid = m.uid ? trackerMap[m.uid] : null;
       const trackerById  = trackerMap[m.id];
-      if(trackerByUid) return trackerByUid;
-      if(trackerById)  return trackerById;
+      if(trackerByUid) return { ...trackerByUid, _isPro: isProMember };
+      if(trackerById)  return { ...trackerById,  _isPro: isProMember };
       // No tracker doc yet — placeholder row; use Auth UID if available
       const resolvedId = m.uid || m.id;
-      return { name: m.name, uid: resolvedId, _docId: resolvedId, tracked: {}, _noTracker: true };
+      return { name: m.name, uid: resolvedId, _docId: resolvedId, tracked: {}, _noTracker: true, _isPro: isProMember };
     });
 
     // Deduplicate by _docId (prevents double-entries)
@@ -3759,60 +3784,27 @@ async function loadTrackerReport(){
       return;
     }
 
-    // Build month breakdown per member
-    const months = ["March","April","May"];
+    // Build month breakdown per member (per-tier requirements)
     const rows = trackerDocs.map((d, i) => {
-      // Apply grace period so w1/w2 show as met for all members
-      const rawTracked = d.tracked || {};
-      const tracked = JSON.parse(JSON.stringify(rawTracked)); // clone
-      GRACE_WEEKS.forEach(wid => {
-        const w = WEEKS.find(x => x.id === wid);
-        if(!w) return;
-        const checks = tracked[wid] || [];
-        for(let i = 0; i < w.required; i++){ if(!checks[i]) checks[i] = true; }
-        tracked[wid] = checks;
-      });
-      const monthStats = months.map(month => {
+      const isProRow = (d._isPro === true);
+      const tracked = JSON.parse(JSON.stringify(d.tracked || {})); // clone
+      const overrides = d.overrides || {};
+      const monthStats = MONTHS.map(month => {
         const weeks = WEEKS.filter(w => w.month === month);
-        const required = weeks.reduce((s,w) => s + w.required, 0);
+        const required = weeks.reduce((s,w) => s + weekRequirementFor(WEEKS.indexOf(w), isProRow), 0);
         const completed = weeks.reduce((s,w) => {
           const c = tracked[w.id] || [];
           return s + c.filter(Boolean).length;
         }, 0);
         const weeksMet = weeks.filter(w => {
           const c = tracked[w.id] || [];
-          return c.filter(Boolean).length >= w.required;
+          return c.filter(Boolean).length >= weekRequirementFor(WEEKS.indexOf(w), isProRow);
         }).length;
         return { month, required, completed, weeksMet, totalWeeks: weeks.length };
       });
-      const isAllStar = WEEKS.every(w => {
-        const c = tracked[w.id] || [];
-        return c.filter(Boolean).length >= w.required;
-      });
-      const overrides = d.overrides || {};
-      // For All-Star: use override count if set, else tracked count
-      const isAllStarDisplay = WEEKS.every(w => {
-        const month = w.month.toLowerCase();
-        const c = tracked[w.id] || [];
-        const tracked_count = c.filter(Boolean).length;
-        // Find which month this week belongs to and check override
-        const monthOverride = overrides[month];
-        const monthWeeks = WEEKS.filter(x => x.month === w.month);
-        const monthRequired = monthWeeks.reduce((s,x) => s + x.required, 0);
-        // If month has override, distribute proportionally — use tracked per-week
-        return tracked_count >= w.required;
-      });
-      // Simpler All-Star check with overrides: check per-month total vs required
-      const months2 = ["March","April","May"];
-      const isAllStarDisplayFinal = months2.every(month => {
-        const mWeeks = WEEKS.filter(w => w.month === month);
-        const mRequired = mWeeks.reduce((s,w) => s + w.required, 0);
-        const mKey = month.toLowerCase();
-        if(overrides[mKey] !== undefined) return overrides[mKey] >= mRequired;
-        const mCompleted = mWeeks.reduce((s,w) => s + (tracked[w.id]||[]).filter(Boolean).length, 0);
-        return mCompleted >= mRequired;
-      });
-      return { name: d.name || d.uid, docId: d._docId || d.uid, monthStats, isAllStar, isAllStarDisplay: isAllStarDisplayFinal, overrides, noTracker: !!d._noTracker };
+      // Single per-tier, override-aware All-Star calculation.
+      const isAllStarDisplay = evaluateAllStar(tracked, overrides, isProRow);
+      return { name: d.name || d.uid, docId: d._docId || d.uid, isPro: isProRow, monthStats, isAllStarDisplay, overrides, noTracker: !!d._noTracker };
     });
 
     // Sort alpha
@@ -3824,15 +3816,20 @@ async function loadTrackerReport(){
           <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;">⭐ All-Star Progress</div>
           ${currentUser.isAdmin ? '<span style="font-size:11px;color:var(--gold);font-weight:600;background:rgba(212,175,55,.12);padding:3px 8px;border-radius:4px;">Admin · Edit Mode</span>' : ''}
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Live data from all members — Round 2 posting progress by month</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Live data from all members — Round ${String(CURRENT_ROUND).replace("R","")} posting progress by month</div>
         <div style="overflow-x:auto;">
           <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
               <tr style="border-bottom:2px solid var(--border);">
                 <th style="text-align:left;padding:8px 10px 8px 0;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Member</th>
-                <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">March<br><span style="font-weight:400;text-transform:none;letter-spacing:0;">1/wk · 4 req</span></th>
-                <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">April<br><span style="font-weight:400;text-transform:none;letter-spacing:0;">2/wk · 8 req</span></th>
-                <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">May<br><span style="font-weight:400;text-transform:none;letter-spacing:0;">3/wk · 12 req</span></th>
+                ${MONTHS.map(month => {
+                  const mWeeks = WEEKS.filter(w => w.month === month);
+                  const wi = mWeeks.length ? WEEKS.indexOf(mWeeks[0]) : -1;
+                  const baseReq = wi >= 0 ? weekRequirementFor(wi, false) : 0;
+                  const proReq  = wi >= 0 ? weekRequirementFor(wi, true)  : 0;
+                  const label = `base ${baseReq}/wk · Pro ${proReq}/wk`;
+                  return `<th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">${month}<br><span style="font-weight:400;text-transform:none;letter-spacing:0;">${label}</span></th>`;
+                }).join("")}
                 <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">All-Star</th>
               </tr>
             </thead>
@@ -3842,6 +3839,7 @@ async function loadTrackerReport(){
                   <td style="padding:12px 10px 12px 0;font-weight:500;white-space:nowrap;">
                     <span style="display:inline-flex;align-items:center;gap:6px;">${avatarHTML(r.name, r.docId, "avatar", "width:24px;height:24px;font-size:10px;flex-shrink:0;")}${currentUser.isAdmin && !r.noTracker ? `<button onclick="openAdminTrackerEditor('${r.docId}','${esc(r.name)}')" style="background:none;border:none;padding:0;font-weight:600;font-size:14px;color:var(--text-primary);cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--border);" title="View tracker">${esc(r.name)}</button>` : `<span>${esc(r.name)}</span>`}</span>
                     ${r.noTracker && currentUser.isAdmin ? '<span title="Has not logged in yet" style="font-size:9px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;">Not logged in</span>' : ''}
+                    ${r.isPro ? '<span title="SMAC Pro member — Pro requirements apply" style="font-size:9px;color:var(--gold);background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.4);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;font-weight:600;">PRO</span>' : ''}
                     ${currentUser.isAdmin ? `<button onclick="removeFromReport('${r.docId}')" style="margin-left:4px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:10px;cursor:pointer;padding:2px 5px;vertical-align:middle;" title="Remove from report">✕</button>` : ''}
                   </td>
                   ${r.monthStats.map((ms,mi) => {
