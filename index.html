@@ -1927,6 +1927,38 @@ function evaluateAllStar(tracked, overrides, isPro){
 }
 
 // ─────────────────────────────────────────────
+//  GRACE TOKENS — SMAC Pro streak-saver (Phase 3)
+//  Pro-only. 2 tokens/month, no rollover. Per-missing-post unit.
+//  Spending a token writes a status:"grace" submission (pts:0) that
+//  counts toward All-Star but never toward points.
+//  State lives on the smac_registry doc:
+//    graceTokens: { monthKey:"YYYY-MM", remaining:N, covered:[{weekIdx,subId,ts}] }
+//  Monthly reset is LAZY — computed on read by getGraceState().
+// ─────────────────────────────────────────────
+const GRACE_TOKENS_PER_MONTH = 2;
+
+// Current calendar month key, e.g. "2026-06".
+function currentMonthKey(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+}
+
+// Returns a normalized grace state for a registry doc, applying lazy
+// monthly reset. Does NOT write — callers persist if they change it.
+function getGraceState(regData){
+  const stored = (regData && regData.graceTokens) ? regData.graceTokens : null;
+  const mk = currentMonthKey();
+  if(!stored || stored.monthKey !== mk){
+    return { monthKey: mk, remaining: GRACE_TOKENS_PER_MONTH, covered: [] };
+  }
+  return {
+    monthKey: mk,
+    remaining: typeof stored.remaining === "number" ? stored.remaining : GRACE_TOKENS_PER_MONTH,
+    covered: Array.isArray(stored.covered) ? stored.covered : []
+  };
+}
+
+// ─────────────────────────────────────────────
 //  MEMBER SANITIZER — fills missing Firestore fields with safe defaults
 // ─────────────────────────────────────────────
 function sanitizeMember(m){
@@ -1952,6 +1984,7 @@ function sanitizeMember(m){
     proSince:    m.proSince    || null,
     proExpiry:   m.proExpiry   || null,
     trialUntil:  m.trialUntil  || null,
+    graceTokens: m.graceTokens || null,
   };
 }
 
@@ -3796,13 +3829,14 @@ async function loadTrackerReport(){
     // isPro lives ONLY on the registry doc — thread it into every row as _isPro.
     const mergedDocs = registryMembers.map(m => {
       const isProMember = (m.isPro === true);
+      const graceTok = m.graceTokens || null;
       const trackerByUid = m.uid ? trackerMap[m.uid] : null;
       const trackerById  = trackerMap[m.id];
-      if(trackerByUid) return { ...trackerByUid, _isPro: isProMember };
-      if(trackerById)  return { ...trackerById,  _isPro: isProMember };
+      if(trackerByUid) return { ...trackerByUid, _isPro: isProMember, _graceTokens: graceTok };
+      if(trackerById)  return { ...trackerById,  _isPro: isProMember, _graceTokens: graceTok };
       // No tracker doc yet — placeholder row; use Auth UID if available
       const resolvedId = m.uid || m.id;
-      return { name: m.name, uid: resolvedId, _docId: resolvedId, tracked: {}, _noTracker: true, _isPro: isProMember };
+      return { name: m.name, uid: resolvedId, _docId: resolvedId, tracked: {}, _noTracker: true, _isPro: isProMember, _graceTokens: graceTok };
     });
 
     // Deduplicate by _docId (prevents double-entries)
@@ -3839,7 +3873,14 @@ async function loadTrackerReport(){
       });
       // Single per-tier, override-aware All-Star calculation.
       const isAllStarDisplay = evaluateAllStar(tracked, overrides, isProRow);
-      return { name: d.name || d.uid, docId: d._docId || d.uid, isPro: isProRow, monthStats, isAllStarDisplay, overrides, noTracker: !!d._noTracker };
+      // Grace Token balance (current month, lazy-reset). Pro-only.
+      let graceRemaining = null, graceUsed = null;
+      if(isProRow){
+        const gs = getGraceState({ graceTokens: d._graceTokens });
+        graceRemaining = gs.remaining;
+        graceUsed = gs.covered.length;
+      }
+      return { name: d.name || d.uid, docId: d._docId || d.uid, isPro: isProRow, monthStats, isAllStarDisplay, overrides, noTracker: !!d._noTracker, graceRemaining, graceUsed };
     });
 
     // Sort alpha
@@ -3866,6 +3907,7 @@ async function loadTrackerReport(){
                   return `<th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">${month}<br><span style="font-weight:400;text-transform:none;letter-spacing:0;">${label}</span></th>`;
                 }).join("")}
                 <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">All-Star</th>
+                <th style="text-align:center;padding:8px;font-weight:600;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">Grace<br><span style="font-weight:400;text-transform:none;letter-spacing:0;">Pro only</span></th>
               </tr>
             </thead>
             <tbody>
@@ -3891,6 +3933,9 @@ async function loadTrackerReport(){
                     </td>`;
                   }).join("")}
                   <td style="text-align:center;padding:12px 8px;font-size:18px;">${r.isAllStarDisplay ? "⭐" : "—"}</td>
+                  <td style="text-align:center;padding:12px 8px;">${r.isPro
+                    ? `<div style="font-weight:700;font-size:14px;color:var(--gold);">${r.graceRemaining}<span style="font-size:11px;font-weight:400;color:var(--text-muted);">/${GRACE_TOKENS_PER_MONTH}</span></div><div style="font-size:10px;color:var(--text-muted);margin-top:1px;">${r.graceUsed} used</div>`
+                    : '<span style="color:var(--border);font-size:13px;">—</span>'}</td>
                 </tr>`).join("")}
             </tbody>
           </table>
@@ -4222,7 +4267,7 @@ window.renderProDashboard = async function(){
   const cacheKey = `smac_pro_dash_${currentUser.uid}`;
 
   // ── Helper: render dashboard HTML from data ───────────────────────────────
-  function buildDashHTML(totalPts, postsThisWeek, proTarget, weekCounts){
+  function buildDashHTML(totalPts, postsThisWeek, proTarget, weekCounts, graceState){
     const now2 = Date.now();
     const currentWeekIdx = getWeekIndex(now2);
     const weekLabel = currentWeekIdx >= 0 ? `Week ${currentWeekIdx+1} of 12` : "—";
@@ -4316,15 +4361,76 @@ window.renderProDashboard = async function(){
         </div>
       </div>
       <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Pro Tools</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${toolGrid}</div>`;
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${toolGrid}</div>
+      ${buildGraceCardHTML(graceState, weekCounts)}`;
+  }
+
+  // ── Grace Tokens card (Pro-only) ──────────────────────────────────────────
+  function buildGraceCardHTML(graceState, weekCounts){
+    // Hard gate: only real paying Pro members see this card.
+    if(!(currentUser && currentUser.isPro===true)) return "";
+    const g = graceState || { monthKey: currentMonthKey(), remaining: GRACE_TOKENS_PER_MONTH, covered: [] };
+    const remaining = typeof g.remaining==="number" ? g.remaining : GRACE_TOKENS_PER_MONTH;
+    const counts = Array.isArray(weekCounts) ? weekCounts : [];
+    const nowTs = Date.now();
+
+    // Token pips.
+    const tokenPips = Array.from({length: GRACE_TOKENS_PER_MONTH}, (_,i) =>
+      `<div style="width:14px;height:14px;border-radius:50%;background:${i<remaining?'var(--gold)':'var(--surface2)'};border:2px solid ${i<remaining?'var(--gold)':'var(--border)'};"></div>`
+    ).join("");
+
+    // Past weeks where the member is short of the Pro requirement.
+    const shortWeeks = [];
+    WEEKS.forEach((w,i)=>{
+      const deadline = getWeekDeadline(i);
+      if(deadline===null || nowTs<=deadline) return; // not a past week
+      const required = weekRequirementFor(i, true);
+      const have = counts[i] || 0; // weekCounts already includes any grace docs
+      if(have < required){
+        shortWeeks.push({ weekIdx:i, required:required, have:have, missing:required-have });
+      }
+    });
+
+    let body;
+    if(shortWeeks.length===0){
+      body = `<div style="font-size:13px;color:var(--text-muted);line-height:1.5;">You're on track — no missed weeks to cover. Tokens are here if you need them.</div>`;
+    } else if(remaining<=0){
+      body = `<div style="font-size:13px;color:var(--text-muted);line-height:1.5;">You have missed weeks below, but no tokens left this month. Your balance resets on the 1st.</div>`;
+    } else {
+      const rows = shortWeeks.map(sw=>{
+        const w = WEEKS[sw.weekIdx] || {};
+        const canAfford = remaining>0;
+        return `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);">${w.label||("Week "+(sw.weekIdx+1))} <span style="font-weight:400;color:var(--text-muted);">· ${w.dates||""}</span></div>
+              <div style="font-size:11px;color:var(--text-muted);">${sw.have} of ${sw.required} posts · short ${sw.missing}</div>
+            </div>
+            <button onclick="useGraceToken(${sw.weekIdx})" ${canAfford?"":"disabled"} style="background:${canAfford?'var(--gold)':'var(--surface2)'};color:${canAfford?'#000':'var(--text-muted)'};border:1.5px solid ${canAfford?'var(--gold)':'var(--border)'};border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:${canAfford?'pointer':'not-allowed'};white-space:nowrap;">Use 1 Token</button>
+          </div>`;
+      }).join("");
+      body = `<div>${rows}</div>`;
+    }
+
+    return `
+      <div class="card" style="margin-top:20px;padding:16px;border:1.5px solid var(--gold);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;color:var(--gold);line-height:1;">🛡️ Grace Tokens</div>
+          <div style="display:flex;align-items:center;gap:6px;">${tokenPips}<span style="font-size:12px;font-weight:700;color:var(--text-muted);margin-left:4px;">${remaining} / ${GRACE_TOKENS_PER_MONTH}</span></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:12px;">
+          A Grace Token protects your All-Star streak for one missed post. ${GRACE_TOKENS_PER_MONTH} per month, no rollover. A covered post keeps your streak — it does not add points. Post on time before the week ends and your token is refunded.
+        </div>
+        ${body}
+      </div>`;
   }
 
   // ── Step 1: Render from cache instantly if available ──────────────────────
   const cached = sessionStorage.getItem(cacheKey);
   if(cached){
     try{
-      const {totalPts, postsThisWeek, proTarget, weekCounts} = JSON.parse(cached);
-      root.innerHTML = buildDashHTML(totalPts, postsThisWeek, proTarget, weekCounts);
+      const {totalPts, postsThisWeek, proTarget, weekCounts, graceState} = JSON.parse(cached);
+      root.innerHTML = buildDashHTML(totalPts, postsThisWeek, proTarget, weekCounts, graceState);
       // Animate points counter from cache
       animateProPoints(totalPts);
     }catch(e){ /* corrupt cache — fall through to full load */ }
@@ -4333,7 +4439,7 @@ window.renderProDashboard = async function(){
   }
 
   // ── Step 2: Fetch fresh data in background ────────────────────────────────
-  let totalPts = 0, postsThisWeek = 0, proTarget = 3, weekCounts = Array(12).fill(0);
+  let totalPts = 0, postsThisWeek = 0, proTarget = 3, weekCounts = Array(12).fill(0), graceState = null;
   try {
     const {getDocs,collection:col,query:q,where,getDoc,doc:dc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const uid = currentUser.uid;
@@ -4362,16 +4468,36 @@ window.renderProDashboard = async function(){
     const roundSubs  = subs.filter(s => s.ts >= roundStart && s.ts <= roundEnd);
     weekCounts = WEEKS.map((w, i) => roundSubs.filter(s => s.weekIdx === i).length);
 
+    // Grace Token state (lazy monthly reset). Pro-only — null for non-Pro.
+    graceState = (currentUser && currentUser.isPro===true) ? getGraceState(regData) : null;
+
     // Save fresh data to cache
-    sessionStorage.setItem(cacheKey, JSON.stringify({totalPts, postsThisWeek, proTarget, weekCounts, ts: Date.now()}));
+    sessionStorage.setItem(cacheKey, JSON.stringify({totalPts, postsThisWeek, proTarget, weekCounts, graceState, ts: Date.now()}));
 
   } catch(e) {
     console.error("Pro dashboard load error:", e);
   }
 
   // ── Step 3: Re-render with fresh data (silent update) ─────────────────────
-  root.innerHTML = buildDashHTML(totalPts, postsThisWeek, proTarget, weekCounts);
+  root.innerHTML = buildDashHTML(totalPts, postsThisWeek, proTarget, weekCounts, graceState);
   animateProPoints(totalPts);
+};
+
+// Grace Token button handler — confirms, spends, refreshes the Pro dashboard.
+window.useGraceToken = async function(weekIdx){
+  if(!(currentUser && currentUser.isPro===true)){
+    showToast("Grace Tokens are a SMAC Pro feature.");
+    return;
+  }
+  const wLabel = (WEEKS[weekIdx] && WEEKS[weekIdx].label) ? WEEKS[weekIdx].label : ("Week "+(weekIdx+1));
+  const ok = confirm("Use 1 Grace Token to cover a missed post for "+wLabel+"?\n\nThis protects your All-Star streak for that week. It does not add points. If you post on time before the week ends, the token is refunded.");
+  if(!ok) return;
+  const spent = await spendGraceToken(weekIdx);
+  if(spent){
+    // Bust the cached Pro dashboard so the fresh render reflects the spend.
+    try{ sessionStorage.removeItem(`smac_pro_dash_${currentUser.uid}`); }catch(e){}
+    if(typeof renderProDashboard==="function") renderProDashboard();
+  }
 };
 
 function animateProPoints(total){
@@ -5734,7 +5860,10 @@ window.submitIgPost=async function(){
       const {addDoc,collection:col,getDocs,query:q,where,orderBy:ob,updateDoc,doc:docRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       const weekLimit=weekRequirement(weekIdx)||1;
       const weekCountSnap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx)));
-      if(weekCountSnap.size>=weekLimit){errEl.style.display="block";errEl.textContent=`Weekly limit reached — max ${weekLimit} post${weekLimit!==1?"s":""} this week.`;return;}
+      // Grace Token docs are placeholders, not real posts — exclude them from
+      // the weekly limit so a member can still post on time and trigger a refund.
+      const realPostCount=weekCountSnap.docs.filter(d=>d.data().status!=="grace").length;
+      if(realPostCount>=weekLimit){errEl.style.display="block";errEl.textContent=`Weekly limit reached — max ${weekLimit} post${weekLimit!==1?"s":""} this week.`;return;}
       // Check for duplicate URL this week
       const dupCheck=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx),where("url","==",url)));
       if(!dupCheck.empty){errEl.style.display="block";errEl.textContent="You already submitted this post.";return;}
@@ -5748,6 +5877,12 @@ window.submitIgPost=async function(){
 
       // Check All-Star — all 12 weeks fully met
       await checkAllStar(currentUser.uid,currentUser.registryId);
+
+      // Grace Token refund — if this on-time post satisfies a week that was
+      // grace-covered (and the deadline hasn't passed), return the token.
+      if(status==="ontime"){
+        await refundGraceToken(weekIdx);
+      }
 
       document.getElementById("submit-ig-url").value="";
       clearScreenshot();
@@ -5769,15 +5904,144 @@ window.submitIgPost=async function(){
 };
 
 
+// ─────────────────────────────────────────────
+//  GRACE TOKEN — spend / refund (Phase 3)
+// ─────────────────────────────────────────────
+
+// Spend one grace token to cover ONE missing post in a given (past) week.
+// Writes a status:"grace" submission (pts:0) and decrements the monthly
+// balance on the registry doc. Returns true on success.
+async function spendGraceToken(weekIdx){
+  if(!currentUser || currentUser.isPro!==true){
+    showToast("Grace Tokens are a SMAC Pro feature.");
+    return false;
+  }
+  if(!currentUser.registryId){
+    showToast("Could not save — missing member record.");
+    return false;
+  }
+  if(useLocalFallback || !db){
+    showToast("Grace Tokens need a live connection.");
+    return false;
+  }
+  // Only past weeks can be grace-covered (a week still in progress isn't "missed" yet).
+  const nowTs=Date.now();
+  const deadline=getWeekDeadline(weekIdx);
+  if(deadline===null || nowTs<=deadline){
+    showToast("You can only use a token on a week that has already ended.");
+    return false;
+  }
+  try{
+    const {getDoc,doc:docRef,getDocs,collection:col,query:q,where,addDoc,updateDoc}=
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const regRef=docRef(db,"smac_registry",currentUser.registryId);
+    const regSnap=await getDoc(regRef);
+    const regData=regSnap.exists()?regSnap.data():{};
+    const grace=getGraceState(regData);
+    if(grace.remaining<=0){
+      showToast("No Grace Tokens left this month.");
+      return false;
+    }
+    // How many posts is this member short for that week?
+    const subSnap=await getDocs(q(col(db,"submissions"),
+      where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx)));
+    const required=weekRequirement(weekIdx)||1;
+    const have=subSnap.size; // includes any existing grace docs
+    if(have>=required){
+      showToast("That week is already covered — no token needed.");
+      return false;
+    }
+    // Write the grace submission. pts:0, status:"grace", flagged.
+    const graceSub={
+      uid:currentUser.uid,
+      memberName:currentUser.name,
+      url:"",
+      screenshotBase64:"",
+      format:"Grace",
+      weekIdx:weekIdx,
+      pts:0,
+      status:"grace",
+      graceToken:true,
+      challengeApplied:false,
+      challengeTitle:"",
+      syfApplied:false,
+      ts:nowTs
+    };
+    const newDoc=await addDoc(col(db,"submissions"),graceSub);
+    // Decrement the monthly balance.
+    const newCovered=grace.covered.concat([{weekIdx:weekIdx,subId:newDoc.id,ts:nowTs}]);
+    await updateDoc(regRef,{graceTokens:{
+      monthKey:grace.monthKey,
+      remaining:grace.remaining-1,
+      covered:newCovered
+    }});
+    showToast("🛡️ Grace Token applied — your streak is protected for Week "+(weekIdx+1)+".");
+    await checkAllStar(currentUser.uid,currentUser.registryId);
+    return true;
+  }catch(e){
+    console.error("Grace spend error:",e);
+    showToast("Error applying Grace Token.");
+    return false;
+  }
+}
+
+// Refund any grace token(s) for a week that has since been satisfied by a
+// real on-time post, as long as the week's deadline has NOT passed.
+// Called from submitIgPost after a real post lands. Silent if nothing to do.
+async function refundGraceToken(weekIdx){
+  if(!currentUser || currentUser.isPro!==true || !currentUser.registryId) return;
+  if(useLocalFallback || !db) return;
+  // Refund window: only before the week's deadline.
+  const deadline=getWeekDeadline(weekIdx);
+  if(deadline===null || Date.now()>deadline) return;
+  try{
+    const {getDoc,doc:docRef,getDocs,collection:col,query:q,where,deleteDoc,updateDoc}=
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const regRef=docRef(db,"smac_registry",currentUser.registryId);
+    const regSnap=await getDoc(regRef);
+    const regData=regSnap.exists()?regSnap.data():{};
+    const grace=getGraceState(regData);
+    const forWeek=grace.covered.filter(c=>c.weekIdx===weekIdx);
+    if(!forWeek.length) return;
+    // How many real (non-grace) posts now exist for that week?
+    const subSnap=await getDocs(q(col(db,"submissions"),
+      where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx)));
+    const realPosts=subSnap.docs.filter(d=>d.data().status!=="grace").length;
+    const required=weekRequirement(weekIdx)||1;
+    if(realPosts<required) return; // still genuinely short — keep grace in place
+    // Week satisfied by real posts — refund every grace doc for it.
+    let refunded=0;
+    for(const c of forWeek){
+      try{ await deleteDoc(docRef(db,"submissions",c.subId)); refunded++; }
+      catch(e){ console.warn("Grace refund: could not delete grace doc",c.subId,e); }
+    }
+    if(!refunded) return;
+    const remainingCovered=grace.covered.filter(c=>c.weekIdx!==weekIdx);
+    await updateDoc(regRef,{graceTokens:{
+      monthKey:grace.monthKey,
+      remaining:Math.min(GRACE_TOKENS_PER_MONTH,grace.remaining+refunded),
+      covered:remainingCovered
+    }});
+    showToast("🛡️ Grace Token"+(refunded>1?"s":"")+" refunded — you posted on time for Week "+(weekIdx+1)+".");
+  }catch(e){
+    console.warn("Grace refund error:",e);
+  }
+}
+
 async function checkAllStar(uid,registryId){
   if(!registryId)return;
   try{
     const {getDocs,collection:col,query:q,where,updateDoc,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const subs=await getDocs(q(col(db,"submissions"),where("uid","==",uid),where("status","==","ontime")));
-    const weekSet=new Set(subs.docs.map(d=>d.data().weekIdx));
+    // Query all of this member's submissions, then count "ontime" OR "grace"
+    // toward the streak. Grace posts protect All-Star but award 0 points.
+    const subsSnap=await getDocs(q(col(db,"submissions"),where("uid","==",uid)));
+    const counting=subsSnap.docs.filter(d=>{
+      const st=d.data().status;
+      return st==="ontime"||st==="grace";
+    });
     // All 12 weeks must have at least the required posts (per-tier: base 1/2/3, Pro 3/4/5)
     const allMet=WEEKS.every((w,i)=>{
-      const postsThisWeek=subs.docs.filter(d=>d.data().weekIdx===i).length;
+      const postsThisWeek=counting.filter(d=>d.data().weekIdx===i).length;
       return postsThisWeek>=weekRequirement(i);
     });
     if(allMet){
@@ -5821,6 +6085,19 @@ async function loadMySubmissions(){
     total.innerHTML=`<strong>${totalPts} total pts</strong> · ${subs.length} post${subs.length!==1?"s":""} ${milestones}`;
     const EDIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
     list.innerHTML=subs.map(s=>{
+      // Grace Token submission — read-only line, no edit/delete.
+      if(s.graceToken===true || s.status==="grace"){
+        return `
+        <div class="sub-item" style="flex-direction:column;align-items:stretch;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;color:var(--gold);">🛡️ Grace Token applied</div>
+              <div style="font-size:11px;color:var(--text-muted);">Week ${(s.weekIdx||0)+1} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})} · streak protected, 0 pts</div>
+            </div>
+            <span class="sub-pts" style="background:rgba(212,175,55,.18);color:var(--gold);">+0</span>
+          </div>
+        </div>`;
+      }
       const canEdit = (Date.now() - (s.ts||0)) < EDIT_WINDOW_MS;
       const daysLeft = canEdit ? Math.ceil((EDIT_WINDOW_MS - (Date.now() - (s.ts||0))) / (24*60*60*1000)) : 0;
       const editTitle = canEdit ? `Edit (${daysLeft}d left)` : "Edit window closed (7-day limit)";
@@ -6175,6 +6452,29 @@ function buildSubCard(s){
   const w = WEEKS[s.weekIdx] || {};
   const dateStr = s.ts ? new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "";
   const timeStr = s.ts ? new Date(s.ts).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "";
+
+  // Grace Token submission — read-only. No admin edit block (it has no points
+  // to recalc, and the points recalculator would wrongly treat it as on-time).
+  if(s.graceToken===true || s.status==="grace"){
+    return `<div class="sub-card" id="subcard-${esc(s._id)}" style="border-left:3px solid var(--gold);">
+      <div class="sub-card-header">
+        ${avatarHTML(s.memberName||"?", s.uid||"", "avatar")}
+        <div class="sub-card-meta">
+          <div class="sub-card-name">${esc(s.memberName||"Unknown")}</div>
+          <div class="sub-card-detail">${w.month||""} ${w.label||"Week "+(s.weekIdx+1)} · ${w.dates||""}</div>
+          <div class="sub-card-detail">${dateStr} at ${timeStr}</div>
+        </div>
+        <span class="sub-status-pill" style="background:rgba(212,175,55,.18);color:var(--gold);">🛡️ Grace</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+        Grace Token applied — protects the member's All-Star streak for this week. Awards <strong>0 points</strong>.
+      </div>
+      <div class="sub-actions">
+        <button class="btn-sm" style="color:#e74c3c;border-color:#e74c3c;" onclick="deleteSubmission('${esc(s._id)}','${esc(s.memberName||"")}')">Delete</button>
+      </div>
+    </div>`;
+  }
+
   const statusLabel = s.reviewed ? "reviewed" : (s.status||"ontime");
   const statusText = s.reviewed ? "✓ Reviewed" : s.status==="ontime" ? "On Time" : s.status==="late" ? "Late" : "Missed";
   const ptsDisplay = s.pts!==undefined ? s.pts : 0;
@@ -6335,13 +6635,34 @@ window.toggleSubReviewed = async function(id, currentVal){
 
 window.deleteSubmission = async function(id, memberName){
   if(!currentUser||!currentUser.isAdmin) return;
-  if(!confirm(`Delete this submission from ${memberName}?\n\nThis cannot be undone.`)) return;
+  const sub = _allSubmissions.find(s=>s._id===id);
+  const isGrace = sub && (sub.graceToken===true || sub.status==="grace");
+  if(!confirm(`Delete this ${isGrace?"Grace Token record":"submission"} from ${memberName}?\n\nThis cannot be undone.`)) return;
   try{
-    const {deleteDoc,doc:dcRef} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const {deleteDoc,doc:dcRef,getDocs,collection:col,query:q,where,updateDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     await deleteDoc(dcRef(db,"submissions",id));
+    // If this was a Grace Token doc, return the token to the member's balance
+    // and drop the stale `covered` entry so state stays consistent.
+    if(isGrace && sub.uid){
+      try{
+        const regSnap = await getDocs(q(col(db,"smac_registry"),where("uid","==",sub.uid)));
+        if(!regSnap.empty){
+          const regRef = regSnap.docs[0].ref;
+          const grace = getGraceState(regSnap.docs[0].data());
+          const stillCovered = grace.covered.filter(c=>c.subId!==id);
+          // Only refund if the deleted doc belonged to the current month's balance.
+          const wasThisMonth = grace.covered.some(c=>c.subId===id);
+          await updateDoc(regRef,{graceTokens:{
+            monthKey:grace.monthKey,
+            remaining:wasThisMonth?Math.min(GRACE_TOKENS_PER_MONTH,grace.remaining+1):grace.remaining,
+            covered:stillCovered
+          }});
+        }
+      }catch(e){ console.warn("Grace token cleanup on delete failed:",e); }
+    }
     _allSubmissions = _allSubmissions.filter(s=>s._id!==id);
     renderSubViewer();
-    showToast("Submission deleted");
+    showToast(isGrace?"Grace Token record deleted — token returned":"Submission deleted");
   }catch(e){ showToast("Error: "+e.message); }
 };
 
