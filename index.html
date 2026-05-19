@@ -3345,7 +3345,9 @@ const SVG_EXTERNAL = `<svg style="flex-shrink:0;margin-left:auto;" width="14" he
 
 function buildZoomCardHTML(cfg) {
   if (!cfg || !cfg.visible) return "";
-  const safeUrl = (cfg.url || "").replace(/"/g, "&quot;");
+  const rawUrl = (cfg.url || "").trim();
+  const absoluteUrl = rawUrl && !/^https?:\/\//i.test(rawUrl) ? "https://" + rawUrl : rawUrl;
+  const safeUrl = absoluteUrl.replace(/"/g, "&quot;");
   const safeTitle = esc(cfg.title || "");
   const safeSub = esc(cfg.subtext || "Tap to save the Zoom event to your calendar");
   return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="dash-cal-btn">
