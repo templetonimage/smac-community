@@ -549,6 +549,10 @@
 
     /* ── SMAC PRO ── */
     .pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:0.08em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;line-height:1.4;}
+    /* ── FOUNDER ── */
+    .founder-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:0.08em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;line-height:1.4;}
+    .lb-founder-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;}
+    .member-founder-badge{display:inline-flex;align-items:center;gap:3px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;}
     .pro-locked-card{background:var(--surface);border-radius:var(--radius);border:1.5px dashed var(--gold);padding:20px;margin-bottom:16px;position:relative;overflow:hidden;}
     .pro-locked-card::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,.04),transparent);pointer-events:none;}
     .pro-locked-label{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:0.1em;padding:3px 10px;border-radius:20px;margin-bottom:10px;}
@@ -611,7 +615,7 @@
 <nav class="topnav" id="topnav" style="display:none;">
     <div class="topnav-logo" onclick="navTo('feed',document.getElementById('nav-feed'))" style="cursor:pointer;">SMAC</div>
     <div class="topnav-right">
-      <span class="topnav-user" id="topnav-username"></span><span id="topnav-pro-badge" style="display:none;" class="pro-badge">PRO</span>
+      <span class="topnav-user" id="topnav-username"></span><span id="topnav-pro-badge" style="display:none;" class="pro-badge">PRO</span><span id="topnav-founder-badge" style="display:none;" class="founder-badge">FOUNDER</span>
       <button class="btn-sm" onclick="handleLogout()">Sign Out</button>
       <button id="topnav-profile-btn" onclick="navTo('profile',null)" style="background:none;border:none;cursor:pointer;padding:0;margin-left:4px;position:relative;display:none;" title="My Profile">
         <div id="topnav-avatar" style="width:34px;height:34px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;border:2px solid var(--gold);overflow:hidden;"></div>
@@ -2073,6 +2077,25 @@ function proBadgeFor(uid){
   return isUidPro(uid) ? '<span class="pro-badge" style="font-size:9px;padding:1px 6px;margin-left:5px;">PRO</span>' : '';
 }
 
+// Founder-status cache: uid/docId -> true. Dual-keyed like _proCache.
+let _founderCache={};
+function primeFounderCache(registryDocs){
+  registryDocs.forEach(m=>{
+    const docId=m.id||m._docId||"";
+    const uid=m.uid||"";
+    if(m.isFounder===true){
+      if(docId) _founderCache[docId]=true;
+      if(uid && uid!==docId) _founderCache[uid]=true;
+    }
+  });
+}
+function isUidFounder(uid){
+  return !!(uid && _founderCache[uid]===true);
+}
+function founderBadgeFor(uid){
+  return isUidFounder(uid) ? '<span class="founder-badge" style="font-size:9px;padding:1px 6px;margin-left:5px;">FOUNDER</span>' : '';
+}
+
 let _firebaseApp=null;
 function initFirebase(){
   try {
@@ -2208,6 +2231,9 @@ function bootApp(){
   // Pro badge in topnav
   const _proBadgeEl=document.getElementById("topnav-pro-badge");
   if(_proBadgeEl) _proBadgeEl.style.display=userHasPro()&&!currentUser.isAdmin?"inline-flex":"none";
+  // Founder badge in topnav
+  const _founderBadgeEl=document.getElementById("topnav-founder-badge");
+  if(_founderBadgeEl) _founderBadgeEl.style.display=currentUser.isFounder&&!currentUser.isAdmin?"inline-flex":"none";
   // Pro nav button
   const _proNavBtn=document.getElementById("nav-pro");
   if(_proNavBtn) _proNavBtn.style.display=userHasPro()?"flex":"none";
@@ -2275,6 +2301,7 @@ function bootApp(){
         ]);
         primePhotoCache(regSnap.docs.map(d=>sanitizeMember({id:d.id,uid:d.id,...d.data()})));
         primeProCache(regSnap.docs.map(d=>({id:d.id,uid:d.id,...d.data()})));
+        primeFounderCache(regSnap.docs.map(d=>({id:d.id,uid:d.id,...d.data()})));
         trackerSnap.docs.forEach(d=>{ _trackerCache[d.id]=d.data(); });
         // Ensure all members have grace weeks (W1/W2) seeded in their tracker docs.
         // Handles two cases: (1) no tracker doc yet, (2) doc exists but grace weeks missing.
@@ -2609,7 +2636,7 @@ function _renderDashboard({total,postPts,engPts,trackerPostCount,weekSubmitted,t
       <div class="dash-lb-rank${i<3?' top3':''}">${rankDisplay}</div>
       ${avatarHTML(m.name,m.uid||m.id,'lb-avatar',isYou?'background:linear-gradient(135deg,var(--gold),var(--gold-dark));box-shadow:0 2px 8px rgba(201,168,76,0.35);':'')}
       <div class="dash-lb-info">
-        <div class="dash-lb-name">${esc(m.name)}${isYou?'<span class="dash-you-badge">YOU</span>':''}${m.isAllStar?' ⭐':''}</div>
+        <div class="dash-lb-name">${esc(m.name)}${isYou?'<span class="dash-you-badge">YOU</span>':''}${m.isAllStar?' ⭐':''}${m.isFounder?'<span class="founder-badge" style="font-size:9px;padding:1px 6px;margin-left:4px;">FOUNDER</span>':''}</div>
         <div class="dash-lb-sub">${posts} post${posts!==1?'s':''}</div>
       </div>
       <div class="dash-lb-pts">${m.points||0}</div>
@@ -2697,7 +2724,7 @@ function renderFeed(posts){
     return `<div class="card">
       <div class="card-meta">
         ${avatarHTML(p.author, p.uid, "avatar")}
-        <div><div class="card-author">${esc(p.author)}${proBadgeFor(p.uid)}</div><div class="card-time">${timeAgo(p.ts)}</div></div>
+        <div><div class="card-author">${esc(p.author)}${proBadgeFor(p.uid)}${founderBadgeFor(p.uid)}</div><div class="card-time">${timeAgo(p.ts)}</div></div>
       </div>
       <div class="card-body">${linkify(p.text)}</div>
       ${hasLink?`<a class="card-link" href="${esc(p.link)}" target="_blank" rel="noopener">View Post ↗</a>`:""}
@@ -3726,7 +3753,7 @@ function renderMemberGrid(members, list, isAdmin){
     if(!a.isAllStar&&b.isAllStar)return 1;
     return a.name.localeCompare(b.name);
   });
-  sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; const _dk=m.id||""; const _uk=m.uid||""; if(m.photoURL){ if(_dk)_photoCache[_dk]=m.photoURL; if(_uk&&_uk!==_dk)_photoCache[_uk]=m.photoURL; } if(m.isPro===true){ if(_dk)_proCache[_dk]=true; if(_uk&&_uk!==_dk)_proCache[_uk]=true; } });
+  sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; const _dk=m.id||""; const _uk=m.uid||""; if(m.photoURL){ if(_dk)_photoCache[_dk]=m.photoURL; if(_uk&&_uk!==_dk)_photoCache[_uk]=m.photoURL; } if(m.isPro===true){ if(_dk)_proCache[_dk]=true; if(_uk&&_uk!==_dk)_proCache[_uk]=true; } if(m.isFounder===true){ if(_dk)_founderCache[_dk]=true; if(_uk&&_uk!==_dk)_founderCache[_uk]=true; } });
   list.innerHTML=`<div class="member-grid">${sorted.map(m=>{
     const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";const mapKey=m.id||m.uid||m.name;
     const isAdminCard=m._isAdmin===true;
@@ -6450,11 +6477,12 @@ window.loadLeaderboard=async function(){
     const milestones=getMilestoneBadges(posts);
     const badges=`${m.isAllStar?"⭐":""}${m.isFounder?"🏅":""}${m.isVIP?"⚡":""}${milestones}`;
     const proBadge=m.isPro?`<span class="lb-pro-badge">PRO</span>`:"";
+    const founderBadge=m.isFounder?`<span class="lb-founder-badge">FOUNDER</span>`:"";
     return`<div class="leaderboard-row">
       <div class="lb-rank ${i<3?"top3":""}">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div>
       ${avatarHTML(m.name, m.uid||m._uid||"", "lb-avatar")}
       <div class="lb-info">
-        <div class="lb-name">${esc(m.name)} ${badges}${proBadge}</div>
+        <div class="lb-name">${esc(m.name)} ${badges}${proBadge}${founderBadge}</div>
         <div class="lb-meta">${posts} posts · ${m.ig?`<a href="https://instagram.com/${esc(m.ig.replace("@",""))}" target="_blank" style="color:var(--gold);">@${esc(m.ig.replace("@",""))}</a>`:"no IG linked"}</div>
       </div>
       <div class="lb-pts">${pts}<span style="font-size:12px;color:var(--text-muted);"> pts</span></div>
@@ -8418,6 +8446,8 @@ async function renderProfileHero(prof){
       <span class="badge badge-round">Round 2 · 2026</span>
       ${isAllStar?`<span class="badge badge-allstar">⭐ All-Star</span>`:""}
       ${currentUser.isAdmin?`<span class="badge" style="background:#1a1a1a;color:#fff;">Admin</span>`:""}
+      ${currentUser.isPro&&!currentUser.isAdmin?`<span class="pro-badge" style="margin-left:0;margin-top:2px;">PRO</span>`:""}
+      ${currentUser.isFounder&&!currentUser.isAdmin?`<span class="founder-badge" style="margin-left:0;margin-top:2px;">FOUNDER</span>`:""}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
       <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;">
