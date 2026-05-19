@@ -1032,9 +1032,8 @@
 
       <!-- View toggle -->
       <div class="sub-viewer-toggle">
-        <button class="sub-toggle-btn active" id="sub-view-recent" onclick="setSubView('recent',this)">Most Recent</button>
+        <button class="sub-toggle-btn active" id="sub-view-member" onclick="setSubView('member',this)">By Member</button>
         <button class="sub-toggle-btn" id="sub-view-week" onclick="setSubView('week',this)">By Week</button>
-        <button class="sub-toggle-btn" id="sub-view-member" onclick="setSubView('member',this)">By Member</button>
       </div>
 
       <!-- Filters -->
@@ -1054,8 +1053,8 @@
           <option value="10">W11 · May 15–21</option>
           <option value="11">W12 · May 22–31</option>
         </select>
-        <select class="sub-filter-select" id="sub-filter-member" style="display:none;" onchange="renderSubViewer()">
-          <option value="">All Members</option>
+        <select class="sub-filter-select" id="sub-filter-member" onchange="renderSubViewer()">
+          <option value="">Select a member...</option>
         </select>
         <select class="sub-filter-select" id="sub-filter-status" onchange="renderSubViewer()">
           <option value="">All Statuses</option>
@@ -6469,8 +6468,9 @@ window.loadLeaderboard=async function(){
 // ─────────────────────────────────────────────
 //  ADMIN: SUBMISSIONS VIEWER
 // ─────────────────────────────────────────────
-let _subViewMode = "recent"; // recent | week | member
+let _subViewMode = "member"; // member | week
 let _allSubmissions = [];
+let _subDataLoaded = false;
 
 window.setSubView = function(mode, btn){
   _subViewMode = mode;
@@ -6493,6 +6493,13 @@ window.loadSubViewer = async function(){
     const {getDocs,collection:col,query:q,orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const snap = await getDocs(q(col(db,"submissions"), ob("ts","desc")));
     _allSubmissions = snap.docs.map(d=>({_id:d.id,...d.data()}));
+    _subDataLoaded = true;
+    // Populate member dropdown from fetched data
+    const memSel = document.getElementById("sub-filter-member");
+    if(memSel){
+      const names = [...new Set(_allSubmissions.map(s=>s.memberName||"Unknown"))].sort();
+      memSel.innerHTML = '<option value="">Select a member...</option>' + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    }
     renderSubViewer();
   }catch(e){
     body.innerHTML = `<div class='sub-viewer-empty'>Error loading: ${esc(e.message)}</div>`;
@@ -6508,6 +6515,17 @@ window.renderSubViewer = function(){
   const weekFilter = document.getElementById("sub-filter-week")?.value;
   const memberFilter = document.getElementById("sub-filter-member")?.value || "";
 
+  // Render gate: nothing shows until a member or week is selected
+  const hasSelection = (_subViewMode==="member" && memberFilter) || (_subViewMode==="week" && weekFilter!=="" && weekFilter!==undefined);
+  if(!hasSelection){
+    if(countEl) countEl.textContent = "";
+    const prompt = _subViewMode==="member"
+      ? "Select a member above to view their submissions."
+      : "Select a week above to view its submissions.";
+    body.innerHTML = `<div class='sub-viewer-empty'>${_subDataLoaded ? prompt : "Loading submissions..."}</div>`;
+    return;
+  }
+
   let subs = [..._allSubmissions];
 
   // Apply filters
@@ -6518,10 +6536,8 @@ window.renderSubViewer = function(){
   // Sort
   if(_subViewMode==="week"){
     subs.sort((a,b)=>(a.weekIdx-b.weekIdx)||(a.memberName||"").localeCompare(b.memberName||""));
-  } else if(_subViewMode==="member"){
-    subs.sort((a,b)=>(a.weekIdx-b.weekIdx));
   } else {
-    subs.sort((a,b)=>b.ts-a.ts);
+    subs.sort((a,b)=>(a.weekIdx-b.weekIdx));
   }
 
   if(countEl) countEl.textContent = `${subs.length} submission${subs.length!==1?"s":""}`;
@@ -9027,6 +9043,14 @@ window.renderEngViewer = function(){
   let data = _engViewerData;
   if(memberFilter) data = data.filter(e=>(e.memberName||"") === memberFilter);
   if(weekFilter !== "" && weekFilter !== undefined) data = data.filter(e=>String(e.weekIdx)===weekFilter);
+
+  // Render gate: nothing shows until a member or week is selected
+  const hasSelection = !!memberFilter || (weekFilter !== "" && weekFilter !== undefined);
+  if(!hasSelection){
+    countEl.textContent = "";
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-title">Select a member or week</div><div class="empty-desc">Pick a filter above to view engagement posts.</div></div>`;
+    return;
+  }
 
   countEl.textContent = `${data.length} engagement${data.length!==1?"s":""} shown`;
 
