@@ -5761,11 +5761,11 @@ window.resetContentAnalysis = function() {
 //  - Vision-based extraction of IG Insights screenshot via Claude Haiku
 //  - Firestore: `analytics_snapshots` collection, keyed `{uid}_{round}_{type}`
 
-const _SNAP_SYSTEM_PROMPT = `You are an analytics extractor for SMAC (Social Media Accountability & Consistency), a 90-day Instagram posting program for solopreneurs.
+const _SNAP_SYSTEM_PROMPT = `You are an analytics extractor AND coach for SMAC (Social Media Accountability & Consistency), a 90-day Instagram posting program for solopreneurs.
 
 A member has uploaded 1 or 2 screenshots of their Instagram Professional Dashboard / Insights, typically the "Last 90 days" Overview screen. When 2 are provided, they are sequential views of the same page (top + bottom), so combine the data from both.
 
-Your job is to extract the numeric metrics AND their % change vs. the previous 90 days (if shown). Return STRICT JSON only — no preamble, no commentary, no markdown fences. Return ONLY a valid JSON object with this exact shape:
+Your job: (1) extract metrics + % change vs. the previous 90 days, (2) generate a 1-sentence narrative, (3) generate up to 3 prioritized recommendations grounded in 2025/2026 Instagram growth research. Return STRICT JSON only — no preamble, no commentary, no markdown fences. Return ONLY a valid JSON object with this exact shape:
 
 {
   "views": <number or null>,
@@ -5781,7 +5781,15 @@ Your job is to extract the numeric metrics AND their % change vs. the previous 9
   "topMetric": "<string label of the largest/most prominent metric shown>",
   "period": "<string like '90 days' or '30 days' if visible>",
   "trendTier": "<one of: 'strong_growth' | 'modest_growth' | 'steady' | 'modest_dip' | 'significant_dip'>",
-  "narrative": "<one warm, honest sentence framed by the trendTier>"
+  "narrative": "<one warm, honest sentence framed by the trendTier>",
+  "recommendations": [
+    {
+      "metric": "<one of: views | reach | profileVisits | interactions | followerGrowth | consistency>",
+      "headline": "<5-7 word action label>",
+      "action": "<2-3 sentences: specific action + why it works. Must reference at least one thread: consistency, accountability, or analytics literacy.>",
+      "sourceKey": "<one of: mosseri_2025 | buffer_freq_2025 | mosseri_shares_2025 | meta_topic_2025 | buffer_carousel_2025 | mosseri_original_2025 | meta_keywords_2025>"
+    }
+  ]
 }
 
 Number parsing:
@@ -5804,15 +5812,80 @@ narrative rules (1 sentence, max 25 words, plain language, NEVER flowery or syco
 - modest_dip: honest acknowledgment, refocus on what they controlled. Example: "Views dipped 9%, but you kept showing up — that's the metric that actually compounds."
 - significant_dip: name the broader context (algorithm shifts, bot purges affected many creators), refocus on consistency as the real win. Example: "Views are down 24%, which a lot of accounts saw this quarter — but you kept posting, and that's what builds long-term."
 
-NEVER:
-- Use exclamation points beyond a single one
-- Use words like "amazing", "incredible", "phenomenal"
+===================================================================
+RECOMMENDATIONS — 2025/2026 INSTAGRAM GROWTH PRINCIPLES LIBRARY
+===================================================================
+
+Generate exactly 3 recommendations, ranked by priority (the first item is most important). The platform will display 1 or 3 based on the member's tier. Each recommendation must be grounded in one of these vetted principles, using the matching sourceKey:
+
+1. KEY: mosseri_2025 — Adam Mosseri publicly confirmed in January 2025 that the 3 ranking signals across all surfaces are: watch time, likes-per-reach, and sends-per-reach. Use for: views, reach, interactions recs.
+
+2. KEY: buffer_freq_2025 — Buffer's 2025 study of 2 million posts across 100,000+ accounts found that posting 3-5 times per week more than doubles follower growth vs. posting 1-2 times per week. Reach per post increases ~12% at that frequency. Use for: views, reach, followerGrowth, consistency recs.
+
+3. KEY: mosseri_shares_2025 — Per Mosseri's 2025 statements, DM sends are weighted 3-5x higher than likes for reaching new audiences. ~694,000 Reels are sent via DM per minute. Track "Sends" in Insights. Use for: interactions, reach recs.
+
+4. KEY: meta_topic_2025 — Meta's December 2025 "Your Algorithm" update means the last 9-12 posts determine your algorithmic category. Niche clarity and topic consistency directly drive reach. Use for: profileVisits, reach, consistency recs.
+
+5. KEY: buffer_carousel_2025 — Buffer 2025 data shows carousels get 3.1x higher engagement than single-image posts and are 23% more likely to be boosted. Instagram reshows posts to followers who didn't swipe to the end. Use for: interactions, reach, views recs.
+
+6. KEY: mosseri_original_2025 — Mosseri's 2025 original-content policy: aggregators saw 60-80% reach drops; original creators saw 40-60% reach increases. Use for: reach, views, followerGrowth recs.
+
+7. KEY: meta_keywords_2025 — Per Meta's 2025 update, keywords in captions drive ~30% more reach via Instagram Search. Hashtags now function as topic signals only (3-5 max). Use for: profileVisits, reach recs.
+
+===================================================================
+THE 3-PART CONSISTENCY THREAD (required in every recommendation)
+===================================================================
+
+Every recommendation MUST tie back to at least one of these threads:
+
+THREAD 1 — CONSISTENCY: showing up on a sustainable cadence is the foundation that makes everything else compound.
+
+THREAD 2 — ACCOUNTABILITY: the SMAC program/community is the moat that makes consistency actually stick. Reference "the SMAC habit", "your accountability rhythm", or "the program" when relevant.
+
+THREAD 3 — ANALYTICS LITERACY: once consistency is built, looking at WHY a post performed (not just IF it performed) is the next compounding layer. Encourage curiosity about Insights data.
+
+===================================================================
+TIER-AWARE RECOMMENDATION DISTRIBUTION
+===================================================================
+
+- strong_growth: at least 1 recommendation must use the analytics literacy thread ("now that you're consistent, here's what to start tracking"). Tone: reinforce + add a stretch goal.
+- modest_growth: balance accountability and analytics threads. Tone: double down on what's working.
+- steady: at least 1 recommendation must reinforce the accountability thread (SMAC community/program). Tone: "here's where to push next."
+- modest_dip: at least 1 recommendation must lead with accountability ("the program is the moat"). Tone: honest, refocus on what they controlled.
+- significant_dip: lead with accountability + consistency. Use mosseri_original_2025 or buffer_freq_2025 to name broader platform context. Tone: "you kept posting, here's how to leverage that for next round."
+
+===================================================================
+RECOMMENDATION WRITING RULES
+===================================================================
+
+- 2-3 sentences per recommendation. Action first, then why it works (with the principle referenced naturally).
+- Headline: 5-7 words, action-oriented, no period at end. Example: "Lean into carousels for next round" / "Track sends, not likes"
+- Reference real numbers from the member's snapshot when possible ("you posted X this round")
+- Address the member directly ("you", "your")
+- NEVER use: "amazing", "incredible", "phenomenal", "leverage" (as verb), "synergy", "unlock your potential"
+- NEVER cite the sourceKey inside the action text — the platform renders the citation as a footnote separately
+- Map metric field to the weakest delta in the snapshot. Strongest deltas can still get a rec, but frame as "double down" rather than "fix"
+
+NEVER (for narrative AND recommendations):
+- Use exclamation points beyond a single one across the entire response
 - Sugarcoat a dip by ignoring it
 - Be preachy or lecture the member
+- Promise specific growth numbers
 
 Return ONLY the JSON object. No text before or after.`;
 
 const _SNAP_CACHE_CONTROL = { type: "ephemeral" };
+
+// Vetted 2025/2026 IG growth sources, mapped to sourceKey values used in recommendations
+const _SNAP_SOURCES = {
+  mosseri_2025:         { label: "Mosseri, IG Algorithm Update (Jan 2025)",         url: "https://buffer.com/resources/instagram-algorithms/" },
+  buffer_freq_2025:     { label: "Buffer, 2M-post Posting Frequency Study (2025)",  url: "https://buffer.com/resources/how-often-to-post-on-instagram/" },
+  mosseri_shares_2025:  { label: "Mosseri on DM Sends as Top Discovery Signal (2025)", url: "https://www.dataslayer.ai/blog/instagram-algorithm-2025-complete-guide-for-marketers" },
+  meta_topic_2025:      { label: "Meta, \"Your Algorithm\" Update (Dec 2025)",       url: "https://almcorp.com/blog/instagram-algorithm-update-december-2025/" },
+  buffer_carousel_2025: { label: "Buffer, Carousel Engagement Data (2025)",          url: "https://buffer.com/resources/instagram-algorithms/" },
+  mosseri_original_2025:{ label: "Mosseri, Original Content Policy (2025)",          url: "https://posteverywhere.ai/blog/how-the-instagram-algorithm-works" },
+  meta_keywords_2025:   { label: "Meta, Caption SEO / Keywords Update (2025)",       url: "https://blog.hootsuite.com/instagram-algorithm/" }
+};
 
 let _snapScreenshots = [null, null];  // array of 2 slots: { base64, mediaType, dataUrl } or null
 let _snapType = "end";                  // "start" or "end" — set by openSnapModal
@@ -5916,7 +5989,7 @@ window.runSnapshotAnalysis = async function() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 700,
+        max_tokens: 1100,
         system: [{ type: "text", text: _SNAP_SYSTEM_PROMPT, cache_control: _SNAP_CACHE_CONTROL }],
         messages: [{ role: "user", content: userContent }]
       })
@@ -6000,6 +6073,58 @@ async function saveSnapshot(extracted) {
   await setDoc(docRef(db, "analytics_snapshots", docId), payload);
 }
 
+// Render recommendations block: 1 rec + upgrade nudge for base, 3 recs + sources footnote for Pro.
+// Returns empty string when no recommendations are present (backward-compat with pre-build snapshots).
+function renderSnapshotRecommendations(recs, isPro) {
+  if (!Array.isArray(recs) || recs.length === 0) return "";
+
+  const limit = isPro ? 3 : 1;
+  const shown = recs.slice(0, limit);
+
+  // Build rec cards
+  const recCardsHtml = shown.map((r, idx) => {
+    const headline = escapeHtml(r.headline || "Next move");
+    const action = escapeHtml(r.action || "");
+    const src = _SNAP_SOURCES[r.sourceKey];
+    const footnoteNum = idx + 1;
+    const footnoteTag = src ? `<sup style="color:var(--gold-dark);font-weight:700;font-size:10px;margin-left:3px;">[${footnoteNum}]</sup>` : "";
+    return `
+      <div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:3px solid var(--gold);">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">${headline}${footnoteTag}</div>
+        <div style="font-size:12px;line-height:1.55;color:var(--text);">${action}</div>
+      </div>
+    `;
+  }).join("");
+
+  // Build sources footnote list (only for sourceKeys actually used)
+  const sourcesUsed = shown.map(r => r.sourceKey).filter(k => _SNAP_SOURCES[k]);
+  const sourcesHtml = sourcesUsed.length > 0 ? `
+    <div style="margin-top:10px;padding:10px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Sources</div>
+      ${sourcesUsed.map((k, idx) => {
+        const s = _SNAP_SOURCES[k];
+        return `<div style="font-size:10px;color:var(--text-muted);line-height:1.5;margin-bottom:3px;"><span style="color:var(--gold-dark);font-weight:700;">[${idx+1}]</span> <a href="${s.url}" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">${escapeHtml(s.label)}</a></div>`;
+      }).join("")}
+    </div>
+  ` : "";
+
+  // Soft upgrade nudge for base members
+  const upgradeNudge = !isPro ? `
+    <div style="margin-top:10px;padding:11px 14px;background:#fffbf0;border:1px solid var(--gold);border-radius:8px;text-align:center;">
+      <div style="font-size:12px;color:var(--text);line-height:1.5;">SMAC Pro members get <strong>3 personalized recommendations</strong> + full source library each snapshot.</div>
+    </div>
+  ` : "";
+
+  return `
+    <div style="margin-top:16px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-muted);margin:0 0 8px 2px;">Your next ${limit === 1 ? "move" : "moves"}</div>
+      ${recCardsHtml}
+      ${sourcesHtml}
+      ${upgradeNudge}
+    </div>
+  `;
+}
+
 function renderSnapshotResult(d) {
   const result = document.getElementById("snap-result");
   if (!result) return;
@@ -6055,6 +6180,9 @@ function renderSnapshotResult(d) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${igCardHtml}</div>
   `;
 
+  // RECOMMENDATIONS — 1 for base, 3 for Pro, with footnote-style sources
+  const recsHtml = renderSnapshotRecommendations(d.recommendations, isPro);
+
   // Pro chart vs. upgrade nudge
   let chartHtml = "";
   if (isPro) {
@@ -6077,6 +6205,7 @@ function renderSnapshotResult(d) {
     ${heroHtml}
     ${narrativeHtml}
     ${igSectionHtml}
+    ${recsHtml}
     ${chartHtml}
     <button onclick="closeSnapModalDirect()" class="btn-gold" style="width:100%;margin-top:14px;font-size:14px;padding:11px;">Done</button>
   `;
