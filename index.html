@@ -4806,16 +4806,42 @@ window.renderProTool = function(toolId){
             </select>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What was this post about? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
             <input id="cpa-topic" type="text" placeholder="e.g. behind the scenes, client transformation, tips..." class="auth-input" style="margin-bottom:16px;padding:10px 12px;" />
-            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Insights Screenshot <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-            <div id="cpa-upload-zone" onclick="document.getElementById('cpa-screenshot').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color .2s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
-              <div id="cpa-upload-label" style="font-size:13px;color:var(--text-muted);">📸 Tap to upload a screenshot of your Instagram insights</div>
-              <div id="cpa-upload-preview" style="display:none;margin-top:10px;">
-                <img id="cpa-preview-img" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:contain;" />
-                <div style="margin-top:6px;font-size:11px;color:var(--gold);">Screenshot attached — stats will be read automatically</div>
-                <button onclick="event.stopPropagation();clearCpaScreenshot()" style="margin-top:6px;background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;">Remove</button>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Screenshots <span style="font-weight:400;text-transform:none;font-size:11px;">(both optional, AI will read what's there)</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+              <!-- Slot 0: Post screenshot -->
+              <div id="cpa-upload-zone-0" onclick="document.getElementById('cpa-screenshot-0').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:12px 10px;text-align:center;cursor:pointer;transition:border-color .2s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+                <div id="cpa-upload-label-0" style="font-size:12px;color:var(--text-muted);line-height:1.45;">📱 Post screenshot<br><span style="font-size:10px;color:var(--text-muted);">caption + format</span></div>
+                <div id="cpa-upload-preview-0" style="display:none;">
+                  <img id="cpa-preview-img-0" style="max-width:100%;max-height:120px;border-radius:6px;object-fit:contain;" />
+                  <div style="margin-top:4px;font-size:10px;color:var(--gold);">Post attached</div>
+                  <button onclick="event.stopPropagation();clearCpaScreenshot(0)" style="margin-top:4px;background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;text-decoration:underline;">Remove</button>
+                </div>
+              </div>
+              <!-- Slot 1: Insights screenshot -->
+              <div id="cpa-upload-zone-1" onclick="document.getElementById('cpa-screenshot-1').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:12px 10px;text-align:center;cursor:pointer;transition:border-color .2s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+                <div id="cpa-upload-label-1" style="font-size:12px;color:var(--text-muted);line-height:1.45;">📊 Insights screenshot<br><span style="font-size:10px;color:var(--text-muted);">engagement stats</span></div>
+                <div id="cpa-upload-preview-1" style="display:none;">
+                  <img id="cpa-preview-img-1" style="max-width:100%;max-height:120px;border-radius:6px;object-fit:contain;" />
+                  <div style="margin-top:4px;font-size:10px;color:var(--gold);">Insights attached</div>
+                  <button onclick="event.stopPropagation();clearCpaScreenshot(1)" style="margin-top:4px;background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;text-decoration:underline;">Remove</button>
+                </div>
               </div>
             </div>
-            <input id="cpa-screenshot" type="file" accept="image/*" style="display:none;" onchange="handleCpaScreenshot(this)" />
+            <input id="cpa-screenshot-0" type="file" accept="image/*" style="display:none;" onchange="handleCpaScreenshot(this, 0)" />
+            <input id="cpa-screenshot-1" type="file" accept="image/*" style="display:none;" onchange="handleCpaScreenshot(this, 1)" />
+            <!-- Pre-flight confirmation card (populated when post screenshot is read) -->
+            <div id="cpa-extract-card" style="display:none;background:#fffbf0;border:1.5px solid var(--gold);border-radius:8px;padding:12px;margin-bottom:14px;">
+              <div style="font-size:11px;font-weight:700;color:var(--gold-dark);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Detected from post screenshot</div>
+              <div id="cpa-extract-detail" style="font-size:12px;line-height:1.55;color:var(--text);margin-bottom:8px;"></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button onclick="applyCpaExtracted(true)" class="btn-gold" style="font-size:11px;padding:7px 12px;">Use these</button>
+                <button onclick="applyCpaExtracted(false)" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;padding:7px 12px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;">Ignore</button>
+              </div>
+            </div>
+            <!-- Pre-flight loading state -->
+            <div id="cpa-extract-loading" style="display:none;text-align:center;padding:10px 0;margin-bottom:14px;">
+              <div style="font-size:12px;color:var(--text-muted);">Reading your post screenshot...</div>
+            </div>
             <button onclick="runContentAnalysis()" class="btn-gold" style="font-size:16px;padding:12px;">Analyze My Post</button>
           </div>
           <div id="cpa-loading" style="display:none;text-align:center;padding:20px 0;">
@@ -5033,31 +5059,105 @@ window.showSmsOptInForm = function(){ renderSmsCard(); };
 // ─────────────────────────────────────────────
 const _CPA_SYSTEM_PROMPT = `You are a content performance coach for SMAC (Social Media Accountability & Consistency), a 90-day program for solopreneurs building consistent posting habits on Instagram.
 
-Your job is to analyze a member's post and engagement data and deliver a clear, honest, actionable performance breakdown.
+Your job is to analyze a single post's performance and extract PATTERNS the member can carry forward. This is a learning tool, not a planning tool — do NOT prescribe specific next posts, dates, or weekly schedules (that's the Weekly Action Plan tool's job). Focus on what the post teaches.
+
+INPUT TYPES YOU MAY RECEIVE:
+1. The post screenshot itself (showing caption, visual, format cues)
+2. The Instagram insights screenshot (showing engagement numbers)
+3. Manually-entered caption, format, topic, and/or engagement numbers
+4. Any combination of the above
+
+When a post screenshot is attached, use it to assess visual/caption coherence — does the visual hook match the caption's promise? When both screenshots are attached, weight visual coherence equally with caption strength.
+
+When an insights screenshot is attached, READ the engagement numbers directly from it. If both manual numbers AND a screenshot are provided, prefer the screenshot's numbers and note any major discrepancy briefly.
+
+If only manual data is provided (no screenshots), skip the visual coherence analysis entirely — do not invent a score for something you cannot see.
 
 SCORING WEIGHTS (most important to least):
-- Saves: 35% (strongest signal — content people want to return to)
-- Shares: 30% (strongest reach signal)
-- Comments: 20% (community/conversation signal)
-- Likes: 15% (weakest signal, easiest to get passively)
+- Saves potential: 30% (strongest signal — content people want to return to)
+- Shares potential: 25% (strongest reach signal — DM sends matter most per Mosseri 2025)
+- Hook strength: 20% (the first 80 chars of the caption + visual hook)
+- Visual/caption coherence: 15% (ONLY when post screenshot is present; reallocate to hook strength if not)
+- Caption depth: 10% (substance beyond the hook)
 
-RESPONSE FORMAT — always return exactly this structure with these section headers:
+===================================================================
+SOURCE LIBRARY — 2025/2026 Instagram growth research
+===================================================================
 
-**Overall Score: [X/10]**
-[One sentence on the overall performance. Be direct.]
+You may optionally ground recommendations in these vetted sources. Use the matching sourceKey in the JSON output (see RESPONSE FORMAT below). Light touch: cite ONLY when the principle is directly relevant. Max 2 citations total per analysis. Empty array if none apply.
 
-**What Worked**
-[2–3 specific observations about the caption, hook, format, or topic that likely drove results. Reference the actual numbers.]
+1. KEY: mosseri_2025 — Mosseri (Jan 2025) confirmed the 3 ranking signals are watch time, likes-per-reach, sends-per-reach. Use when discussing reach, video retention, or signal weight.
 
-**What to Improve**
-[2–3 honest, specific suggestions. Don't soften bad numbers — name them and explain why they signal what they signal.]
+2. KEY: buffer_freq_2025 — Buffer's 2M-post study (2025): 3-5 posts/week more than doubles follower growth vs. 1-2/week. Use when consistency or cadence is the lesson.
 
-**Next Post Recommendation**
-[One concrete, actionable recommendation for their next post based on this data. Make it specific — format, angle, or caption approach.]
+3. KEY: mosseri_shares_2025 — DM sends weighted 3-5x higher than likes for reaching new audiences (Mosseri 2025). Use when shares/sends matter — strong or weak — in this post's data.
 
-Keep the entire response under 300 words. Be direct and coach-like, not fluffy. This is a discipline program — members can handle honest feedback.`;
+4. KEY: meta_topic_2025 — Meta's Dec 2025 "Your Algorithm": last 9-12 posts determine algorithmic category; niche clarity drives reach. Use when topic clarity, niche drift, or category signal is the lesson.
+
+5. KEY: buffer_carousel_2025 — Buffer 2025: carousels get 3.1x higher engagement than single-image posts; IG reshows unseen slides. Use when format choice is part of the lesson.
+
+6. KEY: mosseri_original_2025 — Mosseri 2025: original content gets 40-60% reach boost vs. aggregators. Use when originality / fresh angle vs. recycled content is the lesson.
+
+7. KEY: meta_keywords_2025 — Meta 2025: keywords in captions drive 30% more reach; hashtags are topic signals only. Use when caption SEO, searchability, or hashtag strategy is the lesson.
+
+===================================================================
+RESPONSE FORMAT — STRICT JSON
+===================================================================
+
+Return STRICT JSON only — no preamble, no commentary, no markdown fences. Return ONLY a valid JSON object with this exact shape:
+
+{
+  "overallScore": <number 1-10>,
+  "overallSummary": "<one direct sentence on the post's performance>",
+  "coherenceScore": <number 1-10 or null — null if no post screenshot was provided>,
+  "coherenceNote": "<1-2 sentences on visual/caption alignment, or null if no post screenshot>",
+  "whatWorked": "<2-3 specific observations about caption, hook, visual, format, or topic that likely drove results. Reference the actual numbers. Plain text, separate observations with newlines.>",
+  "whatToImprove": "<2-3 honest specifics. Don't soften bad numbers — name them and explain the signal. Plain text, separate items with newlines.>",
+  "whatToRepeat": "<1-2 sentences: specific PATTERNS from this post that worked and are worth carrying into future posts (any format, any week). Examples: hook style, visual approach, CTA type, topic angle. Do NOT prescribe a specific next post.>",
+  "whatToTry": "<1-2 sentences: specific PATTERNS to experiment with in future posts based on the weak metrics. Examples: 'test a question CTA', 'lead with a transformation moment'. Do NOT prescribe calendar dates, weekly schedules, or specific post topics.>",
+  "sourceKeys": [<array of 0-2 sourceKey strings from the library above — empty array if no citation is genuinely relevant>]
+}
+
+WRITING RULES:
+- Total length across all string fields: under 400 words combined.
+- Be direct and coach-like, not fluffy. Members can handle honest feedback.
+- NEVER prescribe specific next posts, calendar dates, or weekly schedules (that's WAP's job).
+- NEVER use exclamation points beyond one across the entire response.
+- NEVER use "amazing", "incredible", "phenomenal", "leverage" (as verb), "synergy".
+- Reference real numbers from the data when possible.
+- Address the member directly ("you", "your").
+- For sourceKeys: only include if a source is genuinely relevant to one of the lessons. Empty array is correct and expected most of the time.
+
+Return ONLY the JSON object. No text before or after.`;
 
 const _CPA_CACHE_CONTROL = { type: "ephemeral" };
+
+// Lightweight pre-flight prompt: extracts caption + format + visual description from a post screenshot.
+// Member confirms before main analysis runs.
+const _CPA_EXTRACT_PROMPT = `You are reading an Instagram post screenshot to extract its content. Return STRICT JSON only — no preamble, no markdown fences, no commentary.
+
+Return ONLY this exact JSON shape:
+
+{
+  "caption": "<the full caption text as written, preserving line breaks as \\\\n, or null if no caption is visible>",
+  "format": "<one of: 'Reel' | 'Carousel' | 'Static image' | 'Story' | null>",
+  "visualDescription": "<one sentence describing what's in the visual: subject, setting, mood, on-screen text if any>",
+  "isInstagramPost": <true if this clearly shows an Instagram post, false if it's something else (a different app, a random image, a screenshot of insights only, etc.)>
+}
+
+Format detection cues:
+- Reel: play button overlay, "Reels" label, vertical video aspect ratio with audio icon
+- Carousel: dots indicator at bottom showing multiple slides
+- Static image: single image, no play button, no slide dots
+- Story: "Your Story" header, 24-hour expiration cue, full-screen vertical
+
+If you can't tell the format from the screenshot, return null for format.
+If you can't read the caption (cut off, language you can't read, no caption visible), return null for caption.
+If the image is NOT an Instagram post (e.g. an insights-only screenshot, a different app, a random photo), set isInstagramPost to false and return null for caption, format, and visualDescription.
+
+Return ONLY the JSON object.`;
+
+const _CPA_EXTRACT_CACHE_CONTROL = { type: "ephemeral" };
 
 // ─────────────────────────────────────────────
 //  SMAC PRO — Hook Generator
@@ -5605,10 +5705,11 @@ window.resetCaptionAssist = function() {
   const tone = document.getElementById("ca-tone"); if (tone) tone.value = "authentic and conversational";
 };
 
-// Screenshot handler — stores base64 in module-scoped var
-let _cpaScreenshotData = null;  // { base64: string, mediaType: string }
+// Screenshot handlers — slot-aware. Slot 0 = post screenshot, Slot 1 = insights screenshot.
+let _cpaScreenshots = [null, null];   // each: { base64, mediaType } or null
+let _cpaExtracted = null;             // pre-flight extracted caption/format/visual from slot 0
 
-window.handleCpaScreenshot = function(input) {
+window.handleCpaScreenshot = function(input, slot) {
   const file = input.files[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) { showToast("Please upload an image file."); return; }
@@ -5617,27 +5718,145 @@ window.handleCpaScreenshot = function(input) {
   reader.onload = function(e) {
     const base64 = e.target.result.split(",")[1];
     const mediaType = file.type;
-    _cpaScreenshotData = { base64, mediaType };
-    const preview = document.getElementById("cpa-upload-preview");
-    const label   = document.getElementById("cpa-upload-label");
-    const img     = document.getElementById("cpa-preview-img");
+    _cpaScreenshots[slot] = { base64, mediaType };
+    const preview = document.getElementById(`cpa-upload-preview-${slot}`);
+    const label   = document.getElementById(`cpa-upload-label-${slot}`);
+    const img     = document.getElementById(`cpa-preview-img-${slot}`);
     if (preview) preview.style.display = "block";
     if (label)   label.style.display   = "none";
     if (img)     img.src = e.target.result;
+
+    // Slot 0 (post screenshot) → reset prior extract state + trigger pre-flight extraction
+    if (slot === 0) {
+      _cpaExtracted = null;
+      const card = document.getElementById("cpa-extract-card");
+      if (card) card.style.display = "none";
+      runCpaPreflightExtract();
+    }
   };
   reader.readAsDataURL(file);
 };
 
-window.clearCpaScreenshot = function() {
-  _cpaScreenshotData = null;
-  const preview = document.getElementById("cpa-upload-preview");
-  const label   = document.getElementById("cpa-upload-label");
-  const input   = document.getElementById("cpa-screenshot");
-  const img     = document.getElementById("cpa-preview-img");
+window.clearCpaScreenshot = function(slot) {
+  _cpaScreenshots[slot] = null;
+  const preview = document.getElementById(`cpa-upload-preview-${slot}`);
+  const label   = document.getElementById(`cpa-upload-label-${slot}`);
+  const input   = document.getElementById(`cpa-screenshot-${slot}`);
+  const img     = document.getElementById(`cpa-preview-img-${slot}`);
   if (preview) preview.style.display = "none";
   if (label)   label.style.display   = "block";
   if (input)   input.value = "";
   if (img)     img.src = "";
+
+  // Clearing the post screenshot also clears the extraction confirmation card
+  if (slot === 0) {
+    _cpaExtracted = null;
+    const card = document.getElementById("cpa-extract-card");
+    if (card) card.style.display = "none";
+  }
+};
+
+// Pre-flight Vision call: reads post screenshot and extracts caption + format + visual description.
+// Member confirms via [Use these] / [Ignore] buttons in the extract card before main analysis.
+async function runCpaPreflightExtract() {
+  const shot = _cpaScreenshots[0];
+  if (!shot) return;
+
+  const card    = document.getElementById("cpa-extract-card");
+  const detail  = document.getElementById("cpa-extract-detail");
+  const loading = document.getElementById("cpa-extract-loading");
+
+  if (card)    card.style.display    = "none";
+  if (loading) loading.style.display = "block";
+
+  try {
+    const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 500,
+        system: [{ type: "text", text: _CPA_EXTRACT_PROMPT, cache_control: _CPA_EXTRACT_CACHE_CONTROL }],
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: shot.mediaType, data: shot.base64 } },
+            { type: "text", text: "Extract the post details from this screenshot. Return JSON only." }
+          ]
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `API error ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const raw = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "";
+    const cleaned = raw.replace(/```json|```/g, "").trim();
+    let parsed;
+    try { parsed = JSON.parse(cleaned); } catch(e) {
+      console.error("CPA extract parse error:", cleaned);
+      throw new Error("Couldn't read that screenshot. You can still fill in the fields manually.");
+    }
+
+    if (loading) loading.style.display = "none";
+
+    // If the screenshot wasn't actually an IG post, surface a gentle nudge and skip the card
+    if (parsed.isInstagramPost === false) {
+      showToast("That doesn't look like an Instagram post screenshot. You can still fill in fields manually.");
+      return;
+    }
+
+    _cpaExtracted = parsed;
+
+    // Build the detail display
+    const parts = [];
+    if (parsed.caption) {
+      const captionPreview = parsed.caption.length > 140 ? parsed.caption.slice(0, 140) + "…" : parsed.caption;
+      parts.push(`<div><strong>Caption:</strong> ${escapeHtml(captionPreview)}</div>`);
+    }
+    if (parsed.format) {
+      parts.push(`<div style="margin-top:4px;"><strong>Format:</strong> ${escapeHtml(parsed.format)}</div>`);
+    }
+    if (parsed.visualDescription) {
+      parts.push(`<div style="margin-top:4px;"><strong>Visual:</strong> ${escapeHtml(parsed.visualDescription)}</div>`);
+    }
+
+    if (parts.length === 0) {
+      showToast("Couldn't pull caption or format from that screenshot, but the AI will still see the visual when you analyze.");
+      return;
+    }
+
+    if (detail) detail.innerHTML = parts.join("");
+    if (card)   card.style.display = "block";
+
+  } catch(e) {
+    if (loading) loading.style.display = "none";
+    showToast(e.message || "Couldn't read the post screenshot — fill in fields manually if you'd like.");
+  }
+}
+
+// Member confirms or rejects extracted fields from the post screenshot pre-flight
+window.applyCpaExtracted = function(apply) {
+  const card = document.getElementById("cpa-extract-card");
+  if (apply && _cpaExtracted) {
+    const captionEl = document.getElementById("cpa-caption");
+    const formatEl  = document.getElementById("cpa-format");
+    if (captionEl && _cpaExtracted.caption) {
+      // Convert literal \n in extracted text back to real newlines for textarea
+      captionEl.value = _cpaExtracted.caption.replace(/\\n/g, "\n");
+    }
+    if (formatEl && _cpaExtracted.format) {
+      // Find the matching option (allow case-insensitive match)
+      const opts = Array.from(formatEl.options);
+      const match = opts.find(o => o.value.toLowerCase() === _cpaExtracted.format.toLowerCase());
+      if (match) formatEl.value = match.value;
+    }
+    showToast("Applied to form. Edit any field if needed.");
+  }
+  if (card) card.style.display = "none";
 };
 
 window.runContentAnalysis = async function() {
@@ -5651,9 +5870,20 @@ window.runContentAnalysis = async function() {
   const format   = document.getElementById("cpa-format")?.value || "";
   const topic    = (document.getElementById("cpa-topic")?.value || "").trim();
 
-  if (!caption) { showToast("Paste your caption first."); return; }
-  if (likes === 0 && comments === 0 && shares === 0 && saves === 0 && !_cpaScreenshotData) {
-    showToast("Add engagement numbers or upload an insights screenshot."); return;
+  const postShot     = _cpaScreenshots[0];
+  const insightsShot = _cpaScreenshots[1];
+  const hasAnyShot   = !!(postShot || insightsShot);
+  const hasAnyStats  = (likes || comments || shares || saves);
+
+  // Need at least: caption OR post screenshot (so AI has something to evaluate)
+  if (!caption && !postShot) {
+    showToast("Paste your caption or upload a post screenshot first.");
+    return;
+  }
+  // Need at least: stats OR insights screenshot (so AI has performance data)
+  if (!hasAnyStats && !insightsShot) {
+    showToast("Add engagement numbers or upload an insights screenshot.");
+    return;
   }
 
   // Show loading state
@@ -5670,22 +5900,25 @@ window.runContentAnalysis = async function() {
   if (bar) setTimeout(() => { bar.style.width = "85%"; }, 50);
 
   const textParts = [
-    `Caption: "${caption}"`,
-    (likes || comments || shares || saves)
-      ? `Engagement — Likes: ${likes} | Comments: ${comments} | Shares: ${shares} | Saves: ${saves}`
+    caption ? `Caption: "${caption}"` : null,
+    hasAnyStats
+      ? `Engagement (manually entered) — Likes: ${likes} | Comments: ${comments} | Shares: ${shares} | Saves: ${saves}`
       : null,
     format ? `Format: ${format}` : null,
     topic  ? `Topic/angle: ${topic}` : null,
-    _cpaScreenshotData ? "A screenshot of the post insights is attached. Please read the engagement numbers directly from it — use those values for your analysis." : null
+    postShot     ? "IMAGE 1 (attached): the Instagram post itself — use this to assess visual/caption coherence and confirm the format." : null,
+    insightsShot ? "IMAGE 2 (attached): the Instagram insights screenshot — read engagement numbers directly from it; prefer these over manual entries if they differ." : null
   ].filter(Boolean).join("\n");
 
-  // Build message content — text always, image block added when screenshot present
-  const msgContent = _cpaScreenshotData
-    ? [
-        { type: "image", source: { type: "base64", media_type: _cpaScreenshotData.mediaType, data: _cpaScreenshotData.base64 } },
-        { type: "text", text: textParts }
-      ]
-    : textParts;
+  // Build message content. Order: post image (slot 0), insights image (slot 1), then text.
+  const msgContent = [];
+  if (postShot) {
+    msgContent.push({ type: "image", source: { type: "base64", media_type: postShot.mediaType, data: postShot.base64 } });
+  }
+  if (insightsShot) {
+    msgContent.push({ type: "image", source: { type: "base64", media_type: insightsShot.mediaType, data: insightsShot.base64 } });
+  }
+  msgContent.push({ type: "text", text: textParts });
 
   try {
     const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
@@ -5695,7 +5928,7 @@ window.runContentAnalysis = async function() {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 600,
+        max_tokens: 850,
         system: [
           {
             type: "text",
@@ -5713,19 +5946,20 @@ window.runContentAnalysis = async function() {
     }
 
     const data = await resp.json();
-    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "";
+    const raw = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "";
+    const cleaned = raw.replace(/```json|```/g, "").trim();
+    let parsed;
+    try { parsed = JSON.parse(cleaned); } catch(e) {
+      console.error("CPA parse error:", cleaned);
+      throw new Error("Couldn't read the analysis response. Try again or refresh and re-run.");
+    }
 
     if (bar) bar.style.width = "100%";
     setTimeout(() => {
       if (loading)  loading.style.display  = "none";
       if (resultEl) {
         resultEl.style.display = "block";
-        // Render markdown-style bold + line breaks
-        const html = text
-          .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-          .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
-          .replace(/\n/g,"<br>");
-        resultEl.innerHTML = `<div style="background:var(--surface2);border-radius:var(--radius);padding:16px;font-size:13px;line-height:1.8;color:var(--text);">${html}</div>`;
+        resultEl.innerHTML = renderCpaResult(parsed);
       }
       if (resetWrap) resetWrap.style.display = "block";
     }, 400);
@@ -5736,6 +5970,65 @@ window.runContentAnalysis = async function() {
     showToast("Analysis failed: " + (e.message || "unknown error"));
   }
 };
+
+// Render a structured CPA analysis result with sections and footnote sources.
+// Reuses _SNAP_SOURCES (defined in the Analytics Snapshot section) for citation lookup.
+function renderCpaResult(d) {
+  const esc = (s) => escapeHtml(String(s || "")).replace(/\n/g, "<br>");
+
+  const section = (label, body, accent) => {
+    if (!body) return "";
+    const bg = accent ? "background:#fffbf0;border-left:3px solid var(--gold);" : "background:var(--surface2);";
+    return `
+      <div style="${bg}border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:6px;">${label}</div>
+        <div style="font-size:13px;line-height:1.65;color:var(--text);">${body}</div>
+      </div>
+    `;
+  };
+
+  // Overall score hero
+  const overallHtml = `
+    <div style="background:#fffbf0;border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:1;color:var(--text);">${d.overallScore != null ? d.overallScore : "—"}<span style="font-size:18px;color:var(--text-muted);">/10</span></div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold-dark);margin-top:4px;">Overall Score</div>
+      ${d.overallSummary ? `<div style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.5;">${esc(d.overallSummary)}</div>` : ""}
+    </div>
+  `;
+
+  // Coherence card (only when post screenshot was present)
+  const coherenceHtml = (d.coherenceScore != null) ? `
+    <div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:10px;border-left:3px solid var(--gold-dark);">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold-dark);">Visual / Caption Coherence</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--text);">${d.coherenceScore}<span style="font-size:12px;color:var(--text-muted);">/10</span></div>
+      </div>
+      ${d.coherenceNote ? `<div style="font-size:12px;line-height:1.55;color:var(--text);">${esc(d.coherenceNote)}</div>` : ""}
+    </div>
+  ` : "";
+
+  // Body sections
+  const workedHtml    = section("What Worked",    esc(d.whatWorked));
+  const improveHtml   = section("What to Improve", esc(d.whatToImprove));
+  const repeatHtml    = section("What to Repeat",  esc(d.whatToRepeat),  true);
+  const tryHtml       = section("What to Try",     esc(d.whatToTry),     true);
+
+  // Sources footnote — only sources actually cited
+  // Defensive: _SNAP_SOURCES is declared later in the same module scope but always initialized before this function is invoked at runtime
+  const sourcesLib = (typeof _SNAP_SOURCES !== "undefined") ? _SNAP_SOURCES : {};
+  const usedKeys = Array.isArray(d.sourceKeys) ? d.sourceKeys.filter(k => sourcesLib[k]) : [];
+  const sourcesHtml = usedKeys.length > 0 ? `
+    <div style="margin-top:10px;padding:10px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Sources</div>
+      ${usedKeys.map((k, idx) => {
+        const s = sourcesLib[k];
+        return `<div style="font-size:10px;color:var(--text-muted);line-height:1.5;margin-bottom:3px;"><span style="color:var(--gold-dark);font-weight:700;">[${idx+1}]</span> <a href="${s.url}" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">${escapeHtml(s.label)}</a></div>`;
+      }).join("")}
+    </div>
+  ` : "";
+
+  return overallHtml + coherenceHtml + workedHtml + improveHtml + repeatHtml + tryHtml + sourcesHtml;
+}
 
 window.resetContentAnalysis = function() {
   const form     = document.getElementById("cpa-form");
@@ -5750,7 +6043,9 @@ window.resetContentAnalysis = function() {
   ["cpa-caption","cpa-topic"].forEach(id => { const el=document.getElementById(id); if(el) el.value=""; });
   ["cpa-likes","cpa-comments","cpa-shares","cpa-saves"].forEach(id => { const el=document.getElementById(id); if(el) el.value=""; });
   const fmt = document.getElementById("cpa-format"); if(fmt) fmt.value="";
-  clearCpaScreenshot();
+  // Clear both screenshot slots and the extract confirmation card
+  clearCpaScreenshot(0);
+  clearCpaScreenshot(1);
 };
 
 // ─────────────────────────────────────────────
