@@ -13,6 +13,8 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- Chart.js for Analytics Snapshot feature -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg:#faf9f7;--surface:#ffffff;--surface2:#f3f1ed;--text:#1a1a1a;--text-muted:#6b6b6b;
@@ -695,6 +697,10 @@
       </div>
       <div class="dash-week-dots" id="dash-week-dots"></div>
     </div>
+
+    <!-- ANALYTICS SNAPSHOT BANNER (round-end pilot for Round 2) -->
+    <div id="dash-snapshot-banner" class="dash-animate" style="animation-delay:0.58s;display:none;"></div>
+
     <div class="dash-card dash-animate" style="animation-delay:0.62s;">
       <div class="dash-card-title-row">
         <div class="dash-card-title">🏆 Top 10 Standings</div>
@@ -1608,6 +1614,43 @@
       <a href="https://joinsmac.com/#pricing" target="_blank" rel="noopener" class="btn-post" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px;">See Plans &amp; Renew →</a>
 
       <button onclick="dismissRenewModal()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:12px;padding:6px;cursor:pointer;text-decoration:underline;">I've already renewed — don't show this again</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANALYTICS SNAPSHOT MODAL -->
+<div class="member-modal-overlay" id="snap-modal-overlay" onclick="closeSnapModal(event)">
+  <div class="member-modal" id="snap-modal-content" style="max-width:480px;">
+    <button class="member-modal-close" onclick="closeSnapModalDirect()">✕</button>
+    <div style="padding:4px 2px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Your Round 2 Growth</div>
+      <div id="snap-modal-sub" style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;">Upload a screenshot of your Instagram Insights for the last 90 days. We'll pull the key numbers and show you what changed during Round 2.</div>
+
+      <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.65;color:var(--text-muted);">
+        <strong style="color:var(--text);">How to find it:</strong> Open Instagram → tap Professional Dashboard → Insights → tap "Last 90 days" → screenshot the Overview screen showing Views, Reach, and Profile Visits.
+      </div>
+
+      <div id="snap-form">
+        <div id="snap-upload-zone" onclick="document.getElementById('snap-file').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:24px 16px;text-align:center;cursor:pointer;margin-bottom:14px;transition:border-color .2s;">
+          <div id="snap-upload-label" style="font-size:13px;color:var(--text-muted);">📸 Tap to upload your 90-day Insights screenshot</div>
+          <div id="snap-upload-preview" style="display:none;margin-top:10px;">
+            <img id="snap-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain;" />
+            <div style="margin-top:6px;font-size:11px;color:var(--gold);">Screenshot attached — ready to analyze</div>
+            <button onclick="event.stopPropagation();clearSnapScreenshot();" style="margin-top:6px;background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;">Remove</button>
+          </div>
+        </div>
+        <input id="snap-file" type="file" accept="image/*" style="display:none;" onchange="handleSnapScreenshot(this)" />
+        <button id="snap-submit-btn" onclick="runSnapshotAnalysis()" class="btn-gold" style="font-size:15px;padding:12px;width:100%;">Analyze My Growth</button>
+      </div>
+
+      <div id="snap-loading" style="display:none;text-align:center;padding:24px 0;">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">Reading your insights...</div>
+        <div style="width:100%;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;">
+          <div id="snap-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width 2s ease;"></div>
+        </div>
+      </div>
+
+      <div id="snap-result" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -2550,6 +2593,9 @@ window.loadDashboard=async function(){
 
     _renderDashboard({total:totalPts,postPts,engPts,trackerPostCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,myUid:uid});
 
+    // Render Analytics Snapshot banner (round-start / round-end pilot)
+    try { renderSnapshotBanner(); } catch(e) { console.error('Snapshot banner error:',e); }
+
   }catch(e){
     console.error('Dashboard load error:',e);
     _renderDashboard({total:0,postPts:0,engPts:0,trackerPostCount:0,weekSubmitted:false,trackerThisWeek:false,trackerDots:[],leaderboard:[],myUid:''});
@@ -3346,7 +3392,8 @@ const SVG_EXTERNAL = `<svg style="flex-shrink:0;margin-left:auto;" width="14" he
 function buildZoomCardHTML(cfg) {
   if (!cfg || !cfg.visible) return "";
   const rawUrl = (cfg.url || "").trim();
-  const safeUrl = (rawUrl.startsWith("http://") || rawUrl.startsWith("https://") ? rawUrl : "https://" + rawUrl).replace(/"/g, "&quot;");
+  const absoluteUrl = rawUrl && !/^https?:\/\//i.test(rawUrl) ? "https://" + rawUrl : rawUrl;
+  const safeUrl = absoluteUrl.replace(/"/g, "&quot;");
   const safeTitle = esc(cfg.title || "");
   const safeSub = esc(cfg.subtext || "Tap to save the Zoom event to your calendar");
   return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="dash-cal-btn">
@@ -5687,6 +5734,420 @@ window.resetContentAnalysis = function() {
 };
 
 // ─────────────────────────────────────────────
+//  ANALYTICS SNAPSHOT (Round-Start / Round-End)
+// ─────────────────────────────────────────────
+//  - Base + Pro: round-start + round-end upload, text summary, graduation card
+//  - Pro: chart visualization across snapshots
+//  - Vision-based extraction of IG Insights screenshot via Claude Haiku
+//  - Firestore: `analytics_snapshots` collection, keyed `{uid}_{round}_{type}`
+
+const _SNAP_SYSTEM_PROMPT = `You are an analytics extractor for SMAC (Social Media Accountability & Consistency), a 90-day Instagram posting program for solopreneurs.
+
+A member has uploaded a screenshot of their Instagram Professional Dashboard / Insights, typically the "Last 90 days" Overview screen.
+
+Your job is to extract the numeric metrics visible in the screenshot and return them as STRICT JSON only. No preamble, no commentary, no markdown fences. Return ONLY a valid JSON object with this exact shape:
+
+{
+  "views": <number or null>,
+  "reach": <number or null>,
+  "profileVisits": <number or null>,
+  "followerChange": <number or null>,
+  "followerTotal": <number or null>,
+  "interactions": <number or null>,
+  "topMetric": "<string label of the largest/most prominent metric shown>",
+  "period": "<string like '90 days' or '30 days' if visible>",
+  "narrative": "<one warm, encouraging sentence summarizing the snapshot in plain language for the member>"
+}
+
+Rules:
+- Parse numbers exactly as shown. "12.3K" = 12300, "1.2M" = 1200000.
+- If a metric is not visible, return null for that field. Do not invent values.
+- followerChange is the +/- change shown next to followers (positive integer if growth, negative if loss, null if not shown).
+- followerTotal is the current total follower count if shown.
+- narrative should be 1 sentence, warm but not flowery, never longer than 25 words. Example: "You hit 14.2K views and added 87 followers over the last 90 days — that's the consistency paying off."
+- Return ONLY the JSON object. No text before or after.`;
+
+const _SNAP_CACHE_CONTROL = { type: "ephemeral" };
+
+let _snapScreenshotData = null;  // { base64, mediaType }
+let _snapType = "end";           // "start" or "end" — set by openSnapModal
+let _snapChartInstance = null;   // active Chart.js instance, for cleanup
+
+window.handleSnapScreenshot = function(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast("Image too large — keep it under 5MB."); input.value=""; return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const [meta, base64] = dataUrl.split(",");
+    const mediaType = (meta.match(/data:(.*?);/) || [])[1] || "image/jpeg";
+    _snapScreenshotData = { base64, mediaType };
+    const preview = document.getElementById("snap-upload-preview");
+    const label   = document.getElementById("snap-upload-label");
+    const img     = document.getElementById("snap-preview-img");
+    if (img) img.src = dataUrl;
+    if (preview) preview.style.display = "block";
+    if (label)   label.style.display   = "none";
+  };
+  reader.readAsDataURL(file);
+};
+
+window.clearSnapScreenshot = function() {
+  _snapScreenshotData = null;
+  const preview = document.getElementById("snap-upload-preview");
+  const label   = document.getElementById("snap-upload-label");
+  const file    = document.getElementById("snap-file");
+  if (preview) preview.style.display = "none";
+  if (label)   label.style.display   = "block";
+  if (file)    file.value = "";
+};
+
+window.openSnapModal = function(type) {
+  _snapType = (type === "start") ? "start" : "end";
+  const ov = document.getElementById("snap-modal-overlay");
+  const sub = document.getElementById("snap-modal-sub");
+  if (sub) {
+    sub.textContent = (_snapType === "start")
+      ? "Upload your current Instagram Insights screenshot. This becomes your starting baseline for the round."
+      : "Upload a screenshot of your Instagram Insights for the last 90 days. We'll pull the key numbers and show you what changed during Round 2.";
+  }
+  // Reset state
+  clearSnapScreenshot();
+  const form    = document.getElementById("snap-form");
+  const loading = document.getElementById("snap-loading");
+  const result  = document.getElementById("snap-result");
+  if (form)    form.style.display    = "block";
+  if (loading) loading.style.display = "none";
+  if (result)  { result.style.display = "none"; result.innerHTML = ""; }
+  if (ov) ov.classList.add("active");
+};
+
+window.closeSnapModalDirect = function() {
+  const ov = document.getElementById("snap-modal-overlay");
+  if (ov) ov.classList.remove("active");
+  if (_snapChartInstance) { try { _snapChartInstance.destroy(); } catch(e){} _snapChartInstance = null; }
+};
+
+window.closeSnapModal = function(e) {
+  if (e && e.target && e.target.id !== "snap-modal-overlay") return;
+  closeSnapModalDirect();
+};
+
+window.runSnapshotAnalysis = async function() {
+  if (!currentUser) { showToast("Sign in first."); return; }
+  if (!_snapScreenshotData) { showToast("Upload a screenshot first."); return; }
+
+  const form    = document.getElementById("snap-form");
+  const loading = document.getElementById("snap-loading");
+  const result  = document.getElementById("snap-result");
+  const bar     = document.getElementById("snap-progress-bar");
+
+  if (form)    form.style.display    = "none";
+  if (loading) loading.style.display = "block";
+  if (result)  result.style.display  = "none";
+  if (bar) setTimeout(() => { bar.style.width = "85%"; }, 50);
+
+  try {
+    const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 500,
+        system: [{ type: "text", text: _SNAP_SYSTEM_PROMPT, cache_control: _SNAP_CACHE_CONTROL }],
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: _snapScreenshotData.mediaType, data: _snapScreenshotData.base64 } },
+            { type: "text", text: `Extract the metrics from this Instagram Insights screenshot. Return JSON only.` }
+          ]
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `API error ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const raw = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "";
+    // Strip any accidental markdown fences
+    const cleaned = raw.replace(/```json|```/g, "").trim();
+    let parsed;
+    try { parsed = JSON.parse(cleaned); } catch(e) {
+      console.error("Snapshot parse error:", cleaned);
+      throw new Error("Could not read the screenshot. Try a clearer image of the 90-day Insights Overview.");
+    }
+
+    // Save to Firestore
+    await saveSnapshot(parsed);
+
+    if (bar) bar.style.width = "100%";
+    setTimeout(() => {
+      if (loading) loading.style.display = "none";
+      renderSnapshotResult(parsed);
+      // Refresh the dashboard banner so it reflects new state
+      renderSnapshotBanner();
+    }, 400);
+
+  } catch(e) {
+    if (loading) loading.style.display = "none";
+    if (form)    form.style.display    = "block";
+    showToast("Analysis failed: " + (e.message || "unknown error"));
+  }
+};
+
+async function saveSnapshot(extracted) {
+  if (!db || useLocalFallback || !currentUser) return;
+  const { setDoc, doc:docRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const uid = currentUser.uid;
+  const round = (window.CURRENT_ROUND || "R2");
+  const docId = `${uid}_${round}_${_snapType}`;
+  const payload = {
+    uid,
+    registryId: currentUser.registryId || null,
+    round,
+    type: _snapType,
+    capturedAt: Date.now(),
+    data: extracted
+  };
+  await setDoc(docRef(db, "analytics_snapshots", docId), payload);
+}
+
+function renderSnapshotResult(d) {
+  const result = document.getElementById("snap-result");
+  if (!result) return;
+
+  const fmt = (n) => (n === null || n === undefined) ? "—" : Number(n).toLocaleString();
+  const isPro = userHasPro();
+
+  const cards = [
+    { label: "Views", value: fmt(d.views) },
+    { label: "Reach", value: fmt(d.reach) },
+    { label: "Profile Visits", value: fmt(d.profileVisits) },
+    { label: "Follower Change", value: (d.followerChange === null || d.followerChange === undefined) ? "—" : (d.followerChange > 0 ? "+" : "") + fmt(d.followerChange) }
+  ];
+
+  const cardHtml = cards.map(c => `
+    <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;line-height:1;">${c.value}</div>
+      <div style="font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-top:4px;">${c.label}</div>
+    </div>
+  `).join("");
+
+  let chartHtml = "";
+  if (isPro) {
+    chartHtml = `
+      <div style="margin-top:16px;background:var(--surface2);border-radius:10px;padding:14px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:10px;">★ Pro · Your snapshot</div>
+        <canvas id="snap-chart" style="max-height:220px;"></canvas>
+      </div>
+    `;
+  } else {
+    chartHtml = `
+      <div style="margin-top:16px;background:#fffbf0;border:1.5px solid var(--gold);border-radius:10px;padding:14px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">★ See this charted in SMAC Pro</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.55;">Pro members see this data visualized across the round, plus mid-round snapshots anytime.</div>
+      </div>
+    `;
+  }
+
+  result.innerHTML = `
+    <div style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:12px;font-size:13px;line-height:1.6;">
+      ${d.narrative ? `<div style="font-style:italic;">${escapeHtml(d.narrative)}</div>` : "<div>Snapshot saved.</div>"}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${cardHtml}</div>
+    ${chartHtml}
+    <button onclick="closeSnapModalDirect()" class="btn-gold" style="width:100%;margin-top:14px;font-size:14px;padding:11px;">Done</button>
+  `;
+  result.style.display = "block";
+
+  // Render Pro chart (single-bar for now; will become multi-point in Round 3 with start+end)
+  if (isPro && typeof Chart !== "undefined") {
+    drawSnapshotChart(d);
+  }
+}
+
+async function drawSnapshotChart(latest) {
+  const canvas = document.getElementById("snap-chart");
+  if (!canvas) return;
+  if (_snapChartInstance) { try { _snapChartInstance.destroy(); } catch(e){} }
+
+  // Fetch any prior snapshots for this user so we can show start vs end
+  let snapshots = [latest];
+  let labels = [_snapType === "start" ? "Round Start" : "Round End"];
+  try {
+    if (db && !useLocalFallback && currentUser) {
+      const { getDoc, doc:docRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const round = (window.CURRENT_ROUND || "R2");
+      const otherType = _snapType === "start" ? "end" : "start";
+      const otherDoc = await getDoc(docRef(db, "analytics_snapshots", `${currentUser.uid}_${round}_${otherType}`));
+      if (otherDoc.exists()) {
+        if (otherType === "start") {
+          snapshots = [otherDoc.data().data, latest];
+          labels = ["Round Start", "Round End"];
+        } else {
+          snapshots = [latest, otherDoc.data().data];
+          labels = ["Round Start", "Round End"];
+        }
+      }
+    }
+  } catch(e) { /* fall through with single-point chart */ }
+
+  const metrics = ["views","reach","profileVisits"];
+  const metricLabels = { views:"Views", reach:"Reach", profileVisits:"Profile Visits" };
+  const colors = { views:"#c9a84c", reach:"#6b6b6b", profileVisits:"#a07c28" };
+  const datasets = metrics.map(m => ({
+    label: metricLabels[m],
+    data: snapshots.map(s => (s && s[m] != null) ? s[m] : 0),
+    backgroundColor: colors[m],
+    borderColor: colors[m],
+    borderWidth: 2,
+    borderRadius: 6
+  }));
+
+  _snapChartInstance = new Chart(canvas, {
+    type: "bar",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position:"bottom", labels:{ boxWidth:12, font:{ size:11, family:"DM Sans" } } },
+        tooltip: { callbacks: { label: (ctx)=> `${ctx.dataset.label}: ${Number(ctx.parsed.y).toLocaleString()}` } }
+      },
+      scales: {
+        x: { grid:{ display:false }, ticks:{ font:{ size:11, family:"DM Sans" } } },
+        y: { beginAtZero:true, ticks:{ font:{ size:10, family:"DM Sans" }, callback:(v)=> v>=1000 ? (v/1000)+"K" : v } }
+      }
+    }
+  });
+}
+
+function escapeHtml(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// Dashboard banner — shows the upload prompt OR "snapshot captured" state
+window.renderSnapshotBanner = async function() {
+  const banner = document.getElementById("dash-snapshot-banner");
+  if (!banner || !currentUser) return;
+
+  // Hard gate: only show during configured windows
+  const window_ = getSnapshotWindow();
+  if (!window_) { banner.style.display = "none"; return; }
+
+  // Check if user has already submitted for this window
+  let hasSnapshot = false;
+  try {
+    if (db && !useLocalFallback) {
+      const { getDoc, doc:docRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const docId = `${currentUser.uid}_${(window.CURRENT_ROUND||"R2")}_${window_.type}`;
+      const s = await getDoc(docRef(db, "analytics_snapshots", docId));
+      hasSnapshot = s.exists();
+    }
+  } catch(e) {}
+
+  if (hasSnapshot) {
+    banner.innerHTML = `
+      <div class="dash-card" style="border:1.5px solid var(--gold);background:#fffbf0;">
+        <div class="dash-card-title-row">
+          <div class="dash-card-title">📊 Your Growth Snapshot</div>
+          <div class="dash-card-meta" style="color:var(--gold-dark);">Captured ✓</div>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px;">Your Round 2 snapshot is saved. ${userHasPro() ? "Tap below to view your chart." : "Upgrade to Pro to see this charted."}</div>
+        <button class="dash-view-all-btn" onclick="viewMySnapshot('${window_.type}')">
+          View Snapshot
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    `;
+  } else {
+    banner.innerHTML = `
+      <div class="dash-card" style="border:1.5px solid var(--gold);background:#fffbf0;">
+        <div class="dash-card-title-row">
+          <div class="dash-card-title">📊 ${window_.title}</div>
+          <div class="dash-card-meta" style="color:var(--gold-dark);">New</div>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px;">${window_.subtitle}</div>
+        <button class="dash-view-all-btn" onclick="openSnapModal('${window_.type}')">
+          Upload My Insights
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    `;
+  }
+  banner.style.display = "block";
+};
+
+// View an existing snapshot (re-render result from Firestore)
+window.viewMySnapshot = async function(type) {
+  if (!currentUser) return;
+  try {
+    const { getDoc, doc:docRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const docId = `${currentUser.uid}_${(window.CURRENT_ROUND||"R2")}_${type}`;
+    const s = await getDoc(docRef(db, "analytics_snapshots", docId));
+    if (!s.exists()) { showToast("No snapshot found."); return; }
+    _snapType = type;
+    openSnapModal(type);
+    // Skip form, jump straight to result
+    setTimeout(() => {
+      const form    = document.getElementById("snap-form");
+      const loading = document.getElementById("snap-loading");
+      if (form)    form.style.display    = "none";
+      if (loading) loading.style.display = "none";
+      renderSnapshotResult(s.data().data);
+    }, 50);
+  } catch(e) { showToast("Could not load snapshot."); }
+};
+
+// Define the active snapshot window
+// Round 2 final week = May 25–31, 2026 (week 13, after the Mar 1 start)
+// Override window: admins can set _SNAP_WINDOW_OVERRIDE in console for testing
+function getSnapshotWindow() {
+  if (typeof window._SNAP_WINDOW_OVERRIDE !== "undefined") return window._SNAP_WINDOW_OVERRIDE;
+  const now = Date.now();
+  const round = (window.CURRENT_ROUND || "R2");
+
+  // Round 2 final week: May 25, 2026 00:00 ET → June 7, 2026 23:59 ET (buffer after round end)
+  const r2EndStart = new Date("2026-05-25T04:00:00Z").getTime();
+  const r2EndClose = new Date("2026-06-08T04:00:00Z").getTime();
+  if (round === "R2" && now >= r2EndStart && now <= r2EndClose) {
+    return {
+      type: "end",
+      title: "Capture Your Round 2 Growth",
+      subtitle: "Round 2 is wrapping up. Upload your Instagram 90-day Insights screenshot to see what changed — and lock in your snapshot before Round 3."
+    };
+  }
+
+  // Round 3 start window: May 25, 2026 → June 14, 2026
+  const r3StartStart = new Date("2026-05-25T04:00:00Z").getTime();
+  const r3StartClose = new Date("2026-06-15T04:00:00Z").getTime();
+  if (round === "R3" && now >= r3StartStart && now <= r3StartClose) {
+    return {
+      type: "start",
+      title: "Set Your Round 3 Baseline",
+      subtitle: "Capture where you're starting. Upload your Instagram Insights screenshot so you can see your growth at the end of the round."
+    };
+  }
+
+  // Round 3 end window: Aug 24, 2026 → Sept 7, 2026
+  const r3EndStart = new Date("2026-08-24T04:00:00Z").getTime();
+  const r3EndClose = new Date("2026-09-08T04:00:00Z").getTime();
+  if (round === "R3" && now >= r3EndStart && now <= r3EndClose) {
+    return {
+      type: "end",
+      title: "Capture Your Round 3 Growth",
+      subtitle: "Round 3 is wrapping. Upload your 90-day Insights screenshot to see your full-round growth chart."
+    };
+  }
+
+  return null;
+}
+
+// ─────────────────────────────────────────────
 //  ADMIN: Clear Feed Posts by Week
 // ─────────────────────────────────────────────
 // Deletes documents from the `posts` collection matching a specific weekIdx.
@@ -7577,7 +8038,7 @@ const WEEKLY_CHALLENGES = [
   {title:"Editing Based",     desc:"Post content focused on your editing style, workflow, or a before/after edit."},
   {title:"Best Work",         desc:"Share a piece of work you're genuinely proud of — with the story behind it."},
   {title:"Teach Something",   desc:"Post a tip, tutorial, or piece of advice your audience can use immediately."},
-  {title:"Go Live",           desc:"Go live on Instagram for at least 10 minutes and engage with your audience. Don't have 1K followers yet? Record a 3–5 min on-camera video talking directly to your audience and post it as a Reel or feed video."},
+  {title:"Go Live",           desc:"Go live on Instagram for at least 10 minutes and engage with your audience."},
   {title:"Victory Lap",       desc:"Post a recap of your Round 2 journey — growth, lessons, wins, and what's next."},
 ];
 
