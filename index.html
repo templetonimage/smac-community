@@ -1296,6 +1296,15 @@
       <button class="btn-post" style="width:100%;" onclick="openRenewModal()">Renew for Round 3</button>
     </div>
 
+    <!-- GROWTH HISTORY (Analytics Snapshots) -->
+    <div class="card" id="profile-growth-history" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;">📊 Growth History</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Your analytics snapshots across SMAC rounds. Tap any entry to view.</div>
+      <div id="profile-growth-list"></div>
+    </div>
+
     <div class="card">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Edit Profile</div>
       <div class="profile-form-field">
@@ -6132,41 +6141,59 @@ function escapeHtml(s) {
   return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-// Dashboard banner — shows the upload prompt OR "snapshot captured" state
+// Dashboard banner — shows the upload prompt during active windows,
+// OR a permanent "Your Round X Snapshot" card once any snapshot is captured.
+// Priority: if a snapshot exists for the active window OR the current round, show the captured card.
+//           if no snapshot but in an active window, show the upload prompt.
+//           otherwise hide.
 window.renderSnapshotBanner = async function() {
   const banner = document.getElementById("dash-snapshot-banner");
   if (!banner || !currentUser) return;
 
-  // Hard gate: only show during configured windows
-  const window_ = getSnapshotWindow();
-  if (!window_) { banner.style.display = "none"; return; }
+  const round = (window.CURRENT_ROUND || "R2");
+  const window_ = getSnapshotWindow();  // may be null (outside any window)
 
-  // Check if user has already submitted for this window
-  let hasSnapshot = false;
+  // Look up existing snapshots for the current round
+  let endSnap = null, startSnap = null;
   try {
     if (db && !useLocalFallback) {
       const { getDoc, doc:docRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      const docId = `${currentUser.uid}_${(window.CURRENT_ROUND||"R2")}_${window_.type}`;
-      const s = await getDoc(docRef(db, "analytics_snapshots", docId));
-      hasSnapshot = s.exists();
+      const [endDoc, startDoc] = await Promise.all([
+        getDoc(docRef(db, "analytics_snapshots", `${currentUser.uid}_${round}_end`)),
+        getDoc(docRef(db, "analytics_snapshots", `${currentUser.uid}_${round}_start`))
+      ]);
+      if (endDoc.exists())   endSnap   = endDoc.data();
+      if (startDoc.exists()) startSnap = startDoc.data();
     }
-  } catch(e) {}
+  } catch(e) { console.error("Snapshot banner lookup error:", e); }
 
-  if (hasSnapshot) {
+  // Decide what to show
+  const hasAnySnapshot = !!(endSnap || startSnap);
+  const preferredType = endSnap ? "end" : (startSnap ? "start" : null);
+
+  // If user has a snapshot for this round, show the permanent captured card
+  if (hasAnySnapshot && preferredType) {
+    const roundLabel = round.replace("R", "");
+    const typeLabel  = preferredType === "end" ? "Round End" : "Round Baseline";
     banner.innerHTML = `
       <div class="dash-card" style="border:1.5px solid var(--gold);background:#fffbf0;">
         <div class="dash-card-title-row">
-          <div class="dash-card-title">📊 Your Growth Snapshot</div>
-          <div class="dash-card-meta" style="color:var(--gold-dark);">Captured ✓</div>
+          <div class="dash-card-title">📊 Your Round ${roundLabel} Snapshot</div>
+          <div class="dash-card-meta" style="color:var(--gold-dark);">${typeLabel} ✓</div>
         </div>
-        <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px;">Your Round 2 snapshot is saved. ${userHasPro() ? "Tap below to view your chart." : "Upgrade to Pro to see this charted."}</div>
-        <button class="dash-view-all-btn" onclick="viewMySnapshot('${window_.type}')">
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px;">Your snapshot is saved. ${userHasPro() ? "Tap to view your chart and metrics." : "Tap to view your metrics — upgrade to Pro for the chart."}</div>
+        <button class="dash-view-all-btn" onclick="viewMySnapshot('${preferredType}')">
           View Snapshot
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
     `;
-  } else {
+    banner.style.display = "block";
+    return;
+  }
+
+  // No snapshot yet — show upload prompt only if in an active window
+  if (window_) {
     banner.innerHTML = `
       <div class="dash-card" style="border:1.5px solid var(--gold);background:#fffbf0;">
         <div class="dash-card-title-row">
@@ -6180,8 +6207,12 @@ window.renderSnapshotBanner = async function() {
         </button>
       </div>
     `;
+    banner.style.display = "block";
+    return;
   }
-  banner.style.display = "block";
+
+  // No snapshot, no active window → hide
+  banner.style.display = "none";
 };
 
 // View an existing snapshot (re-render result from Firestore)
@@ -6203,6 +6234,76 @@ window.viewMySnapshot = async function(type) {
       renderSnapshotResult(s.data().data);
     }, 50);
   } catch(e) { showToast("Could not load snapshot."); }
+};
+
+// View a snapshot by explicit round + type — used by Growth History entries
+window.viewSnapshotByRound = async function(round, type) {
+  if (!currentUser) return;
+  try {
+    const { getDoc, doc:docRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const docId = `${currentUser.uid}_${round}_${type}`;
+    const s = await getDoc(docRef(db, "analytics_snapshots", docId));
+    if (!s.exists()) { showToast("No snapshot found."); return; }
+    _snapType = type;
+    // Temporarily set CURRENT_ROUND so the modal narrative + chart match this snapshot's round
+    // Actually we don't need to — the modal just renders whatever data we pass in. Use openSnapModal then jump to result.
+    openSnapModal(type);
+    setTimeout(() => {
+      const form    = document.getElementById("snap-form");
+      const loading = document.getElementById("snap-loading");
+      if (form)    form.style.display    = "none";
+      if (loading) loading.style.display = "none";
+      renderSnapshotResult(s.data().data);
+    }, 50);
+  } catch(e) { showToast("Could not load snapshot."); }
+};
+
+// Profile: Growth History — list all snapshots across all rounds for this user
+window.renderGrowthHistory = async function() {
+  const card = document.getElementById("profile-growth-history");
+  const list = document.getElementById("profile-growth-list");
+  if (!card || !list || !currentUser) return;
+
+  if (!db || useLocalFallback) { card.style.display = "none"; return; }
+
+  try {
+    const { getDocs, collection:col, query:q, where, orderBy:ob } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await getDocs(q(
+      col(db, "analytics_snapshots"),
+      where("uid", "==", currentUser.uid)
+    ));
+
+    if (snap.empty) { card.style.display = "none"; return; }
+
+    // Group by round, sort newest first by capturedAt
+    const docs = snap.docs.map(d => d.data()).sort((a,b) => (b.capturedAt||0) - (a.capturedAt||0));
+
+    const fmt = (n) => (n === null || n === undefined) ? "—" : Number(n).toLocaleString();
+    const itemHtml = docs.map(s => {
+      const round = s.round || "R?";
+      const roundLabel = round.replace("R", "Round ");
+      const typeLabel = s.type === "end" ? "End of Round" : (s.type === "start" ? "Round Baseline" : s.type);
+      const date = s.capturedAt ? new Date(s.capturedAt).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" }) : "";
+      const data = s.data || {};
+      const views = fmt(data.views);
+      const subs  = (data.smacSubmissionCount === null || data.smacSubmissionCount === undefined) ? null : data.smacSubmissionCount;
+      return `
+        <div onclick="viewSnapshotByRound('${round}','${s.type}')" style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:background .15s;" onmouseenter="this.style.background='var(--border)'" onmouseleave="this.style.background='var(--surface2)'">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:13px;">${roundLabel} · ${typeLabel}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${date}${subs !== null ? ` · ${subs} SMAC posts` : ""} · ${views} views</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--gold-dark);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      `;
+    }).join("");
+
+    list.innerHTML = itemHtml;
+    card.style.display = "block";
+  } catch(e) {
+    console.error("Growth history error:", e);
+    card.style.display = "none";
+  }
 };
 
 // Define the active snapshot window
@@ -8975,6 +9076,9 @@ function loadProfile(){
   window._removePhoto=false;
 
   renderProfileHero(prof);
+
+  // Growth History (Analytics Snapshots) — fetches all snapshots for this user
+  try { renderGrowthHistory(); } catch(e) { console.error("Growth history render error:", e); }
 }
 async function renderProfileHero(prof){
   const initials=(prof.name||currentUser.name).split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
