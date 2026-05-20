@@ -6188,6 +6188,7 @@ window.renderSnapshotBanner = async function() {
     </div>
   `;
   banner.style.display = "block";
+  banner.style.opacity = "1";  // override dash-animate's initial opacity:0
 };
 
 // View an existing snapshot (re-render result from Firestore)
