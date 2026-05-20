@@ -1631,15 +1631,25 @@
       </div>
 
       <div id="snap-form">
-        <div id="snap-upload-zone" onclick="document.getElementById('snap-file').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:24px 16px;text-align:center;cursor:pointer;margin-bottom:14px;transition:border-color .2s;">
-          <div id="snap-upload-label" style="font-size:13px;color:var(--text-muted);">📸 Tap to upload your 90-day Insights screenshot</div>
-          <div id="snap-upload-preview" style="display:none;margin-top:10px;">
-            <img id="snap-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain;" />
-            <div style="margin-top:6px;font-size:11px;color:var(--gold);">Screenshot attached — ready to analyze</div>
-            <button onclick="event.stopPropagation();clearSnapScreenshot();" style="margin-top:6px;background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;">Remove</button>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.4;">Upload 1 or 2 screenshots. Use 2 if your Insights page is too long to fit in one shot.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+          <div id="snap-slot-1" onclick="document.getElementById('snap-file-1').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:14px 8px;text-align:center;cursor:pointer;transition:border-color .2s;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div id="snap-slot-1-label" style="font-size:11px;color:var(--text-muted);line-height:1.4;">📸<br>Screenshot 1<br><span style="font-size:10px;">(required)</span></div>
+            <div id="snap-slot-1-preview" style="display:none;width:100%;">
+              <img id="snap-slot-1-img" style="max-width:100%;max-height:90px;border-radius:6px;object-fit:contain;" />
+              <button onclick="event.stopPropagation();clearSnapSlot(1);" style="margin-top:4px;background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;text-decoration:underline;">Remove</button>
+            </div>
+          </div>
+          <div id="snap-slot-2" onclick="document.getElementById('snap-file-2').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:14px 8px;text-align:center;cursor:pointer;transition:border-color .2s;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div id="snap-slot-2-label" style="font-size:11px;color:var(--text-muted);line-height:1.4;">📸<br>Screenshot 2<br><span style="font-size:10px;">(optional)</span></div>
+            <div id="snap-slot-2-preview" style="display:none;width:100%;">
+              <img id="snap-slot-2-img" style="max-width:100%;max-height:90px;border-radius:6px;object-fit:contain;" />
+              <button onclick="event.stopPropagation();clearSnapSlot(2);" style="margin-top:4px;background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;text-decoration:underline;">Remove</button>
+            </div>
           </div>
         </div>
-        <input id="snap-file" type="file" accept="image/*" style="display:none;" onchange="handleSnapScreenshot(this)" />
+        <input id="snap-file-1" type="file" accept="image/*" style="display:none;" onchange="handleSnapScreenshot(this,1)" />
+        <input id="snap-file-2" type="file" accept="image/*" style="display:none;" onchange="handleSnapScreenshot(this,2)" />
         <button id="snap-submit-btn" onclick="runSnapshotAnalysis()" class="btn-gold" style="font-size:15px;padding:12px;width:100%;">Analyze My Growth</button>
       </div>
 
@@ -5743,37 +5753,62 @@ window.resetContentAnalysis = function() {
 
 const _SNAP_SYSTEM_PROMPT = `You are an analytics extractor for SMAC (Social Media Accountability & Consistency), a 90-day Instagram posting program for solopreneurs.
 
-A member has uploaded a screenshot of their Instagram Professional Dashboard / Insights, typically the "Last 90 days" Overview screen.
+A member has uploaded 1 or 2 screenshots of their Instagram Professional Dashboard / Insights, typically the "Last 90 days" Overview screen. When 2 are provided, they are sequential views of the same page (top + bottom), so combine the data from both.
 
-Your job is to extract the numeric metrics visible in the screenshot and return them as STRICT JSON only. No preamble, no commentary, no markdown fences. Return ONLY a valid JSON object with this exact shape:
+Your job is to extract the numeric metrics AND their % change vs. the previous 90 days (if shown). Return STRICT JSON only — no preamble, no commentary, no markdown fences. Return ONLY a valid JSON object with this exact shape:
 
 {
   "views": <number or null>,
+  "viewsChangePct": <number or null>,
   "reach": <number or null>,
+  "reachChangePct": <number or null>,
   "profileVisits": <number or null>,
+  "profileVisitsChangePct": <number or null>,
   "followerChange": <number or null>,
   "followerTotal": <number or null>,
   "interactions": <number or null>,
+  "interactionsChangePct": <number or null>,
   "topMetric": "<string label of the largest/most prominent metric shown>",
   "period": "<string like '90 days' or '30 days' if visible>",
-  "narrative": "<one warm, encouraging sentence summarizing the snapshot in plain language for the member>"
+  "trendTier": "<one of: 'strong_growth' | 'modest_growth' | 'steady' | 'modest_dip' | 'significant_dip'>",
+  "narrative": "<one warm, honest sentence framed by the trendTier>"
 }
 
-Rules:
-- Parse numbers exactly as shown. "12.3K" = 12300, "1.2M" = 1200000.
-- If a metric is not visible, return null for that field. Do not invent values.
-- followerChange is the +/- change shown next to followers (positive integer if growth, negative if loss, null if not shown).
-- followerTotal is the current total follower count if shown.
-- narrative should be 1 sentence, warm but not flowery, never longer than 25 words. Example: "You hit 14.2K views and added 87 followers over the last 90 days — that's the consistency paying off."
-- Return ONLY the JSON object. No text before or after.`;
+Number parsing:
+- "12.3K" = 12300, "1.2M" = 1200000, "850" = 850
+- Parse percentages as numbers: "+18%" = 18, "-12%" = -12, "0%" = 0
+- If a metric or its % change is not visible, return null. Do not invent values.
+
+trendTier rules (use the Views % change as the primary signal, fall back to Reach if Views unavailable):
+- "strong_growth": > +15%
+- "modest_growth": +5% to +15%
+- "steady": -5% to +5%
+- "modest_dip": -15% to -5%
+- "significant_dip": < -15%
+- If no comparison data is available, use "steady"
+
+narrative rules (1 sentence, max 25 words, plain language, NEVER flowery or sycophantic):
+- strong_growth: celebrate the growth and tie it to consistency. Example: "Views jumped 22% over the last 90 days — that's what showing up consistently does."
+- modest_growth: acknowledge real progress. Example: "Views climbed 8% — steady momentum from steady posting."
+- steady: emphasize that holding ground IS a win on Instagram right now. Example: "Numbers held steady through a noisy 90 days on Instagram — that's not nothing."
+- modest_dip: honest acknowledgment, refocus on what they controlled. Example: "Views dipped 9%, but you kept showing up — that's the metric that actually compounds."
+- significant_dip: name the broader context (algorithm shifts, bot purges affected many creators), refocus on consistency as the real win. Example: "Views are down 24%, which a lot of accounts saw this quarter — but you kept posting, and that's what builds long-term."
+
+NEVER:
+- Use exclamation points beyond a single one
+- Use words like "amazing", "incredible", "phenomenal"
+- Sugarcoat a dip by ignoring it
+- Be preachy or lecture the member
+
+Return ONLY the JSON object. No text before or after.`;
 
 const _SNAP_CACHE_CONTROL = { type: "ephemeral" };
 
-let _snapScreenshotData = null;  // { base64, mediaType }
-let _snapType = "end";           // "start" or "end" — set by openSnapModal
-let _snapChartInstance = null;   // active Chart.js instance, for cleanup
+let _snapScreenshots = [null, null];  // array of 2 slots: { base64, mediaType, dataUrl } or null
+let _snapType = "end";                  // "start" or "end" — set by openSnapModal
+let _snapChartInstance = null;          // active Chart.js instance, for cleanup
 
-window.handleSnapScreenshot = function(input) {
+window.handleSnapScreenshot = function(input, slot) {
   const file = input.files && input.files[0];
   if (!file) return;
   if (file.size > 5 * 1024 * 1024) { showToast("Image too large — keep it under 5MB."); input.value=""; return; }
@@ -5782,25 +5817,31 @@ window.handleSnapScreenshot = function(input) {
     const dataUrl = e.target.result;
     const [meta, base64] = dataUrl.split(",");
     const mediaType = (meta.match(/data:(.*?);/) || [])[1] || "image/jpeg";
-    _snapScreenshotData = { base64, mediaType };
-    const preview = document.getElementById("snap-upload-preview");
-    const label   = document.getElementById("snap-upload-label");
-    const img     = document.getElementById("snap-preview-img");
-    if (img) img.src = dataUrl;
-    if (preview) preview.style.display = "block";
-    if (label)   label.style.display   = "none";
+    _snapScreenshots[slot-1] = { base64, mediaType, dataUrl };
+    const labelEl   = document.getElementById(`snap-slot-${slot}-label`);
+    const previewEl = document.getElementById(`snap-slot-${slot}-preview`);
+    const imgEl     = document.getElementById(`snap-slot-${slot}-img`);
+    if (imgEl)     imgEl.src = dataUrl;
+    if (labelEl)   labelEl.style.display   = "none";
+    if (previewEl) previewEl.style.display = "block";
   };
   reader.readAsDataURL(file);
 };
 
+window.clearSnapSlot = function(slot) {
+  _snapScreenshots[slot-1] = null;
+  const labelEl   = document.getElementById(`snap-slot-${slot}-label`);
+  const previewEl = document.getElementById(`snap-slot-${slot}-preview`);
+  const fileEl    = document.getElementById(`snap-file-${slot}`);
+  if (labelEl)   labelEl.style.display   = "block";
+  if (previewEl) previewEl.style.display = "none";
+  if (fileEl)    fileEl.value = "";
+};
+
+// Backward-compatible: clear both slots
 window.clearSnapScreenshot = function() {
-  _snapScreenshotData = null;
-  const preview = document.getElementById("snap-upload-preview");
-  const label   = document.getElementById("snap-upload-label");
-  const file    = document.getElementById("snap-file");
-  if (preview) preview.style.display = "none";
-  if (label)   label.style.display   = "block";
-  if (file)    file.value = "";
+  clearSnapSlot(1);
+  clearSnapSlot(2);
 };
 
 window.openSnapModal = function(type) {
@@ -5810,7 +5851,7 @@ window.openSnapModal = function(type) {
   if (sub) {
     sub.textContent = (_snapType === "start")
       ? "Upload your current Instagram Insights screenshot. This becomes your starting baseline for the round."
-      : "Upload a screenshot of your Instagram Insights for the last 90 days. We'll pull the key numbers and show you what changed during Round 2.";
+      : "Upload screenshots of your Instagram Insights for the last 90 days. We'll pull the key numbers and show you what changed during Round 2.";
   }
   // Reset state
   clearSnapScreenshot();
@@ -5836,7 +5877,8 @@ window.closeSnapModal = function(e) {
 
 window.runSnapshotAnalysis = async function() {
   if (!currentUser) { showToast("Sign in first."); return; }
-  if (!_snapScreenshotData) { showToast("Upload a screenshot first."); return; }
+  const activeShots = _snapScreenshots.filter(s => s !== null);
+  if (activeShots.length === 0) { showToast("Upload at least one screenshot first."); return; }
 
   const form    = document.getElementById("snap-form");
   const loading = document.getElementById("snap-loading");
@@ -5849,20 +5891,24 @@ window.runSnapshotAnalysis = async function() {
   if (bar) setTimeout(() => { bar.style.width = "85%"; }, 50);
 
   try {
+    // Build user message content: one image block per uploaded screenshot, then text
+    const userContent = activeShots.map(s => ({
+      type: "image",
+      source: { type: "base64", media_type: s.mediaType, data: s.base64 }
+    }));
+    const promptText = activeShots.length > 1
+      ? "Extract the metrics from these Instagram Insights screenshots. They are top + bottom of the same page — combine them. Return JSON only."
+      : "Extract the metrics from this Instagram Insights screenshot. Return JSON only.";
+    userContent.push({ type: "text", text: promptText });
+
     const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 500,
+        max_tokens: 700,
         system: [{ type: "text", text: _SNAP_SYSTEM_PROMPT, cache_control: _SNAP_CACHE_CONTROL }],
-        messages: [{
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: _snapScreenshotData.mediaType, data: _snapScreenshotData.base64 } },
-            { type: "text", text: `Extract the metrics from this Instagram Insights screenshot. Return JSON only.` }
-          ]
-        }]
+        messages: [{ role: "user", content: userContent }]
       })
     });
 
@@ -5873,13 +5919,15 @@ window.runSnapshotAnalysis = async function() {
 
     const data = await resp.json();
     const raw = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "";
-    // Strip any accidental markdown fences
     const cleaned = raw.replace(/```json|```/g, "").trim();
     let parsed;
     try { parsed = JSON.parse(cleaned); } catch(e) {
       console.error("Snapshot parse error:", cleaned);
       throw new Error("Could not read the screenshot. Try a clearer image of the 90-day Insights Overview.");
     }
+
+    // Pull SMAC submission count for the current round (uses ts range — round-agnostic)
+    parsed.smacSubmissionCount = await getRoundSubmissionCount();
 
     // Save to Firestore
     await saveSnapshot(parsed);
@@ -5888,7 +5936,6 @@ window.runSnapshotAnalysis = async function() {
     setTimeout(() => {
       if (loading) loading.style.display = "none";
       renderSnapshotResult(parsed);
-      // Refresh the dashboard banner so it reflects new state
       renderSnapshotBanner();
     }, 400);
 
@@ -5898,6 +5945,28 @@ window.runSnapshotAnalysis = async function() {
     showToast("Analysis failed: " + (e.message || "unknown error"));
   }
 };
+
+// Count SMAC submissions for the current round (timestamp-range filter, excludes grace placeholders)
+async function getRoundSubmissionCount() {
+  if (!db || useLocalFallback || !currentUser) return null;
+  try {
+    const { getDocs, collection:col, query:q, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    // WEEK_SCHEDULE is the canonical round-scoped week array; [0][0] = round start, [last][1] = round end
+    if (!window.WEEK_SCHEDULE || !window.WEEK_SCHEDULE.length) return null;
+    const roundStart = window.WEEK_SCHEDULE[0][0];
+    const roundEnd   = window.WEEK_SCHEDULE[window.WEEK_SCHEDULE.length - 1][1];
+    const snap = await getDocs(q(
+      col(db, "submissions"),
+      where("uid", "==", currentUser.uid),
+      where("ts", ">=", roundStart),
+      where("ts", "<=", roundEnd)
+    ));
+    return snap.docs.filter(d => d.data().status !== "grace").length;
+  } catch(e) {
+    console.error("Submission count error:", e);
+    return null;
+  }
+}
 
 async function saveSnapshot(extracted) {
   if (!db || useLocalFallback || !currentUser) return;
@@ -5923,20 +5992,55 @@ function renderSnapshotResult(d) {
   const fmt = (n) => (n === null || n === undefined) ? "—" : Number(n).toLocaleString();
   const isPro = userHasPro();
 
-  const cards = [
-    { label: "Views", value: fmt(d.views) },
-    { label: "Reach", value: fmt(d.reach) },
-    { label: "Profile Visits", value: fmt(d.profileVisits) },
-    { label: "Follower Change", value: (d.followerChange === null || d.followerChange === undefined) ? "—" : (d.followerChange > 0 ? "+" : "") + fmt(d.followerChange) }
-  ];
+  // Format a % delta with color cue (green up / red down / muted neutral or missing)
+  const deltaPill = (pct) => {
+    if (pct === null || pct === undefined) return "";
+    const n = Number(pct);
+    const isUp = n > 0, isDown = n < 0;
+    const color = isUp ? "#1b7a3c" : isDown ? "#a83232" : "var(--text-muted)";
+    const arrow = isUp ? "▲" : isDown ? "▼" : "—";
+    const sign = isUp ? "+" : "";
+    return `<div style="font-size:10px;font-weight:700;color:${color};margin-top:2px;">${arrow} ${sign}${n}%</div>`;
+  };
 
-  const cardHtml = cards.map(c => `
-    <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;line-height:1;">${c.value}</div>
-      <div style="font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-top:4px;">${c.label}</div>
+  // HERO: submission count from SMAC (controllable, honest, dodges IG noise)
+  const submissionCount = (d.smacSubmissionCount === null || d.smacSubmissionCount === undefined) ? null : d.smacSubmissionCount;
+  const heroHtml = (submissionCount !== null) ? `
+    <div style="background:#fffbf0;border:1.5px solid var(--gold);border-radius:12px;padding:18px 16px;margin-bottom:14px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:0.02em;line-height:1;color:var(--text);">${submissionCount}</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold-dark);margin-top:4px;">Posts Submitted to SMAC</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5;">Over the last 90 days. That's the win — everything else is a bonus.</div>
+    </div>
+  ` : "";
+
+  // Narrative (context-aware, generated by Claude based on trendTier)
+  const narrativeHtml = d.narrative ? `
+    <div style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:12px;font-size:13px;line-height:1.6;">
+      <div style="font-style:italic;">${escapeHtml(d.narrative)}</div>
+    </div>
+  ` : "";
+
+  // Secondary IG metrics — smaller, with delta pills
+  const igCards = [
+    { label: "Views",          value: fmt(d.views),          pct: d.viewsChangePct },
+    { label: "Reach",          value: fmt(d.reach),          pct: d.reachChangePct },
+    { label: "Profile Visits", value: fmt(d.profileVisits),  pct: d.profileVisitsChangePct },
+    { label: "Follower Change", value: (d.followerChange === null || d.followerChange === undefined) ? "—" : (d.followerChange > 0 ? "+" : "") + fmt(d.followerChange), pct: null }
+  ];
+  const igCardHtml = igCards.map(c => `
+    <div style="background:var(--surface2);border-radius:10px;padding:10px 8px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.03em;line-height:1;">${c.value}</div>
+      <div style="font-size:9px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-top:4px;">${c.label}</div>
+      ${deltaPill(c.pct)}
     </div>
   `).join("");
 
+  const igSectionHtml = `
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-muted);margin:4px 0 8px 2px;">Instagram · last 90 days</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${igCardHtml}</div>
+  `;
+
+  // Pro chart vs. upgrade nudge
   let chartHtml = "";
   if (isPro) {
     chartHtml = `
@@ -5955,16 +6059,14 @@ function renderSnapshotResult(d) {
   }
 
   result.innerHTML = `
-    <div style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:12px;font-size:13px;line-height:1.6;">
-      ${d.narrative ? `<div style="font-style:italic;">${escapeHtml(d.narrative)}</div>` : "<div>Snapshot saved.</div>"}
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${cardHtml}</div>
+    ${heroHtml}
+    ${narrativeHtml}
+    ${igSectionHtml}
     ${chartHtml}
     <button onclick="closeSnapModalDirect()" class="btn-gold" style="width:100%;margin-top:14px;font-size:14px;padding:11px;">Done</button>
   `;
   result.style.display = "block";
 
-  // Render Pro chart (single-bar for now; will become multi-point in Round 3 with start+end)
   if (isPro && typeof Chart !== "undefined") {
     drawSnapshotChart(d);
   }
@@ -6411,7 +6513,8 @@ window.submitIgPost=async function(){
     challengeApplied:_challengeModifierActive&&!isMissed,
     challengeTitle:challengeTitle,
     syfApplied:_syfModifierActive&&!isMissed,
-    ts:now
+    ts:now,
+    round:(window.CURRENT_ROUND||"R2") // future-proof: enables clean per-round queries
   };
 
   if(!useLocalFallback&&db){
@@ -6527,7 +6630,8 @@ async function spendGraceToken(weekIdx){
       challengeApplied:false,
       challengeTitle:"",
       syfApplied:false,
-      ts:nowTs
+      ts:nowTs,
+      round:(window.CURRENT_ROUND||"R2")
     };
     const newDoc=await addDoc(col(db,"submissions"),graceSub);
     const newGrace={
