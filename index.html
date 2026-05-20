@@ -637,6 +637,10 @@
       <div class="dash-welcome-meta" id="dash-date-meta"></div>
     </div>
     <div class="dash-status-strip dash-animate" id="dash-status-strip" style="animation-delay:0.15s;"></div>
+
+    <!-- ANALYTICS SNAPSHOT BANNER (moved to top — appears during upload windows only) -->
+    <div id="dash-snapshot-banner" class="dash-animate" style="animation-delay:0.20s;display:none;margin-bottom:14px;"></div>
+
     <div class="dash-stats-grid">
       <div class="dash-stat-card highlight dash-animate" style="animation-delay:0.25s;">
         <span class="dash-stat-icon">⚡</span>
@@ -697,9 +701,6 @@
       </div>
       <div class="dash-week-dots" id="dash-week-dots"></div>
     </div>
-
-    <!-- ANALYTICS SNAPSHOT BANNER (round-end pilot for Round 2) -->
-    <div id="dash-snapshot-banner" class="dash-animate" style="animation-delay:0.58s;display:none;"></div>
 
     <div class="dash-card dash-animate" style="animation-delay:0.62s;">
       <div class="dash-card-title-row">
@@ -5955,22 +5956,27 @@ window.runSnapshotAnalysis = async function() {
   }
 };
 
-// Count SMAC submissions for the current round (timestamp-range filter, excludes grace placeholders)
+// Count SMAC submissions for the current round.
+// Uses single-field index (uid only) + client-side timestamp filter to avoid
+// needing a Firestore composite index. ~50 docs max per user, no perf concern.
 async function getRoundSubmissionCount() {
   if (!db || useLocalFallback || !currentUser) return null;
   try {
     const { getDocs, collection:col, query:q, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    // WEEK_SCHEDULE is the canonical round-scoped week array; [0][0] = round start, [last][1] = round end
     if (!window.WEEK_SCHEDULE || !window.WEEK_SCHEDULE.length) return null;
     const roundStart = window.WEEK_SCHEDULE[0][0];
     const roundEnd   = window.WEEK_SCHEDULE[window.WEEK_SCHEDULE.length - 1][1];
+    // Single-field query (uid only) — no composite index required
     const snap = await getDocs(q(
       col(db, "submissions"),
-      where("uid", "==", currentUser.uid),
-      where("ts", ">=", roundStart),
-      where("ts", "<=", roundEnd)
+      where("uid", "==", currentUser.uid)
     ));
-    return snap.docs.filter(d => d.data().status !== "grace").length;
+    // Client-side filter: within round window AND not a grace placeholder
+    return snap.docs.filter(d => {
+      const data = d.data();
+      const ts = data.ts || 0;
+      return ts >= roundStart && ts <= roundEnd && data.status !== "grace";
+    }).length;
   } catch(e) {
     console.error("Submission count error:", e);
     return null;
@@ -6141,78 +6147,47 @@ function escapeHtml(s) {
   return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-// Dashboard banner — shows the upload prompt during active windows,
-// OR a permanent "Your Round X Snapshot" card once any snapshot is captured.
-// Priority: if a snapshot exists for the active window OR the current round, show the captured card.
-//           if no snapshot but in an active window, show the upload prompt.
-//           otherwise hide.
+// Dashboard banner — shows ONLY during active upload windows when no snapshot exists yet.
+// After capture, banner disappears entirely. Profile > Growth History holds the permanent record.
 window.renderSnapshotBanner = async function() {
   const banner = document.getElementById("dash-snapshot-banner");
   if (!banner || !currentUser) return;
 
-  const round = (window.CURRENT_ROUND || "R2");
   const window_ = getSnapshotWindow();  // may be null (outside any window)
 
-  // Look up existing snapshots for the current round
-  let endSnap = null, startSnap = null;
+  // If we're not in an active upload window → hide entirely
+  if (!window_) { banner.style.display = "none"; return; }
+
+  // We're in an active window — check whether the user has already submitted for THIS window's type
+  let hasSnapshot = false;
   try {
     if (db && !useLocalFallback) {
       const { getDoc, doc:docRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      const [endDoc, startDoc] = await Promise.all([
-        getDoc(docRef(db, "analytics_snapshots", `${currentUser.uid}_${round}_end`)),
-        getDoc(docRef(db, "analytics_snapshots", `${currentUser.uid}_${round}_start`))
-      ]);
-      if (endDoc.exists())   endSnap   = endDoc.data();
-      if (startDoc.exists()) startSnap = startDoc.data();
+      const round = (window.CURRENT_ROUND || "R2");
+      const docId = `${currentUser.uid}_${round}_${window_.type}`;
+      const s = await getDoc(docRef(db, "analytics_snapshots", docId));
+      hasSnapshot = s.exists();
     }
   } catch(e) { console.error("Snapshot banner lookup error:", e); }
 
-  // Decide what to show
-  const hasAnySnapshot = !!(endSnap || startSnap);
-  const preferredType = endSnap ? "end" : (startSnap ? "start" : null);
+  // Already captured for this window → hide. Profile > Growth History holds the record.
+  if (hasSnapshot) { banner.style.display = "none"; return; }
 
-  // If user has a snapshot for this round, show the permanent captured card
-  if (hasAnySnapshot && preferredType) {
-    const roundLabel = round.replace("R", "");
-    const typeLabel  = preferredType === "end" ? "Round End" : "Round Baseline";
-    banner.innerHTML = `
-      <div class="dash-card" style="border:1.5px solid var(--gold);background:#fffbf0;">
-        <div class="dash-card-title-row">
-          <div class="dash-card-title">📊 Your Round ${roundLabel} Snapshot</div>
-          <div class="dash-card-meta" style="color:var(--gold-dark);">${typeLabel} ✓</div>
-        </div>
-        <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px;">Your snapshot is saved. ${userHasPro() ? "Tap to view your chart and metrics." : "Tap to view your metrics — upgrade to Pro for the chart."}</div>
-        <button class="dash-view-all-btn" onclick="viewMySnapshot('${preferredType}')">
-          View Snapshot
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
+  // Active window + no snapshot yet → show the upload prompt
+  banner.innerHTML = `
+    <div class="dash-card" style="border:1.5px solid var(--gold);background:#fffbf0;">
+      <div class="dash-card-title-row">
+        <div class="dash-card-title">📊 ${window_.title}</div>
+        <div class="dash-card-meta" style="color:var(--gold-dark);">New</div>
       </div>
-    `;
-    banner.style.display = "block";
-    return;
-  }
-
-  // No snapshot yet — show upload prompt only if in an active window
-  if (window_) {
-    banner.innerHTML = `
-      <div class="dash-card" style="border:1.5px solid var(--gold);background:#fffbf0;">
-        <div class="dash-card-title-row">
-          <div class="dash-card-title">📊 ${window_.title}</div>
-          <div class="dash-card-meta" style="color:var(--gold-dark);">New</div>
-        </div>
-        <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px;">${window_.subtitle}</div>
-        <button class="dash-view-all-btn" onclick="openSnapModal('${window_.type}')">
-          Upload My Insights
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-    `;
-    banner.style.display = "block";
-    return;
-  }
-
-  // No snapshot, no active window → hide
-  banner.style.display = "none";
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px;">${window_.subtitle}</div>
+      <button class="dash-view-all-btn" onclick="openSnapModal('${window_.type}')">
+        Upload My Insights
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  `;
+  banner.style.display = "block";
 };
 
 // View an existing snapshot (re-render result from Firestore)
