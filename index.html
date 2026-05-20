@@ -5820,12 +5820,12 @@ window.openSnapModal = function(type) {
   if (form)    form.style.display    = "block";
   if (loading) loading.style.display = "none";
   if (result)  { result.style.display = "none"; result.innerHTML = ""; }
-  if (ov) ov.classList.add("active");
+  if (ov) ov.classList.add("open");
 };
 
 window.closeSnapModalDirect = function() {
   const ov = document.getElementById("snap-modal-overlay");
-  if (ov) ov.classList.remove("active");
+  if (ov) ov.classList.remove("open");
   if (_snapChartInstance) { try { _snapChartInstance.destroy(); } catch(e){} _snapChartInstance = null; }
 };
 
