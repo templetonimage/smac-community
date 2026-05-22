@@ -638,8 +638,6 @@
     </div>
     <div class="dash-status-strip dash-animate" id="dash-status-strip" style="animation-delay:0.15s;"></div>
 
-    <div id="dash-zoom-card-wrap" class="dash-animate" style="animation-delay:0.18s;margin-bottom:14px;"></div>
-
     <!-- ANALYTICS SNAPSHOT BANNER (moved to top — appears during upload windows only) -->
     <div id="dash-snapshot-banner" class="dash-animate" style="animation-delay:0.20s;display:none;margin-bottom:14px;"></div>
 
@@ -682,6 +680,7 @@
         <span class="dash-quick-btn-label">Get Weekly Google Calendar Reminders<span class="dash-quick-btn-sub">Never miss a post — add to your calendar</span></span>
         <svg style="flex-shrink:0;margin-left:auto;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </a>
+      <div id="dash-zoom-card-wrap"></div>
     </div>
     <!-- Weekly Challenge on Dashboard -->
     <div id="dash-challenge-banner" class="dash-animate" style="animation-delay:0.53s;margin-bottom:4px;"></div>
@@ -1076,7 +1075,6 @@
           <option value="reviewed">Reviewed</option>
         </select>
         <button class="btn-sm" onclick="loadSubViewer()" style="margin-left:auto;">↻ Refresh</button>
-        <button class="btn-sm" onclick="adminRunRecon()" title="Check registry.points vs. sum of all submission + engagement docs for selected member">🔍 Check Points</button>
       </div>
 
       <div id="sub-viewer-count" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
@@ -1109,23 +1107,6 @@
           🗑️ Confirm Reset for <span id="member-reset-name-label">this member</span>
         </button>
         <div id="member-reset-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
-      </div>
-    </div>
-
-    <!-- ADMIN: Points Sweep Tool -->
-    <div id="points-sweep-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🔍 Points Integrity Sweep</div>
-      <div class="card" style="border:1.5px solid var(--gold);">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
-          Compares every member's <strong>registry.points</strong> against the sum of their actual submission + engagement docs.
-          Flags any drift and lets you fix all mismatches in one click.
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-          <button onclick="runPointsSweep()" style="padding:10px 20px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;cursor:pointer;">&#9654; Run Sweep</button>
-          <button id="sweep-fix-all-btn" onclick="runSweepFixAll()" style="display:none;padding:10px 20px;background:#e74c3c;color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;cursor:pointer;">&#128295; Fix All Mismatches</button>
-        </div>
-        <div id="sweep-status" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
-        <div id="sweep-results"></div>
       </div>
     </div>
 
@@ -2337,7 +2318,6 @@ function bootApp(){
     document.getElementById("admin-sub-viewer").style.display="block";
     document.getElementById("member-reset-tool").style.display="block";
     document.getElementById("archive-round-tool").style.display="block";
-    document.getElementById("points-sweep-tool").style.display="block";
     document.getElementById("eng-viewer").style.display="block";
     document.getElementById("bug-reports-viewer").style.display="block";
     document.getElementById("admin-spotlight-compose").style.display="block";
@@ -2362,7 +2342,6 @@ function bootApp(){
     document.getElementById("admin-sub-viewer").style.display="none";
     document.getElementById("member-reset-tool").style.display="none";
     document.getElementById("archive-round-tool").style.display="none";
-    document.getElementById("points-sweep-tool").style.display="none";
     document.getElementById("eng-viewer").style.display="none";
     document.getElementById("bug-reports-viewer").style.display="none";
     document.getElementById("admin-spotlight-compose").style.display="none";
@@ -7417,270 +7396,6 @@ window.saveSubEdit=async function(subId, oldPts, status, syfApplied){
   }catch(e){showToast("Error: "+e.message);}
 };
 
-// ─────────────────────────────────────────────
-//  POINTS RECONCILIATION
-//  Compares registry.points against the sum of all submission + engagement
-//  pts docs for a given user. Logs any delta to the console and, for admins,
-//  shows a dismissible banner. Optionally heals the registry if autoHeal=true.
-//
-//  Called automatically from renderProfileHero (member views their own profile)
-//  and can be called manually: runPointsReconciliation(uid, registryId, true)
-// ─────────────────────────────────────────────
-window.runPointsReconciliation = async function(uid, registryId, autoHeal = false) {
-  if(!db || !uid || !registryId) return;
-  try {
-    const { getDoc, getDocs, doc: dc, collection: col, query: q, where, updateDoc } =
-      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-
-    const [regSnap, subSnap, engSnap] = await Promise.all([
-      getDoc(dc(db, "smac_registry", registryId)),
-      getDocs(q(col(db, "submissions"), where("uid", "==", uid))),
-      getDocs(q(col(db, "engagements"),  where("uid", "==", uid)))
-    ]);
-
-    if (!regSnap.exists()) return;
-    const registryPts = regSnap.data().points || 0;
-
-    const subTotal = subSnap.docs.reduce((sum, d) => sum + (d.data().pts || 0), 0);
-    const engTotal = engSnap.docs.reduce((sum, d) => sum + (d.data().pts || 0), 0);
-    const computedTotal = subTotal + engTotal;
-    const delta = computedTotal - registryPts;
-
-    const memberName = regSnap.data().name || uid;
-    const logPrefix = `[SMAC Points Reconciliation] ${memberName}`;
-
-    if (delta === 0) {
-      console.log(`${logPrefix}: ✅ Registry matches computed total (${registryPts} pts)`);
-      return;
-    }
-
-    console.warn(
-      `${logPrefix}: ⚠️ MISMATCH\n` +
-      `  Registry pts  : ${registryPts}\n` +
-      `  Computed total: ${computedTotal} (subs: ${subTotal} + eng: ${engTotal})\n` +
-      `  Delta         : ${delta > 0 ? "+" : ""}${delta}\n` +
-      `  Auto-heal     : ${autoHeal}`
-    );
-
-    // Show dismissible admin alert in the UI
-    if (currentUser && currentUser.isAdmin) {
-      const existing = document.getElementById("pts-recon-alert");
-      if (existing) existing.remove();
-      const alert = document.createElement("div");
-      alert.id = "pts-recon-alert";
-      alert.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:420px;background:#fff3cd;border:1.5px solid #e6a817;border-radius:12px;padding:14px 16px;z-index:9999;font-family:'DM Sans',sans-serif;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.18);";
-      alert.innerHTML = `
-        <div style="font-weight:700;color:#7d5a00;margin-bottom:6px;">⚠️ Points Mismatch Detected</div>
-        <div style="color:#5a4000;line-height:1.5;">
-          <strong>${esc(memberName)}</strong><br>
-          Registry: <strong>${registryPts} pts</strong> · Computed: <strong>${computedTotal} pts</strong><br>
-          Delta: <strong>${delta > 0 ? "+" : ""}${delta} pts</strong>
-          (subs: ${subTotal} + eng: ${engTotal})
-        </div>
-        ${autoHeal
-          ? `<div style="margin-top:8px;color:#3a7d44;font-weight:600;">✅ Auto-healed — registry updated to ${computedTotal} pts</div>`
-          : `<button onclick="runPointsReconciliation('${uid}','${registryId}',true).then(()=>document.getElementById('pts-recon-alert')?.remove())" style="margin-top:10px;width:100%;padding:8px;background:#e6a817;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">🔧 Fix Now (set to ${computedTotal} pts)</button>`
-        }
-        <button onclick="this.closest('#pts-recon-alert').remove()" style="margin-top:6px;width:100%;padding:6px;background:none;border:none;color:#7d5a00;font-size:12px;cursor:pointer;text-decoration:underline;">Dismiss</button>`;
-      document.body.appendChild(alert);
-    } else {
-      // Non-admin: silent log only — don't alarm the member
-      console.warn(`${logPrefix}: Member sees ${registryPts} pts but computed is ${computedTotal} pts. Consider running admin reconciliation.`);
-    }
-
-    if (autoHeal && registryId) {
-      await updateDoc(dc(db, "smac_registry", registryId), { points: computedTotal });
-      console.log(`${logPrefix}: ✅ Registry healed → ${computedTotal} pts`);
-    }
-  } catch(e) {
-    console.error("[SMAC Points Reconciliation] Error:", e.message);
-  }
-};
-
-// Admin convenience wrapper — reads selected member from sub-viewer filter
-window.adminRunRecon = async function() {
-  const sel = document.getElementById("sub-filter-member");
-  const memberName = sel ? sel.value : "";
-  if (!memberName) { showToast("Select a member first."); return; }
-  // Find in localStorage registry by name
-  const registry = lsGet("smac_registry") || [];
-  const entry = registry.find(m => (m.name||"") === memberName);
-  if (!entry) { showToast("Member not found in registry cache. Refresh page and try again."); return; }
-  const registryId = entry.id || entry.uid;
-  const uid = entry.uid || entry.id;
-  if (!registryId || !uid) { showToast("Could not resolve member UID."); return; }
-  showToast("Checking points…");
-  await runPointsReconciliation(uid, registryId, false);
-};
-
-// ─────────────────────────────────────────────
-//  POINTS INTEGRITY SWEEP
-//  Fetches all registry members + their submissions/engagements,
-//  surfaces mismatches in a results table, and batch-fixes on demand.
-// ─────────────────────────────────────────────
-let _sweepResults = []; // [{registryId, uid, name, registryPts, computedPts, delta}]
-
-window.runPointsSweep = async function() {
-  if(!currentUser || !currentUser.isAdmin) return;
-  const statusEl = document.getElementById("sweep-status");
-  const resultsEl = document.getElementById("sweep-results");
-  const fixBtn = document.getElementById("sweep-fix-all-btn");
-  if(!statusEl || !resultsEl) return;
-
-  _sweepResults = [];
-  fixBtn.style.display = "none";
-  resultsEl.innerHTML = "";
-  statusEl.textContent = "Fetching registry…";
-
-  try {
-    const { getDocs, collection: col, query: q, where } =
-      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-
-    // 1. Fetch all registry members for current round
-    const regSnap = await getDocs(col(db, "smac_registry"));
-    const allMembers = regSnap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(m => !m.isAdmin && m.email !== ADMIN_EMAIL)
-      .filter(m => m.isFounder || (m.rounds || []).includes(CURRENT_ROUND));
-
-    statusEl.textContent = `Checking ${allMembers.length} members…`;
-
-    // 2. Fetch all submissions + engagements in parallel (single collection reads)
-    const [subSnap, engSnap] = await Promise.all([
-      getDocs(col(db, "submissions")),
-      getDocs(col(db, "engagements"))
-    ]);
-
-    // Index by uid for fast lookup
-    const subsByUid = {};
-    subSnap.docs.forEach(d => {
-      const uid = d.data().uid;
-      if(!uid) return;
-      if(!subsByUid[uid]) subsByUid[uid] = 0;
-      subsByUid[uid] += (d.data().pts || 0);
-    });
-    const engsByUid = {};
-    engSnap.docs.forEach(d => {
-      const uid = d.data().uid;
-      if(!uid) return;
-      if(!engsByUid[uid]) engsByUid[uid] = 0;
-      engsByUid[uid] += (d.data().pts || 0);
-    });
-
-    // 3. Compare for each member
-    allMembers.forEach(m => {
-      const uid = m.uid || m.id;
-      const registryPts = m.points || 0;
-      const subTotal = subsByUid[uid] || 0;
-      const engTotal = engsByUid[uid] || 0;
-      const computedPts = subTotal + engTotal;
-      const delta = computedPts - registryPts;
-      _sweepResults.push({
-        registryId: m.id,
-        uid,
-        name: m.name || "Unknown",
-        registryPts,
-        computedPts,
-        subTotal,
-        engTotal,
-        delta
-      });
-    });
-
-    // Sort: mismatches first, then by name
-    _sweepResults.sort((a, b) => {
-      if(Math.abs(b.delta) !== Math.abs(a.delta)) return Math.abs(b.delta) - Math.abs(a.delta);
-      return (a.name||"").localeCompare(b.name||"");
-    });
-
-    const mismatches = _sweepResults.filter(r => r.delta !== 0);
-    const clean = _sweepResults.filter(r => r.delta === 0);
-
-    statusEl.innerHTML = `<strong>${allMembers.length} members checked</strong> &nbsp;·&nbsp; `
-      + (mismatches.length
-          ? `<span style="color:#e74c3c;font-weight:700;">${mismatches.length} mismatch${mismatches.length !== 1 ? "es" : ""}</span>`
-          : `<span style="color:#27ae60;font-weight:700;">All clean ✅</span>`)
-      + ` &nbsp;·&nbsp; ${clean.length} OK`;
-
-    // 4. Render results table
-    const rowStyle = "display:grid;grid-template-columns:1fr 60px 60px 60px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border);font-size:12px;";
-    const headerStyle = rowStyle + "font-weight:700;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;";
-
-    let html = `<div style="${headerStyle}">
-      <span>Member</span><span style="text-align:right;">Registry</span><span style="text-align:right;">Computed</span><span style="text-align:right;">Delta</span>
-    </div>`;
-
-    _sweepResults.forEach(r => {
-      const hasMismatch = r.delta !== 0;
-      const deltaColor = r.delta > 0 ? "#e67e22" : r.delta < 0 ? "#e74c3c" : "#27ae60";
-      const deltaStr = r.delta === 0 ? "✅" : (r.delta > 0 ? "+" : "") + r.delta;
-      html += `<div style="${rowStyle}${hasMismatch ? "background:rgba(231,76,60,0.05);border-radius:6px;" : ""}">
-        <span style="font-weight:${hasMismatch ? "700" : "400"};color:var(--text);">${esc(r.name)}</span>
-        <span style="text-align:right;color:var(--text-muted);">${r.registryPts}</span>
-        <span style="text-align:right;color:var(--text-muted);">${r.computedPts}</span>
-        <span style="text-align:right;font-weight:700;color:${deltaColor};">${deltaStr}</span>
-      </div>`;
-    });
-
-    resultsEl.innerHTML = html;
-
-    if(mismatches.length > 0) {
-      fixBtn.textContent = `Fix All ${mismatches.length} Mismatch${mismatches.length !== 1 ? "es" : ""}`;
-      fixBtn.style.display = "inline-block";
-    }
-
-    console.log(`[SMAC Sweep] ${allMembers.length} members checked, ${mismatches.length} mismatches`, mismatches);
-
-  } catch(e) {
-    statusEl.textContent = "Error: " + e.message;
-    console.error("[SMAC Sweep] Error:", e);
-  }
-};
-
-window.runSweepFixAll = async function() {
-  const mismatches = _sweepResults.filter(r => r.delta !== 0);
-  if(!mismatches.length) { showToast("Nothing to fix."); return; }
-  if(!confirm(`Fix ${mismatches.length} mismatch${mismatches.length !== 1 ? "es" : ""}?\n\nThis will update registry.points to match the computed total (subs + eng) for each affected member.`)) return;
-
-  const statusEl = document.getElementById("sweep-status");
-  const fixBtn = document.getElementById("sweep-fix-all-btn");
-  fixBtn.disabled = true;
-  fixBtn.textContent = "Fixing…";
-
-  try {
-    const { updateDoc, doc: dc } =
-      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-
-    let fixed = 0, failed = 0;
-    for(const r of mismatches) {
-      try {
-        await updateDoc(dc(db, "smac_registry", r.registryId), { points: r.computedPts });
-        // Update local sweep results so table reflects fix
-        r.registryPts = r.computedPts;
-        r.delta = 0;
-        fixed++;
-        statusEl.textContent = `Fixing… ${fixed}/${mismatches.length}`;
-      } catch(e) {
-        console.error(`[SMAC Sweep] Failed to fix ${r.name}:`, e.message);
-        failed++;
-      }
-    }
-
-    showToast(failed === 0
-      ? `Fixed ${fixed} member${fixed !== 1 ? "s" : ""} ✅`
-      : `Fixed ${fixed}, failed ${failed} — check console`);
-
-    fixBtn.style.display = "none";
-    // Re-render table with updated deltas
-    await runPointsSweep();
-
-  } catch(e) {
-    showToast("Error: " + e.message);
-    fixBtn.disabled = false;
-    fixBtn.textContent = `Fix All ${mismatches.length} Mismatches`;
-  }
-};
-
 async function loadMyEngLog(){
   const card=document.getElementById("my-eng-log-card");
   const list=document.getElementById("my-eng-log-list");
@@ -8005,6 +7720,11 @@ function buildSubCard(s){
       <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Admin Edit</div>
 
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--text-muted);min-width:56px;">URL:</span>
+        <input type="url" id="url-${esc(s._id)}" value="${esc(s.url||"")}" placeholder="https://instagram.com/reel/..." style="flex:1;font-size:12px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);min-width:0;" />
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
         <span style="font-size:12px;color:var(--text-muted);min-width:56px;">Format:</span>
         <select id="fmt-${esc(s._id)}" onchange="recalcSubPts('${esc(s._id)}')" style="font-size:12px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;">
           <option value="Static"${currentFormat==="Static"?" selected":""}>📷 Static</option>
@@ -8085,6 +7805,8 @@ window.saveSubDetails = async function(id){
   const syfEl  = document.getElementById("syf-"+id);
   const ptsEl = document.getElementById("pts-"+id);
   if(!fmtEl||!chalEl||!ptsEl) return;
+  const urlEl = document.getElementById("url-"+id);
+  const newUrl = (urlEl?.value||"").trim();
   const newFormat = fmtEl.value;
   const newChallenge = chalEl.checked;
   const newSyf = syfEl ? syfEl.checked : (s.syfApplied||false);
@@ -8095,6 +7817,7 @@ window.saveSubDetails = async function(id){
     const {updateDoc,doc:dcRef,getDocs,collection:col,query:q,where,increment} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     // Update submission doc
     await updateDoc(dcRef(db,"submissions",id),{
+      url: newUrl,
       format: newFormat,
       challengeApplied: newChallenge,
       syfApplied: newSyf,
@@ -8106,6 +7829,7 @@ window.saveSubDetails = async function(id){
       if(!regSnap.empty) await updateDoc(regSnap.docs[0].ref,{points:increment(ptsDelta)});
     }
     // Update local cache
+    s.url = newUrl;
     s.format = newFormat;
     s.challengeApplied = newChallenge;
     s.syfApplied = newSyf;
@@ -9788,8 +9512,6 @@ async function renderProfileHero(prof){
         roundHistory=Array.isArray(d.roundHistory)?d.roundHistory:[];
       }
       // totalPosts always from tracker — not registry — for real-time accuracy
-      // Run silent reconciliation check — logs mismatch to console; admin sees banner
-      runPointsReconciliation(currentUser.uid, currentUser.registryId, false).catch(()=>{});
     }catch(e){}
   }
   // Lifetime = archived total + current round's live points
