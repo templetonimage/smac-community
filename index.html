@@ -1075,6 +1075,7 @@
           <option value="reviewed">Reviewed</option>
         </select>
         <button class="btn-sm" onclick="loadSubViewer()" style="margin-left:auto;">↻ Refresh</button>
+        <button class="btn-sm" onclick="adminRunRecon()" title="Check registry.points vs. sum of all submission + engagement docs for selected member">🔍 Check Points</button>
       </div>
 
       <div id="sub-viewer-count" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
@@ -7396,6 +7397,102 @@ window.saveSubEdit=async function(subId, oldPts, status, syfApplied){
   }catch(e){showToast("Error: "+e.message);}
 };
 
+// ─────────────────────────────────────────────
+//  POINTS RECONCILIATION
+//  Compares registry.points against the sum of all submission + engagement
+//  pts docs for a given user. Logs any delta to the console and, for admins,
+//  shows a dismissible banner. Optionally heals the registry if autoHeal=true.
+//
+//  Called automatically from renderProfileHero (member views their own profile)
+//  and can be called manually: runPointsReconciliation(uid, registryId, true)
+// ─────────────────────────────────────────────
+window.runPointsReconciliation = async function(uid, registryId, autoHeal = false) {
+  if(!db || !uid || !registryId) return;
+  try {
+    const { getDoc, getDocs, doc: dc, collection: col, query: q, where, updateDoc } =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    const [regSnap, subSnap, engSnap] = await Promise.all([
+      getDoc(dc(db, "smac_registry", registryId)),
+      getDocs(q(col(db, "submissions"), where("uid", "==", uid))),
+      getDocs(q(col(db, "engagements"),  where("uid", "==", uid)))
+    ]);
+
+    if (!regSnap.exists()) return;
+    const registryPts = regSnap.data().points || 0;
+
+    const subTotal = subSnap.docs.reduce((sum, d) => sum + (d.data().pts || 0), 0);
+    const engTotal = engSnap.docs.reduce((sum, d) => sum + (d.data().pts || 0), 0);
+    const computedTotal = subTotal + engTotal;
+    const delta = computedTotal - registryPts;
+
+    const memberName = regSnap.data().name || uid;
+    const logPrefix = `[SMAC Points Reconciliation] ${memberName}`;
+
+    if (delta === 0) {
+      console.log(`${logPrefix}: ✅ Registry matches computed total (${registryPts} pts)`);
+      return;
+    }
+
+    console.warn(
+      `${logPrefix}: ⚠️ MISMATCH\n` +
+      `  Registry pts  : ${registryPts}\n` +
+      `  Computed total: ${computedTotal} (subs: ${subTotal} + eng: ${engTotal})\n` +
+      `  Delta         : ${delta > 0 ? "+" : ""}${delta}\n` +
+      `  Auto-heal     : ${autoHeal}`
+    );
+
+    // Show dismissible admin alert in the UI
+    if (currentUser && currentUser.isAdmin) {
+      const existing = document.getElementById("pts-recon-alert");
+      if (existing) existing.remove();
+      const alert = document.createElement("div");
+      alert.id = "pts-recon-alert";
+      alert.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:420px;background:#fff3cd;border:1.5px solid #e6a817;border-radius:12px;padding:14px 16px;z-index:9999;font-family:'DM Sans',sans-serif;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.18);";
+      alert.innerHTML = `
+        <div style="font-weight:700;color:#7d5a00;margin-bottom:6px;">⚠️ Points Mismatch Detected</div>
+        <div style="color:#5a4000;line-height:1.5;">
+          <strong>${esc(memberName)}</strong><br>
+          Registry: <strong>${registryPts} pts</strong> · Computed: <strong>${computedTotal} pts</strong><br>
+          Delta: <strong>${delta > 0 ? "+" : ""}${delta} pts</strong>
+          (subs: ${subTotal} + eng: ${engTotal})
+        </div>
+        ${autoHeal
+          ? `<div style="margin-top:8px;color:#3a7d44;font-weight:600;">✅ Auto-healed — registry updated to ${computedTotal} pts</div>`
+          : `<button onclick="runPointsReconciliation('${uid}','${registryId}',true).then(()=>document.getElementById('pts-recon-alert')?.remove())" style="margin-top:10px;width:100%;padding:8px;background:#e6a817;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">🔧 Fix Now (set to ${computedTotal} pts)</button>`
+        }
+        <button onclick="this.closest('#pts-recon-alert').remove()" style="margin-top:6px;width:100%;padding:6px;background:none;border:none;color:#7d5a00;font-size:12px;cursor:pointer;text-decoration:underline;">Dismiss</button>`;
+      document.body.appendChild(alert);
+    } else {
+      // Non-admin: silent log only — don't alarm the member
+      console.warn(`${logPrefix}: Member sees ${registryPts} pts but computed is ${computedTotal} pts. Consider running admin reconciliation.`);
+    }
+
+    if (autoHeal && registryId) {
+      await updateDoc(dc(db, "smac_registry", registryId), { points: computedTotal });
+      console.log(`${logPrefix}: ✅ Registry healed → ${computedTotal} pts`);
+    }
+  } catch(e) {
+    console.error("[SMAC Points Reconciliation] Error:", e.message);
+  }
+};
+
+// Admin convenience wrapper — reads selected member from sub-viewer filter
+window.adminRunRecon = async function() {
+  const sel = document.getElementById("sub-filter-member");
+  const memberName = sel ? sel.value : "";
+  if (!memberName) { showToast("Select a member first."); return; }
+  // Find in localStorage registry by name
+  const registry = lsGet("smac_registry") || [];
+  const entry = registry.find(m => (m.name||"") === memberName);
+  if (!entry) { showToast("Member not found in registry cache. Refresh page and try again."); return; }
+  const registryId = entry.id || entry.uid;
+  const uid = entry.uid || entry.id;
+  if (!registryId || !uid) { showToast("Could not resolve member UID."); return; }
+  showToast("Checking points…");
+  await runPointsReconciliation(uid, registryId, false);
+};
+
 async function loadMyEngLog(){
   const card=document.getElementById("my-eng-log-card");
   const list=document.getElementById("my-eng-log-list");
@@ -9503,6 +9600,8 @@ async function renderProfileHero(prof){
         roundHistory=Array.isArray(d.roundHistory)?d.roundHistory:[];
       }
       // totalPosts always from tracker — not registry — for real-time accuracy
+      // Run silent reconciliation check — logs mismatch to console; admin sees banner
+      runPointsReconciliation(currentUser.uid, currentUser.registryId, false).catch(()=>{});
     }catch(e){}
   }
   // Lifetime = archived total + current round's live points
