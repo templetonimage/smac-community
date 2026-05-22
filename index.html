@@ -1111,6 +1111,23 @@
       </div>
     </div>
 
+    <!-- ADMIN: Points Sweep Tool -->
+    <div id="points-sweep-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🔍 Points Integrity Sweep</div>
+      <div class="card" style="border:1.5px solid var(--gold);">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+          Compares every member's <strong>registry.points</strong> against the sum of their actual submission + engagement docs.
+          Flags any drift and lets you fix all mismatches in one click.
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+          <button onclick="runPointsSweep()" style="padding:10px 20px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;cursor:pointer;">&#9654; Run Sweep</button>
+          <button id="sweep-fix-all-btn" onclick="runSweepFixAll()" style="display:none;padding:10px 20px;background:#e74c3c;color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;cursor:pointer;">&#128295; Fix All Mismatches</button>
+        </div>
+        <div id="sweep-status" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
+        <div id="sweep-results"></div>
+      </div>
+    </div>
+
     <!-- ADMIN: Archive Round Tool (end-of-round lifetime points rollup) -->
     <div id="archive-round-tool" style="display:none;margin-bottom:28px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🏁 Archive Round</div>
@@ -2319,6 +2336,7 @@ function bootApp(){
     document.getElementById("admin-sub-viewer").style.display="block";
     document.getElementById("member-reset-tool").style.display="block";
     document.getElementById("archive-round-tool").style.display="block";
+    document.getElementById("points-sweep-tool").style.display="block";
     document.getElementById("eng-viewer").style.display="block";
     document.getElementById("bug-reports-viewer").style.display="block";
     document.getElementById("admin-spotlight-compose").style.display="block";
@@ -2343,6 +2361,7 @@ function bootApp(){
     document.getElementById("admin-sub-viewer").style.display="none";
     document.getElementById("member-reset-tool").style.display="none";
     document.getElementById("archive-round-tool").style.display="none";
+    document.getElementById("points-sweep-tool").style.display="none";
     document.getElementById("eng-viewer").style.display="none";
     document.getElementById("bug-reports-viewer").style.display="none";
     document.getElementById("admin-spotlight-compose").style.display="none";
@@ -7491,6 +7510,174 @@ window.adminRunRecon = async function() {
   if (!registryId || !uid) { showToast("Could not resolve member UID."); return; }
   showToast("Checking points…");
   await runPointsReconciliation(uid, registryId, false);
+};
+
+// ─────────────────────────────────────────────
+//  POINTS INTEGRITY SWEEP
+//  Fetches all registry members + their submissions/engagements,
+//  surfaces mismatches in a results table, and batch-fixes on demand.
+// ─────────────────────────────────────────────
+let _sweepResults = []; // [{registryId, uid, name, registryPts, computedPts, delta}]
+
+window.runPointsSweep = async function() {
+  if(!currentUser || !currentUser.isAdmin) return;
+  const statusEl = document.getElementById("sweep-status");
+  const resultsEl = document.getElementById("sweep-results");
+  const fixBtn = document.getElementById("sweep-fix-all-btn");
+  if(!statusEl || !resultsEl) return;
+
+  _sweepResults = [];
+  fixBtn.style.display = "none";
+  resultsEl.innerHTML = "";
+  statusEl.textContent = "Fetching registry…";
+
+  try {
+    const { getDocs, collection: col, query: q, where } =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    // 1. Fetch all registry members for current round
+    const regSnap = await getDocs(col(db, "smac_registry"));
+    const allMembers = regSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(m => !m.isAdmin && m.email !== ADMIN_EMAIL)
+      .filter(m => m.isFounder || (m.rounds || []).includes(CURRENT_ROUND));
+
+    statusEl.textContent = `Checking ${allMembers.length} members…`;
+
+    // 2. Fetch all submissions + engagements in parallel (single collection reads)
+    const [subSnap, engSnap] = await Promise.all([
+      getDocs(col(db, "submissions")),
+      getDocs(col(db, "engagements"))
+    ]);
+
+    // Index by uid for fast lookup
+    const subsByUid = {};
+    subSnap.docs.forEach(d => {
+      const uid = d.data().uid;
+      if(!uid) return;
+      if(!subsByUid[uid]) subsByUid[uid] = 0;
+      subsByUid[uid] += (d.data().pts || 0);
+    });
+    const engsByUid = {};
+    engSnap.docs.forEach(d => {
+      const uid = d.data().uid;
+      if(!uid) return;
+      if(!engsByUid[uid]) engsByUid[uid] = 0;
+      engsByUid[uid] += (d.data().pts || 0);
+    });
+
+    // 3. Compare for each member
+    allMembers.forEach(m => {
+      const uid = m.uid || m.id;
+      const registryPts = m.points || 0;
+      const subTotal = subsByUid[uid] || 0;
+      const engTotal = engsByUid[uid] || 0;
+      const computedPts = subTotal + engTotal;
+      const delta = computedPts - registryPts;
+      _sweepResults.push({
+        registryId: m.id,
+        uid,
+        name: m.name || "Unknown",
+        registryPts,
+        computedPts,
+        subTotal,
+        engTotal,
+        delta
+      });
+    });
+
+    // Sort: mismatches first, then by name
+    _sweepResults.sort((a, b) => {
+      if(Math.abs(b.delta) !== Math.abs(a.delta)) return Math.abs(b.delta) - Math.abs(a.delta);
+      return (a.name||"").localeCompare(b.name||"");
+    });
+
+    const mismatches = _sweepResults.filter(r => r.delta !== 0);
+    const clean = _sweepResults.filter(r => r.delta === 0);
+
+    statusEl.innerHTML = `<strong>${allMembers.length} members checked</strong> &nbsp;·&nbsp; `
+      + (mismatches.length
+          ? `<span style="color:#e74c3c;font-weight:700;">${mismatches.length} mismatch${mismatches.length !== 1 ? "es" : ""}</span>`
+          : `<span style="color:#27ae60;font-weight:700;">All clean ✅</span>`)
+      + ` &nbsp;·&nbsp; ${clean.length} OK`;
+
+    // 4. Render results table
+    const rowStyle = "display:grid;grid-template-columns:1fr 60px 60px 60px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border);font-size:12px;";
+    const headerStyle = rowStyle + "font-weight:700;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;";
+
+    let html = `<div style="${headerStyle}">
+      <span>Member</span><span style="text-align:right;">Registry</span><span style="text-align:right;">Computed</span><span style="text-align:right;">Delta</span>
+    </div>`;
+
+    _sweepResults.forEach(r => {
+      const hasMismatch = r.delta !== 0;
+      const deltaColor = r.delta > 0 ? "#e67e22" : r.delta < 0 ? "#e74c3c" : "#27ae60";
+      const deltaStr = r.delta === 0 ? "✅" : (r.delta > 0 ? "+" : "") + r.delta;
+      html += `<div style="${rowStyle}${hasMismatch ? "background:rgba(231,76,60,0.05);border-radius:6px;" : ""}">
+        <span style="font-weight:${hasMismatch ? "700" : "400"};color:var(--text);">${esc(r.name)}</span>
+        <span style="text-align:right;color:var(--text-muted);">${r.registryPts}</span>
+        <span style="text-align:right;color:var(--text-muted);">${r.computedPts}</span>
+        <span style="text-align:right;font-weight:700;color:${deltaColor};">${deltaStr}</span>
+      </div>`;
+    });
+
+    resultsEl.innerHTML = html;
+
+    if(mismatches.length > 0) {
+      fixBtn.textContent = `Fix All ${mismatches.length} Mismatch${mismatches.length !== 1 ? "es" : ""}`;
+      fixBtn.style.display = "inline-block";
+    }
+
+    console.log(`[SMAC Sweep] ${allMembers.length} members checked, ${mismatches.length} mismatches`, mismatches);
+
+  } catch(e) {
+    statusEl.textContent = "Error: " + e.message;
+    console.error("[SMAC Sweep] Error:", e);
+  }
+};
+
+window.runSweepFixAll = async function() {
+  const mismatches = _sweepResults.filter(r => r.delta !== 0);
+  if(!mismatches.length) { showToast("Nothing to fix."); return; }
+  if(!confirm(`Fix ${mismatches.length} mismatch${mismatches.length !== 1 ? "es" : ""}?\n\nThis will update registry.points to match the computed total (subs + eng) for each affected member.`)) return;
+
+  const statusEl = document.getElementById("sweep-status");
+  const fixBtn = document.getElementById("sweep-fix-all-btn");
+  fixBtn.disabled = true;
+  fixBtn.textContent = "Fixing…";
+
+  try {
+    const { updateDoc, doc: dc } =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    let fixed = 0, failed = 0;
+    for(const r of mismatches) {
+      try {
+        await updateDoc(dc(db, "smac_registry", r.registryId), { points: r.computedPts });
+        // Update local sweep results so table reflects fix
+        r.registryPts = r.computedPts;
+        r.delta = 0;
+        fixed++;
+        statusEl.textContent = `Fixing… ${fixed}/${mismatches.length}`;
+      } catch(e) {
+        console.error(`[SMAC Sweep] Failed to fix ${r.name}:`, e.message);
+        failed++;
+      }
+    }
+
+    showToast(failed === 0
+      ? `Fixed ${fixed} member${fixed !== 1 ? "s" : ""} ✅`
+      : `Fixed ${fixed}, failed ${failed} — check console`);
+
+    fixBtn.style.display = "none";
+    // Re-render table with updated deltas
+    await runPointsSweep();
+
+  } catch(e) {
+    showToast("Error: " + e.message);
+    fixBtn.disabled = false;
+    fixBtn.textContent = `Fix All ${mismatches.length} Mismatches`;
+  }
 };
 
 async function loadMyEngLog(){
