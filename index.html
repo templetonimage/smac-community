@@ -544,6 +544,13 @@
     .dash-lb-divider{height:1px;background:var(--border);margin:4px 0;}
     .dash-view-all-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:14px;padding:11px;border:1.5px solid var(--border);border-radius:var(--radius);background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
     .dash-view-all-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.04);}
+    .spot-countdown{width:100%;margin-bottom:12px;}
+    .spot-countdown-row{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;}
+    .spot-countdown-dot{width:8px;height:8px;border-radius:50%;background:#e74c3c;flex-shrink:0;animation:pulse-dot 1.6s ease-in-out infinite;}
+    .spot-countdown-num{color:var(--gold-dark);font-weight:700;}
+    .spot-countdown-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;}
+    .spot-countdown-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold-dark));transition:width 0.4s ease;}
+    @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
     .dash-cal-btn{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;box-shadow:var(--shadow);transition:all 0.15s;text-align:left;text-decoration:none;width:100%;}
     .dash-cal-btn:hover{border-color:var(--gold);color:var(--gold);background:#fffbf0;}
     .dash-cal-btn:hover svg{stroke:var(--gold);}
@@ -642,6 +649,19 @@
     <!-- ANALYTICS SNAPSHOT BANNER (moved to top — appears during upload windows only) -->
     <div id="dash-snapshot-banner" class="dash-animate" style="animation-delay:0.20s;display:none;margin-bottom:14px;"></div>
 
+    <!-- ROUND 3 RENEWAL CARD -->
+    <div class="dash-card dash-animate" id="dash-renew-card" style="animation-delay:0.22s;border:1.5px solid var(--gold);background:#fffbf0;margin-bottom:14px;">
+      <div class="dash-card-title-row">
+        <div class="dash-card-title">🔁 Round 3 Starts June 1</div>
+      </div>
+      <div class="spot-countdown"></div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Keep your momentum going. Renew your spot for the next 90-day round, or upgrade to SMAC Pro.</div>
+      <button class="dash-view-all-btn" onclick="openRenewModal()">
+        Renew for Round 3
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
     <div class="dash-stats-grid">
       <div class="dash-stat-card highlight dash-animate" style="animation-delay:0.25s;">
         <span class="dash-stat-icon">⚡</span>
@@ -714,17 +734,6 @@
       </button>
     </div>
 
-    <!-- ROUND 3 RENEWAL CARD -->
-    <div class="dash-card dash-animate" id="dash-renew-card" style="animation-delay:0.72s;border:1.5px solid var(--gold);background:#fffbf0;">
-      <div class="dash-card-title-row">
-        <div class="dash-card-title">🔁 Round 3 Starts June 1</div>
-      </div>
-      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Keep your momentum going. Renew your spot for the next 90-day round, or upgrade to SMAC Pro.</div>
-      <button class="dash-view-all-btn" onclick="openRenewModal()">
-        Renew for Round 3
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
   </div>
 
   <!-- FEED -->
@@ -1248,6 +1257,28 @@
       </div>
     </div>
 
+    <!-- ADMIN: Round 3 Seats Editor -->
+    <div id="admin-seats-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🪑 Round 3 Seat Availability</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Updates the "Spots Remaining" countdown shown on the dashboard card and the renewal modal. Saved to Firestore — persists across deploys.</div>
+      <div class="card" style="border:1.5px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+          <div style="flex:1;">
+            <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Spots Remaining</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button onclick="adminSeatsDelta(-1)" style="width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:18px;font-weight:700;color:var(--text);cursor:pointer;line-height:1;">−</button>
+              <input id="seats-input" type="number" min="0" max="50" value="25" class="auth-input" style="width:70px;text-align:center;font-size:18px;font-weight:700;padding:6px 8px;" />
+              <button onclick="adminSeatsDelta(1)" style="width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:18px;font-weight:700;color:var(--text);cursor:pointer;line-height:1;">+</button>
+              <span style="font-size:13px;color:var(--text-muted);">of <strong>50</strong> total</span>
+            </div>
+          </div>
+          <div id="seats-preview-bar" style="flex:1;max-width:160px;"></div>
+        </div>
+        <button class="btn-gold" onclick="saveSeatsToFirestore()" style="width:100%;font-size:15px;padding:11px;">Save Spot Count</button>
+        <div id="seats-save-status" style="font-size:12px;color:var(--text-muted);margin-top:10px;min-height:16px;text-align:center;"></div>
+      </div>
+    </div>
+
     <!-- ADMIN: Zoom Card Editor -->
     <div id="admin-zoom-card-editor" style="display:none;margin-bottom:28px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🎥 Zoom Card Editor</div>
@@ -1610,6 +1641,7 @@
       </div>
 
       <!-- Registration countdown -->
+      <div class="spot-countdown" style="margin-bottom:12px;"></div>
       <div id="renew-countdown-wrap" style="background:#fffbf0;border:1.5px solid var(--gold);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:center;">
         <div style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:6px;">Registration closes in</div>
         <div id="renew-countdown" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.03em;line-height:1;color:var(--text);">—</div>
@@ -2332,6 +2364,9 @@ function bootApp(){
     // Zoom Card editor always visible to admin
     const _zoomEditor=document.getElementById("admin-zoom-card-editor");
     if(_zoomEditor){_zoomEditor.style.display="block";loadZoomEditor();}
+    // Seats editor always visible to admin
+    const _seatsTool=document.getElementById("admin-seats-tool");
+    if(_seatsTool){_seatsTool.style.display="block";loadSeatsEditor();}
     showFirebaseSetupCard();
     if(window._NO_ACTIVE_ROUND&&!document.getElementById("no-round-admin-banner")){const _b=document.createElement("div");_b.id="no-round-admin-banner";_b.style.cssText="position:fixed;top:60px;left:0;right:0;z-index:999;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;";_b.textContent="⚠️ No active round detected — add the next round config to ROUND_CONFIGS in the source file.";document.body.appendChild(_b);}
   } else {
@@ -2351,6 +2386,8 @@ function bootApp(){
     if(_clearFeedToolMember)_clearFeedToolMember.style.display="none";
     const _proPanelMember=document.getElementById("admin-pro-panel");
     if(_proPanelMember)_proPanelMember.style.display="none";
+    const _seatsToolMember=document.getElementById("admin-seats-tool");
+    if(_seatsToolMember)_seatsToolMember.style.display="none";
   }
   // Fire Pro in-app notification sequence (built, currently inactive — flip _PRO_NOTIFS_ACTIVE to enable at launch)
   setTimeout(checkProNotifications, 2000);
@@ -2615,6 +2652,13 @@ window.loadDashboard=async function(){
 
     // Render Analytics Snapshot banner (round-start / round-end pilot)
     try { renderSnapshotBanner(); } catch(e) { console.error('Snapshot banner error:',e); }
+    // Load live seat count from Firestore, then render countdowns
+    try {
+      const { getDoc, doc: _seatDocRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const _seatSnap = await getDoc(_seatDocRef(db, "app_config", "r3_seats"));
+      if (_seatSnap.exists() && _seatSnap.data().spots_left !== undefined) SPOTS_LEFT = _seatSnap.data().spots_left;
+    } catch(_) {}
+    applySpotCountdowns();
 
   }catch(e){
     console.error('Dashboard load error:',e);
@@ -3432,6 +3476,61 @@ async function loadZoomCard() {
     wrap.innerHTML = buildZoomCardHTML(cfg);
   } catch(e) { wrap.innerHTML = ""; }
 }
+
+// ─────────────────────────────────────────────
+//  ADMIN: Round 3 Seat Availability Editor
+// ─────────────────────────────────────────────
+function _renderSeatsPreview(n) {
+  const bar = document.getElementById("seats-preview-bar");
+  if (!bar) return;
+  const pct = Math.max(0, Math.min(100, Math.round(((SPOTS_TOTAL - n) / SPOTS_TOTAL) * 100)));
+  bar.innerHTML = `
+    <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-align:right;">${pct}% claimed</div>
+    <div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden;">
+      <div style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold-dark));width:${pct}%;transition:width 0.3s ease;"></div>
+    </div>`;
+}
+
+async function loadSeatsEditor() {
+  try {
+    const { getDoc, doc: docRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await getDoc(docRef(db, "app_config", "r3_seats"));
+    if (snap.exists() && snap.data().spots_left !== undefined) {
+      SPOTS_LEFT = snap.data().spots_left;
+      applySpotCountdowns();
+    }
+  } catch(e) { /* use JS default */ }
+  const inp = document.getElementById("seats-input");
+  if (inp) { inp.value = SPOTS_LEFT; inp.addEventListener("input", () => _renderSeatsPreview(parseInt(inp.value)||0)); }
+  _renderSeatsPreview(SPOTS_LEFT);
+}
+
+window.adminSeatsDelta = function(delta) {
+  const inp = document.getElementById("seats-input");
+  if (!inp) return;
+  const next = Math.max(0, Math.min(SPOTS_TOTAL, (parseInt(inp.value) || 0) + delta));
+  inp.value = next;
+  _renderSeatsPreview(next);
+};
+
+window.saveSeatsToFirestore = async function() {
+  const inp = document.getElementById("seats-input");
+  const status = document.getElementById("seats-save-status");
+  if (!inp || !db) return;
+  const n = Math.max(0, Math.min(SPOTS_TOTAL, parseInt(inp.value) || 0));
+  if (status) status.textContent = "Saving...";
+  try {
+    const { setDoc, doc: docRef } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await setDoc(docRef(db, "app_config", "r3_seats"), { spots_left: n, updated_at: Date.now() });
+    SPOTS_LEFT = n;
+    applySpotCountdowns();
+    _renderSeatsPreview(n);
+    if (status) { status.style.color = "#2ecc71"; status.textContent = `✓ Saved — ${n} of ${SPOTS_TOTAL} spots remaining`; setTimeout(() => { if(status) status.textContent = ""; }, 3500); }
+  } catch(e) {
+    if (status) { status.style.color = "#e74c3c"; status.textContent = "Save failed — check console"; }
+    console.error("Seats save error:", e);
+  }
+};
 
 // Admin: load current config into editor fields
 async function loadZoomEditor() {
@@ -9783,6 +9882,22 @@ window.closeWelcomeModal = function(){
 // ─────────────────────────────────────────────
 function _renewDismissKey(){ return "smac_renew_r3_dismissed_" + (currentUser?.uid||""); }
 
+// ── SPOT COUNTDOWN — update SPOTS_LEFT as seats fill ──
+var SPOTS_LEFT  = 25;
+var SPOTS_TOTAL = 50;
+function applySpotCountdowns() {
+  var claimed = SPOTS_TOTAL - SPOTS_LEFT;
+  var pct = Math.max(0, Math.min(100, Math.round((claimed / SPOTS_TOTAL) * 100)));
+  document.querySelectorAll('.spot-countdown').forEach(function(el) {
+    el.innerHTML =
+      '<div class="spot-countdown-row">' +
+        '<span class="spot-countdown-dot"></span>' +
+        '<span><span class="spot-countdown-num">' + SPOTS_LEFT + '</span> of ' + SPOTS_TOTAL + ' Spots Remaining</span>' +
+      '</div>' +
+      '<div class="spot-countdown-bar"><div class="spot-countdown-fill" style="width:' + pct + '%;"></div></div>';
+  });
+}
+
 // Registration deadline: May 31, 2026 11:59 PM ET (EDT = UTC-4) → 2026-06-01T03:59:00Z
 const RENEW_DEADLINE_TS = new Date("2026-06-01T03:59:00Z").getTime();
 let _renewCountdownTimer = null;
@@ -9815,6 +9930,7 @@ function _stopRenewCountdown(){
 window.openRenewModal = function(){
   const ov=document.getElementById("renew-modal-overlay");
   if(ov) ov.classList.add("open");
+  applySpotCountdowns();
   _startRenewCountdown();
 };
 window.closeRenewModalDirect = function(){
