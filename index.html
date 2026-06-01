@@ -698,7 +698,7 @@
       <div class="dash-stat-card dash-animate" style="animation-delay:0.46s;">
         <span class="dash-stat-icon">📅</span>
         <div class="dash-stat-value" id="dash-val-count">0</div>
-        <div class="dash-stat-label">Posts Made</div>
+        <div class="dash-stat-label">Submissions Made</div>
       </div>
       <div class="dash-stat-card dash-animate" style="animation-delay:0.53s;">
         <span class="dash-stat-icon">🌟</span>
@@ -2765,7 +2765,7 @@ window.loadDashboard=async function(){
 
   // ── Load data from Firebase ──
   if(!db||useLocalFallback){
-    _renderDashboard({total:0,postPts:0,engPts:0,communityPts:0,trackerPostCount:0,weekSubmitted:false,trackerThisWeek:false,trackerDots:[],leaderboard:[],myUid:''});
+    _renderDashboard({total:0,postPts:0,engPts:0,communityPts:0,trackerPostCount:0,submissionCount:0,weekSubmitted:false,trackerThisWeek:false,trackerDots:[],leaderboard:[],myUid:''});
     return;
   }
 
@@ -2828,7 +2828,8 @@ window.loadDashboard=async function(){
       .slice(0,10);
 
     const communityPts=Math.max(0,totalPts-postPts-engPts);
-    _renderDashboard({total:totalPts,postPts,engPts,communityPts,trackerPostCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,myUid:uid});
+    const submissionCount=subs.length;
+    _renderDashboard({total:totalPts,postPts,engPts,communityPts,trackerPostCount,submissionCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,myUid:uid});
 
     // Render Analytics Snapshot banner (round-start / round-end pilot)
     try { renderSnapshotBanner(); } catch(e) { console.error('Snapshot banner error:',e); }
@@ -2843,7 +2844,7 @@ window.loadDashboard=async function(){
 
   }catch(e){
     console.error('Dashboard load error:',e);
-    _renderDashboard({total:0,postPts:0,engPts:0,communityPts:0,trackerPostCount:0,weekSubmitted:false,trackerThisWeek:false,trackerDots:[],leaderboard:[],myUid:''});
+    _renderDashboard({total:0,postPts:0,engPts:0,communityPts:0,trackerPostCount:0,submissionCount:0,weekSubmitted:false,trackerThisWeek:false,trackerDots:[],leaderboard:[],myUid:''});
   }
 };
 
@@ -2862,7 +2863,7 @@ function _dashCountUp(el,target,delay=0,duration=900){
   },delay);
 }
 
-function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,myUid}){
+function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,submissionCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,myUid}){
   // ── Status pills ──
   const strip=document.getElementById('dash-status-strip');
   if(strip){
@@ -2879,7 +2880,7 @@ function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,we
   _dashCountUp(document.getElementById('dash-val-total'), total,        120);
   _dashCountUp(document.getElementById('dash-val-posts'), postPts,      200);
   _dashCountUp(document.getElementById('dash-val-eng'),   engPts,       280);
-  _dashCountUp(document.getElementById('dash-val-count'), trackerPostCount, 360);
+  _dashCountUp(document.getElementById('dash-val-count'), submissionCount??trackerPostCount, 360);
   _dashCountUp(document.getElementById('dash-val-comm'),  communityPts, 440);
 
   // ── All-star progress bar (tracker-based, matches Tracker page) ──
@@ -10562,21 +10563,24 @@ async function renderProfileHero(prof){
   const isAllStar=WEEKS.every((w,i)=>{const c=tracked[w.id]||[];return c.filter(Boolean).length>=weekRequirement(i);});
 
   // Pull live points from Firestore registry (points still come from submissions)
-  let pts=0, totalPosts=trackerPostCount, lifetimePts=0, roundHistory=[];
+  let pts=0, totalPosts=trackerPostCount, submissionCount=trackerPostCount, lifetimePts=0, roundHistory=[];
   if(currentUser.isAdmin){
     pts=parseInt(localStorage.getItem("smac_admin_pts")||"0",10);
-    totalPosts=0;
+    totalPosts=0; submissionCount=0;
   } else if(!useLocalFallback&&db&&currentUser.registryId){
     try{
-      const {getDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      const snap=await getDoc(dc(db,"smac_registry",currentUser.registryId));
-      if(snap.exists()){
-        const d=snap.data();
+      const {getDoc,getDocs,collection:col,query:q,where,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const [regSnap,subSnap]=await Promise.all([
+        getDoc(dc(db,"smac_registry",currentUser.registryId)),
+        getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid)))
+      ]);
+      if(regSnap.exists()){
+        const d=regSnap.data();
         pts=d.points||0;
         lifetimePts=d.lifetimePoints||0;
         roundHistory=Array.isArray(d.roundHistory)?d.roundHistory:[];
       }
-      // totalPosts always from tracker — not registry — for real-time accuracy
+      submissionCount=subSnap.size;
     }catch(e){}
   }
   // Lifetime = archived total + current round's live points
@@ -10599,8 +10603,8 @@ async function renderProfileHero(prof){
         <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;">Points</div>
       </div>
       <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1;">${totalPosts}</div>
-        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;">Posts</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1;">${submissionCount}</div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;">Submissions</div>
       </div>
     </div>
     ${buildMilestoneBar(tracked)}
