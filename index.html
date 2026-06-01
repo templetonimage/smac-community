@@ -1071,7 +1071,7 @@
 
       <!-- Filters -->
       <div class="sub-filter-row">
-        <select class="sub-filter-select" id="sub-filter-week" style="display:none;" onchange="renderSubViewer()">
+        <select class="sub-filter-select" id="sub-filter-week" onchange="renderSubViewer()">
           <option value="">All Weeks</option>
           <option value="0">W1 · Mar 1–7</option>
           <option value="1">W2 · Mar 8–14</option>
@@ -1087,7 +1087,7 @@
           <option value="11">W12 · May 22–31</option>
         </select>
         <select class="sub-filter-select" id="sub-filter-member" onchange="renderSubViewer()">
-          <option value="">Select a member...</option>
+          <option value="">All Members</option>
         </select>
         <select class="sub-filter-select" id="sub-filter-status" onchange="renderSubViewer()">
           <option value="">All Statuses</option>
@@ -7715,11 +7715,7 @@ window.setSubView = function(mode, btn){
   _subViewMode = mode;
   document.querySelectorAll(".sub-toggle-btn").forEach(b=>b.classList.remove("active"));
   if(btn) btn.classList.add("active");
-  // Show/hide relevant filters
-  const wkSel = document.getElementById("sub-filter-week");
-  const memSel = document.getElementById("sub-filter-member");
-  if(wkSel) wkSel.style.display = (mode==="week") ? "block" : "none";
-  if(memSel) memSel.style.display = (mode==="member") ? "block" : "none";
+  // Both filters always visible — mode only affects grouping/sorting
   renderSubViewer();
 };
 
@@ -7737,7 +7733,7 @@ window.loadSubViewer = async function(){
     const memSel = document.getElementById("sub-filter-member");
     if(memSel){
       const names = [...new Set(_allSubmissions.map(s=>s.memberName||"Unknown"))].sort();
-      memSel.innerHTML = '<option value="">Select a member...</option>' + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+      memSel.innerHTML = '<option value="">All Members</option>' + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
     }
     renderSubViewer();
   }catch(e){
@@ -7754,23 +7750,20 @@ window.renderSubViewer = function(){
   const weekFilter = document.getElementById("sub-filter-week")?.value;
   const memberFilter = document.getElementById("sub-filter-member")?.value || "";
 
-  // Render gate: nothing shows until a member or week is selected
-  const hasSelection = (_subViewMode==="member" && memberFilter) || (_subViewMode==="week" && weekFilter!=="" && weekFilter!==undefined);
+  // Render gate: need at least one of member or week selected
+  const hasSelection = memberFilter || (weekFilter !== "" && weekFilter !== undefined);
   if(!hasSelection){
     if(countEl) countEl.textContent = "";
-    const prompt = _subViewMode==="member"
-      ? "Select a member above to view their submissions."
-      : "Select a week above to view its submissions.";
-    body.innerHTML = `<div class='sub-viewer-empty'>${_subDataLoaded ? prompt : "Loading submissions..."}</div>`;
+    body.innerHTML = `<div class='sub-viewer-empty'>${_subDataLoaded ? "Select a member or week above to view submissions." : "Loading submissions..."}</div>`;
     return;
   }
 
   let subs = [..._allSubmissions];
 
-  // Apply filters
+  // Apply all active filters simultaneously
+  if(memberFilter) subs = subs.filter(s => s.uid===memberFilter || s.memberName===memberFilter);
+  if(weekFilter !== "" && weekFilter !== undefined) subs = subs.filter(s => String(s.weekIdx)===String(weekFilter));
   if(statusFilter) subs = subs.filter(s => statusFilter==="reviewed" ? s.reviewed : s.status===statusFilter);
-  if(_subViewMode==="week" && weekFilter!=="") subs = subs.filter(s => String(s.weekIdx)===String(weekFilter));
-  if(_subViewMode==="member" && memberFilter) subs = subs.filter(s => s.uid===memberFilter || s.memberName===memberFilter);
 
   // Sort
   if(_subViewMode==="week"){
