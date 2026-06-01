@@ -698,7 +698,7 @@
       <div class="dash-stat-card dash-animate" style="animation-delay:0.46s;">
         <span class="dash-stat-icon">📅</span>
         <div class="dash-stat-value" id="dash-val-count">0</div>
-        <div class="dash-stat-label">Posts Made</div>
+        <div class="dash-stat-label">Post Submissions</div>
       </div>
       <div class="dash-stat-card dash-animate" style="animation-delay:0.53s;">
         <span class="dash-stat-icon">🌟</span>
@@ -926,6 +926,7 @@
         <br>
         <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Community Points</span><br>
         ✍️ Community feed post: <strong>+1 pt</strong><br>
+        🔗 Backlink directory listing: <strong>+15 pts</strong><br>
         🤝 Coworking RSVP: <strong>+2 pts</strong><br>
         🏢 Coworking attendance: <strong>+5 pts</strong><br>
         <br>
@@ -2827,7 +2828,7 @@ window.loadDashboard=async function(){
       .slice(0,10);
 
     const communityPts=Math.max(0,totalPts-postPts-engPts);
-    _renderDashboard({total:totalPts,postPts,engPts,communityPts,trackerPostCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,myUid:uid});
+    _renderDashboard({total:totalPts,postPts,engPts,communityPts,trackerPostCount,submissionCount:subs.length,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,myUid:uid});
 
     // Render Analytics Snapshot banner (round-start / round-end pilot)
     try { renderSnapshotBanner(); } catch(e) { console.error('Snapshot banner error:',e); }
@@ -2861,7 +2862,7 @@ function _dashCountUp(el,target,delay=0,duration=900){
   },delay);
 }
 
-function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,myUid}){
+function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,submissionCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,myUid}){
   // ── Status pills ──
   const strip=document.getElementById('dash-status-strip');
   if(strip){
@@ -2878,7 +2879,7 @@ function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,we
   _dashCountUp(document.getElementById('dash-val-total'), total,        120);
   _dashCountUp(document.getElementById('dash-val-posts'), postPts,      200);
   _dashCountUp(document.getElementById('dash-val-eng'),   engPts,       280);
-  _dashCountUp(document.getElementById('dash-val-count'), trackerPostCount, 360);
+  _dashCountUp(document.getElementById('dash-val-count'), submissionCount??trackerPostCount, 360);
   _dashCountUp(document.getElementById('dash-val-comm'),  communityPts, 440);
 
   // ── All-star progress bar (tracker-based, matches Tracker page) ──
