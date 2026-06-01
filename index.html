@@ -1097,6 +1097,7 @@
           <option value="reviewed">Reviewed</option>
         </select>
         <button class="btn-sm" onclick="loadSubViewer()" style="margin-left:auto;">↻ Refresh</button>
+        <button class="btn-sm" id="check-points-btn" onclick="checkPointsForSelectedMember()" style="margin-left:6px;">🔍 Check Points</button>
       </div>
 
       <div id="sub-viewer-count" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
@@ -1158,6 +1159,36 @@
         <div id="archive-round-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
       </div>
     </div>
+
+    <!-- ADMIN: Points Integrity Sweep -->
+    <div id="points-sweep-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🔍 Points Integrity Sweep</div>
+      <div class="card" style="border:1.5px solid var(--border);">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+          Compares each member's <strong>registry.points</strong> against the sum of their actual submission + engagement docs. Flags any drift and lets you fix all mismatches in one pass. Uses 3 Firestore reads total regardless of member count.
+        </div>
+        <button class="btn-sm" id="sweep-run-btn" onclick="runPointsSweep()">Run Sweep</button>
+        <div id="sweep-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
+        <div id="sweep-results" style="display:none;margin-top:16px;">
+          <div id="sweep-summary" style="font-size:13px;font-weight:600;margin-bottom:12px;"></div>
+          <div id="sweep-table-wrap" style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:600;">Member</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Registry</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Computed</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Delta</th>
+                </tr>
+              </thead>
+              <tbody id="sweep-table-body"></tbody>
+            </table>
+          </div>
+          <button id="sweep-fix-all-btn" onclick="fixAllMismatches()" style="display:none;margin-top:16px;background:#e74c3c;color:#fff;border:1px solid #e74c3c;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;">Fix All Mismatches</button>
+        </div>
+      </div>
+    </div>
+
     <div id="eng-viewer" style="display:none;margin-bottom:28px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;">🤝 Engagement Posts</div>
@@ -2363,6 +2394,7 @@ function bootApp(){
     document.getElementById("admin-sub-viewer").style.display="block";
     document.getElementById("member-reset-tool").style.display="block";
     document.getElementById("archive-round-tool").style.display="block";
+    document.getElementById("points-sweep-tool").style.display="block";
     document.getElementById("eng-viewer").style.display="block";
     document.getElementById("bug-reports-viewer").style.display="block";
     document.getElementById("admin-spotlight-compose").style.display="block";
@@ -2390,6 +2422,7 @@ function bootApp(){
     document.getElementById("admin-sub-viewer").style.display="none";
     document.getElementById("member-reset-tool").style.display="none";
     document.getElementById("archive-round-tool").style.display="none";
+    document.getElementById("points-sweep-tool").style.display="none";
     document.getElementById("eng-viewer").style.display="none";
     document.getElementById("bug-reports-viewer").style.display="none";
     document.getElementById("admin-spotlight-compose").style.display="none";
@@ -8298,6 +8331,202 @@ window.runArchiveRound = async function(){
 };
 
 // ─────────────────────────────────────────────
+//  POINTS RECONCILIATION & INTEGRITY SWEEP
+// ─────────────────────────────────────────────
+let _sweepResults = []; // module-level cache for fix-all pass
+
+// Reconcile a single member's registry.points against sum of their docs.
+// Admin: shows a dismissible yellow banner if drift found.
+// Member: silent console.warn only.
+// autoHeal = true: writes the correction immediately without a prompt.
+window.runPointsReconciliation = async function(uid, registryId, autoHeal){
+  if(!db || !uid || !registryId) return;
+  try{
+    const {getDoc,getDocs,doc:dcRef,collection:col,query:q,where,updateDoc} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    const [regSnap, subSnap, engSnap] = await Promise.all([
+      getDoc(dcRef(db,"smac_registry",registryId)),
+      getDocs(q(col(db,"submissions"), where("uid","==",uid))),
+      getDocs(q(col(db,"engagements"), where("uid","==",uid)))
+    ]);
+
+    if(!regSnap.exists()) return;
+    const registryPts = regSnap.data().points || 0;
+    const memberName  = regSnap.data().name || uid;
+
+    const subTotal = subSnap.docs.reduce((sum,d) => sum + (d.data().pts||0), 0);
+    const engTotal = engSnap.docs.reduce((sum,d) => sum + (d.data().pts||0), 0);
+    const computed = subTotal + engTotal;
+    const delta = computed - registryPts;
+
+    if(delta === 0){
+      console.log(`✅ Points OK for ${memberName}: ${registryPts} pts`);
+      return;
+    }
+
+    console.warn(`⚠️ Points drift for ${memberName}: registry=${registryPts}, computed=${computed} (subs:${subTotal}+eng:${engTotal}), delta=${delta>0?"+":""}${delta}`);
+
+    if(autoHeal){
+      await updateDoc(dcRef(db,"smac_registry",registryId),{points: computed});
+      console.log(`✅ Auto-healed ${memberName} → ${computed} pts`);
+      return;
+    }
+
+    // Admin UI: show dismissible yellow banner
+    if(currentUser && currentUser.isAdmin){
+      const existingBanner = document.getElementById("reconcile-banner-"+registryId);
+      if(existingBanner) return; // already shown
+      const banner = document.createElement("div");
+      banner.id = "reconcile-banner-"+registryId;
+      banner.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:#f39c12;color:#000;border-radius:10px;padding:12px 16px;max-width:360px;width:90%;box-shadow:0 4px 16px rgba(0,0,0,0.3);font-size:13px;line-height:1.5;";
+      banner.innerHTML = `
+        <div style="font-weight:700;margin-bottom:4px;">⚠️ Points drift: ${esc(memberName)}</div>
+        <div>Registry: <strong>${registryPts}</strong> pts &nbsp;|&nbsp; Computed: <strong>${computed}</strong> pts &nbsp;|&nbsp; Delta: <strong>${delta>0?"+":""}${delta}</strong></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button onclick="(async()=>{const{updateDoc,doc:d}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');await updateDoc(d(db,'smac_registry','${registryId}'),{points:${computed}});showToast('Fixed — ${esc(memberName)}: ${computed} pts');document.getElementById('reconcile-banner-${registryId}').remove();})()" style="flex:1;background:#000;color:#f39c12;border:none;border-radius:6px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Fix Now</button>
+          <button onclick="document.getElementById('reconcile-banner-${registryId}').remove()" style="flex:1;background:rgba(0,0,0,0.15);color:#000;border:none;border-radius:6px;padding:8px;font-size:12px;cursor:pointer;">Dismiss</button>
+        </div>`;
+      document.body.appendChild(banner);
+    }
+  }catch(e){
+    console.warn("runPointsReconciliation error:", e.message);
+  }
+};
+
+// Check Points button in Submissions Viewer — runs reconciliation for selected member
+window.checkPointsForSelectedMember = async function(){
+  const sel = document.getElementById("sub-filter-member");
+  const name = sel?.options[sel.selectedIndex]?.text || "";
+  const uid = sel?.value || "";
+  if(!uid){ showToast("Select a member first."); return; }
+
+  // Resolve registryId from cached registry
+  const registry = lsGet("smac_registry") || [];
+  const match = registry.find(m => (m.uid||m._uid) === uid);
+  const registryId = match?.id || match?.registryId || uid;
+
+  showToast(`Checking points for ${name}...`);
+  await runPointsReconciliation(uid, registryId, false);
+};
+
+// Points Integrity Sweep — 3 Firestore reads, all members
+window.runPointsSweep = async function(){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const statusEl  = document.getElementById("sweep-status");
+  const resultsEl = document.getElementById("sweep-results");
+  const runBtn    = document.getElementById("sweep-run-btn");
+  const fixBtn    = document.getElementById("sweep-fix-all-btn");
+  statusEl.style.display="block";
+  statusEl.textContent="Reading Firestore...";
+  resultsEl.style.display="none";
+  runBtn.disabled=true;
+  _sweepResults=[];
+
+  try{
+    const {getDocs,collection:col,query:q,orderBy:ob} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    const [regSnap, subSnap, engSnap] = await Promise.all([
+      getDocs(col(db,"smac_registry")),
+      getDocs(q(col(db,"submissions"), ob("ts","desc"))),
+      getDocs(col(db,"engagements"))
+    ]);
+
+    // Index subs and engs by uid
+    const subByUid = {}, engByUid = {};
+    subSnap.docs.forEach(d=>{
+      const uid=d.data().uid||""; if(!uid) return;
+      subByUid[uid]=(subByUid[uid]||0)+(d.data().pts||0);
+    });
+    engSnap.docs.forEach(d=>{
+      const uid=d.data().uid||""; if(!uid) return;
+      engByUid[uid]=(engByUid[uid]||0)+(d.data().pts||0);
+    });
+
+    const results = regSnap.docs.map(d=>{
+      const data=d.data();
+      const uid=data.uid||"";
+      const registryPts=data.points||0;
+      const computed=(subByUid[uid]||0)+(engByUid[uid]||0);
+      const delta=computed-registryPts;
+      return { id:d.id, uid, name:data.name||"(unnamed)", registryPts, computed, delta };
+    });
+
+    // Sort: mismatches first by delta magnitude, then alphabetical
+    results.sort((a,b)=>{
+      if(a.delta===0 && b.delta!==0) return 1;
+      if(a.delta!==0 && b.delta===0) return -1;
+      if(a.delta!==0 && b.delta!==0) return Math.abs(b.delta)-Math.abs(a.delta);
+      return a.name.localeCompare(b.name);
+    });
+
+    _sweepResults = results;
+    const mismatches = results.filter(r=>r.delta!==0);
+    const ok = results.filter(r=>r.delta===0);
+
+    // Render summary
+    document.getElementById("sweep-summary").innerHTML =
+      `<span style="color:var(--text-muted);">${results.length} members checked</span> &nbsp;·&nbsp; ` +
+      (mismatches.length
+        ? `<span style="color:#e74c3c;font-weight:700;">${mismatches.length} mismatch${mismatches.length>1?"es":""}</span>`
+        : `<span style="color:#27ae60;font-weight:700;">0 mismatches</span>`) +
+      ` &nbsp;·&nbsp; <span style="color:#27ae60;">${ok.length} OK</span>`;
+
+    // Render table
+    document.getElementById("sweep-table-body").innerHTML = results.map(r=>{
+      const deltaColor = r.delta===0 ? "var(--text-muted)" : r.delta>0 ? "#e74c3c" : "#e67e22";
+      const deltaStr = r.delta===0 ? "—" : (r.delta>0?"+":"")+r.delta;
+      return `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:7px 8px;">${esc(r.name)}</td>
+        <td style="text-align:right;padding:7px 8px;">${r.registryPts}</td>
+        <td style="text-align:right;padding:7px 8px;">${r.computed}</td>
+        <td style="text-align:right;padding:7px 8px;font-weight:700;color:${deltaColor};">${deltaStr}</td>
+      </tr>`;
+    }).join("");
+
+    fixBtn.style.display = mismatches.length ? "block" : "none";
+    statusEl.style.display="none";
+    resultsEl.style.display="block";
+  }catch(e){
+    statusEl.textContent="Error: "+e.message;
+  }finally{
+    runBtn.disabled=false;
+  }
+};
+
+// Fix all mismatches found in last sweep
+window.fixAllMismatches = async function(){
+  const mismatches = _sweepResults.filter(r=>r.delta!==0);
+  if(!mismatches.length){ showToast("No mismatches to fix."); return; }
+  if(!confirm(`Fix ${mismatches.length} mismatch${mismatches.length>1?"es":""}?\n\nThis will update registry.points to the computed total for each affected member. Continue?`)) return;
+
+  const fixBtn   = document.getElementById("sweep-fix-all-btn");
+  const statusEl = document.getElementById("sweep-status");
+  fixBtn.disabled=true;
+  statusEl.style.display="block";
+
+  try{
+    const {updateDoc,doc:dcRef} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    let done=0, failed=0;
+    for(const m of mismatches){
+      try{
+        await updateDoc(dcRef(db,"smac_registry",m.id),{points: m.computed});
+        done++;
+      }catch(e){ failed++; }
+      statusEl.textContent=`Fixing... ${done+failed}/${mismatches.length}`;
+    }
+    statusEl.innerHTML=`<span style="color:#27ae60;font-weight:700;">Done.</span> ${done} fixed`+
+      (failed?`, <span style="color:#e74c3c;">${failed} failed</span>`:".")+` Re-running sweep...`;
+    await runPointsSweep();
+  }catch(e){
+    statusEl.textContent="Error: "+e.message;
+    fixBtn.disabled=false;
+  }
+};
+
+// ─────────────────────────────────────────────
 //  POLLS
 // ─────────────────────────────────────────────
 const PTS_POLL_VOTE = 2; // bonus pts for voting
@@ -9594,6 +9823,13 @@ function loadProfile(){
 
   // Growth History (Analytics Snapshots) — fetches all snapshots for this user
   try { renderGrowthHistory(); } catch(e) { console.error("Growth history render error:", e); }
+
+  // Points reconciliation — non-blocking; admin sees banner if drift found, member gets console.warn only
+  if(!useLocalFallback && db && currentUser && !currentUser.isAdmin){
+    const _reconcileUid = currentUser.uid;
+    const _reconcileRegId = currentUser.registryId || currentUser.uid;
+    setTimeout(()=>{ runPointsReconciliation(_reconcileUid, _reconcileRegId, false).catch(()=>{}); }, 1500);
+  }
 }
 async function renderProfileHero(prof){
   const initials=(prof.name||currentUser.name).split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
