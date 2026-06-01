@@ -8549,9 +8549,15 @@ window.fixAllMismatches = async function(){
 // ─────────────────────────────────────────────
 //  ADMIN: POINT AUDIT TOOL
 //  Reconstructs full week-by-week ledger for one member.
-//  Fetches all submission + engagement docs, groups by week,
-//  computes theoretical max per week, and flags anomalies.
+//  Flags: grace-week pts, over-limit posts/engagements,
+//  duplicate Challenge OR duplicate SYF in same week.
+//  Fix button writes corrections collection + triggers email.
 // ─────────────────────────────────────────────
+
+// Store last audit context so Fix can re-run after correction
+let _lastAuditUid    = "";
+let _lastAuditRegId  = "";
+let _lastAuditName   = "";
 
 // Populate audit member dropdown from smac_registry
 window.loadAuditMemberDropdown = async function(){
@@ -8579,6 +8585,10 @@ window.runPointsAudit = async function(){
 
   if(!uid){ showToast("Select a member first."); return; }
 
+  _lastAuditUid   = uid;
+  _lastAuditRegId = regId;
+  _lastAuditName  = name;
+
   statusEl.style.display="block";
   statusEl.textContent="Fetching docs…";
   resultsEl.style.display="none";
@@ -8598,17 +8608,13 @@ window.runPointsAudit = async function(){
     const isPro       = regDocSnap?.exists?.() ? !!regDocSnap.data().isPro : false;
 
     // Build week buckets (0–11)
-    const weeks = Array.from({length:12},(_,i)=>({
-      weekIdx: i,
-      subs: [],
-      engs: [],
-    }));
+    const weeks = Array.from({length:12},(_,i)=>({ weekIdx:i, subs:[], engs:[] }));
 
     subSnap.docs.forEach(d=>{
       const data = d.data();
       const wi = data.weekIdx;
       if(wi>=0 && wi<=11) weeks[wi].subs.push({...data, _id:d.id});
-      else weeks.push({weekIdx:wi, subs:[{...data,_id:d.id}], engs:[]}); // out-of-range bucket
+      else weeks.push({weekIdx:wi, subs:[{...data,_id:d.id}], engs:[]});
     });
     engSnap.docs.forEach(d=>{
       const data = d.data();
@@ -8616,14 +8622,9 @@ window.runPointsAudit = async function(){
       if(wi>=0 && wi<=11) weeks[wi].engs.push({...data,_id:d.id});
     });
 
-    // Per-week theoretical max
-    // Post max: weekRequirementFor(wi, isPro) posts × max pts per post
-    // Max pts per post = 10 (on-time) + 2 (format) + 5 (modifier) = 17
-    // Engagement max: MAX_ENG_PER_WEEK × PTS_ENGAGEMENT = 5 × 2 = 10
-    // Grace weeks (W1=0, W2=1 for R2): post submissions should earn 0 pts
-    const GRACE_WEEK_IDXS = [0,1]; // R2 W1 and W2
-    const MAX_PTS_PER_POST = 17; // 10 + 2 format + 5 modifier
-    const MAX_ENG_PTS_PER_WEEK = MAX_ENG_PER_WEEK * PTS_ENGAGEMENT; // 5×2=10
+    const GRACE_WEEK_IDXS    = [0,1]; // R2 W1 and W2
+    const MAX_PTS_PER_POST   = 17;    // 10 on-time + 2 format + 5 modifier
+    const MAX_ENG_PTS_PER_WEEK = MAX_ENG_PER_WEEK * PTS_ENGAGEMENT; // 10
 
     let grandTotalEarned = 0;
     let flagCount = 0;
@@ -8633,7 +8634,6 @@ window.runPointsAudit = async function(){
       &nbsp;·&nbsp; <span style="color:var(--text-muted);">Pro:</span> <strong>${isPro?"Yes":"No"}</strong>
     </div>`;
 
-    // Week-by-week table
     html += `<div style="overflow-x:auto;margin-bottom:20px;">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead>
@@ -8650,12 +8650,11 @@ window.runPointsAudit = async function(){
         </thead>
         <tbody>`;
 
-    // Only show weeks with activity + all 12 standard weeks
     const weekIdxsToShow = [...new Set([...Array.from({length:12},(_,i)=>i), ...weeks.filter(w=>w.weekIdx>11).map(w=>w.weekIdx)])].sort((a,b)=>a-b);
 
     weekIdxsToShow.forEach(wi=>{
-      const bucket = weeks[wi] || {weekIdx:wi,subs:[],engs:[]};
-      const wDef   = WEEKS[wi] || {};
+      const bucket  = weeks[wi] || {weekIdx:wi,subs:[],engs:[]};
+      const wDef    = WEEKS[wi] || {};
       const required = weekRequirementFor(wi, isPro);
       const isGrace  = GRACE_WEEK_IDXS.includes(wi);
 
@@ -8665,12 +8664,9 @@ window.runPointsAudit = async function(){
       const weekTotal = postPts + engPts;
       grandTotalEarned += weekTotal;
 
-      // Theoretical max for this week
-      const maxPostPts  = isGrace ? 0 : required * MAX_PTS_PER_POST;
-      const maxEngPts   = MAX_ENG_PTS_PER_WEEK;
-      const maxTotal    = maxPostPts + maxEngPts;
+      const maxPostPts = isGrace ? 0 : required * MAX_PTS_PER_POST;
+      const maxTotal   = maxPostPts + MAX_ENG_PTS_PER_WEEK;
 
-      // Flag conditions
       const flags = [];
       if(isGrace && postPts > 0)
         flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ Grace week post pts: ${postPts}</span>`);
@@ -8681,14 +8677,20 @@ window.runPointsAudit = async function(){
       if(weekTotal > maxTotal)
         flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ Exceeds max (${weekTotal} > ${maxTotal})</span>`);
 
-      // Check for multiple modifiers in same week
-      const modSubs = realSubs.filter(s=>s.challengeApplied||s.syfApplied);
-      if(modSubs.length > 1)
-        flags.push(`<span style="color:#e67e22;font-weight:700;">⚠ ${modSubs.length} modifier claims this week</span>`);
+      // ── Correct modifier flag logic ──────────────────────────────────────
+      // Rule: max 1 Challenge per week AND max 1 SYF per week (independent limits).
+      // Challenge + SYF on separate posts in the same week = VALID (different types).
+      // Two Challenges or two SYFs in the same week = VIOLATION.
+      const challengeSubs = realSubs.filter(s=>s.challengeApplied);
+      const syfSubs       = realSubs.filter(s=>s.syfApplied);
+      if(challengeSubs.length > 1)
+        flags.push(`<span style="color:#e67e22;font-weight:700;">⚠ ${challengeSubs.length}× Challenge modifier (max 1/week)</span>`);
+      if(syfSubs.length > 1)
+        flags.push(`<span style="color:#e67e22;font-weight:700;">⚠ ${syfSubs.length}× SYF modifier (max 1/week)</span>`);
 
       if(flags.length) flagCount++;
 
-      const rowBg = flags.length ? "background:rgba(231,76,60,0.06);" : (weekTotal===0 ? "opacity:0.45;" : "");
+      const rowBg    = flags.length ? "background:rgba(231,76,60,0.06);" : (weekTotal===0 ? "opacity:0.45;" : "");
       const weekLabel = wDef.label ? `${wDef.month||""} ${wDef.label} (W${wi+1})` : `W${wi+1}`;
       const graceTag  = isGrace ? ` <span style="font-size:10px;background:rgba(212,175,55,.2);color:var(--gold);border-radius:4px;padding:1px 5px;">Grace</span>` : "";
 
@@ -8699,12 +8701,11 @@ window.runPointsAudit = async function(){
         <td style="text-align:right;padding:6px 8px;">${bucket.engs.length}</td>
         <td style="text-align:right;padding:6px 8px;">${engPts}</td>
         <td style="text-align:right;padding:6px 8px;font-weight:700;">${weekTotal}</td>
-        <td style="text-align:right;padding:6px 8px;color:var(--text-muted);">${isGrace?`0 post / ${maxEngPts} eng`:maxTotal}</td>
+        <td style="text-align:right;padding:6px 8px;color:var(--text-muted);">${isGrace?`0 post / ${MAX_ENG_PTS_PER_WEEK} eng`:maxTotal}</td>
         <td style="padding:6px 8px;">${flags.join(" ")}</td>
       </tr>`;
     });
 
-    // Totals row
     const computedTotal = grandTotalEarned;
     const delta = computedTotal - (typeof registryPts==="number" ? registryPts : computedTotal);
     html += `<tr style="border-top:2px solid var(--border);font-weight:700;">
@@ -8714,12 +8715,20 @@ window.runPointsAudit = async function(){
         ${delta===0?"✓ Matches registry":`Δ ${delta>0?"+":""}${delta} vs registry`}
       </td>
     </tr>`;
-
     html += `</tbody></table></div>`;
 
-    // Per-submission detail (expandable)
+    // ── Submission detail with Fix buttons ───────────────────────────────
     html += `<div style="font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Submission Detail</div>`;
     const allSubs = [...subSnap.docs.map(d=>({...d.data(),_id:d.id}))].sort((a,b)=>(a.weekIdx-b.weekIdx)||(a.ts-b.ts));
+
+    // Pre-compute per-week challenge/SYF counts to know which subs are duplicates
+    const wkChalCount = {}, wkSyfCount = {};
+    allSubs.forEach(s=>{
+      const wi = s.weekIdx;
+      if(s.challengeApplied) wkChalCount[wi] = (wkChalCount[wi]||0)+1;
+      if(s.syfApplied)       wkSyfCount[wi]  = (wkSyfCount[wi]||0)+1;
+    });
+
     if(allSubs.length){
       html += `<div style="overflow-x:auto;margin-bottom:16px;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead><tr style="border-bottom:1px solid var(--border);">
@@ -8730,20 +8739,40 @@ window.runPointsAudit = async function(){
           <th style="text-align:center;padding:5px 8px;color:var(--text-muted);">SYF</th>
           <th style="text-align:right;padding:5px 8px;color:var(--text-muted);">Pts</th>
           <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Date</th>
+          <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Fix</th>
         </tr></thead><tbody>`;
+
       allSubs.forEach(s=>{
-        const wDef = WEEKS[s.weekIdx]||{};
+        const wDef    = WEEKS[s.weekIdx]||{};
         const isGrace = GRACE_WEEK_IDXS.includes(s.weekIdx);
-        const rowFlag = (isGrace && (s.pts||0)>0) ? "background:rgba(231,76,60,0.08);" : "";
+        const wi      = s.weekIdx;
+        const isDupChallenge = s.challengeApplied && (wkChalCount[wi]||0) > 1;
+        const isDupSyf       = s.syfApplied       && (wkSyfCount[wi]||0)  > 1;
+        const rowFlag = (isGrace && (s.pts||0)>0) || isDupChallenge || isDupSyf
+          ? "background:rgba(231,76,60,0.08);" : "";
         const dateStr = s.ts ? new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—";
-        html += `<tr style="border-bottom:1px solid var(--border);${rowFlag}">
-          <td style="padding:5px 8px;white-space:nowrap;">${esc(wDef.label?`${wDef.month||""} ${wDef.label}`:`W${(s.weekIdx||0)+1}`)}</td>
+        const alreadyFixed = !!s._auditFixed;
+
+        // Fix buttons — shown only for the duplicate modifier (not first occurrence)
+        let fixBtns = "";
+        if(alreadyFixed){
+          fixBtns = `<span style="color:#27ae60;font-size:11px;font-weight:700;">✓ Fixed</span>`;
+        } else {
+          if(isDupChallenge)
+            fixBtns += `<button onclick="applyAuditCorrection('${esc(s._id)}','challenge',${s.pts||0},${wi},'${esc(uid)}','${esc(regId)}','${esc(name)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;margin-right:4px;">Remove Challenge</button>`;
+          if(isDupSyf)
+            fixBtns += `<button onclick="applyAuditCorrection('${esc(s._id)}','syf',${s.pts||0},${wi},'${esc(uid)}','${esc(regId)}','${esc(name)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;">Remove SYF</button>`;
+        }
+
+        html += `<tr id="auditrow-${esc(s._id)}" style="border-bottom:1px solid var(--border);${rowFlag}">
+          <td style="padding:5px 8px;white-space:nowrap;">${esc(wDef.label?`${wDef.month||""} ${wDef.label}`:`W${(wi||0)+1}`)}</td>
           <td style="padding:5px 8px;">${esc(s.status||"ontime")}</td>
           <td style="padding:5px 8px;">${esc(s.format||"Static")}</td>
-          <td style="text-align:center;padding:5px 8px;">${s.challengeApplied?"⭐":""}</td>
-          <td style="text-align:center;padding:5px 8px;">${s.syfApplied?"🎥":""}</td>
+          <td style="text-align:center;padding:5px 8px;${isDupChallenge?"color:#e74c3c;font-weight:700;":""}">${s.challengeApplied?(isDupChallenge?"⭐⚠":"⭐"):""}</td>
+          <td style="text-align:center;padding:5px 8px;${isDupSyf?"color:#e74c3c;font-weight:700;":""}">${s.syfApplied?(isDupSyf?"🎥⚠":"🎥"):""}</td>
           <td style="text-align:right;padding:5px 8px;font-weight:700;color:${(isGrace&&(s.pts||0)>0)?"#e74c3c":"var(--text)"};">${s.pts||0}</td>
           <td style="padding:5px 8px;color:var(--text-muted);">${dateStr}</td>
+          <td style="padding:5px 8px;">${fixBtns}</td>
         </tr>`;
       });
       html += `</tbody></table></div>`;
@@ -8751,11 +8780,10 @@ window.runPointsAudit = async function(){
       html += `<div style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">No submissions found.</div>`;
     }
 
-    // Engagement detail
+    // ── Engagement detail ────────────────────────────────────────────────
     html += `<div style="font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Engagement Detail</div>`;
     const allEngs = [...engSnap.docs.map(d=>({...d.data(),_id:d.id}))].sort((a,b)=>(a.weekIdx-b.weekIdx)||(a.ts-b.ts));
     if(allEngs.length){
-      // Group by week for count display
       const engByWk = {};
       allEngs.forEach(e=>{ const w=e.weekIdx; engByWk[w]=(engByWk[w]||[]); engByWk[w].push(e); });
       html += `<div style="overflow-x:auto;margin-bottom:16px;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -8767,11 +8795,11 @@ window.runPointsAudit = async function(){
           <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Week Count</th>
         </tr></thead><tbody>`;
       allEngs.forEach(e=>{
-        const wDef = WEEKS[e.weekIdx]||{};
+        const wDef    = WEEKS[e.weekIdx]||{};
         const wkCount = engByWk[e.weekIdx]?.length || 0;
         const overLimit = wkCount > MAX_ENG_PER_WEEK;
-        const rowFlag = overLimit ? "background:rgba(231,76,60,0.08);" : "";
-        const dateStr = e.ts ? new Date(e.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—";
+        const rowFlag   = overLimit ? "background:rgba(231,76,60,0.08);" : "";
+        const dateStr   = e.ts ? new Date(e.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—";
         html += `<tr style="border-bottom:1px solid var(--border);${rowFlag}">
           <td style="padding:5px 8px;white-space:nowrap;">${esc(wDef.label?`${wDef.month||""} ${wDef.label}`:`W${(e.weekIdx||0)+1}`)}</td>
           <td style="padding:5px 8px;">${esc(e.type||"—")}</td>
@@ -8785,7 +8813,7 @@ window.runPointsAudit = async function(){
       html += `<div style="color:var(--text-muted);font-size:13px;">No engagement submissions found.</div>`;
     }
 
-    // Summary banner
+    // Summary banner (prepended)
     const summaryColor = flagCount>0 ? "#e74c3c" : "#27ae60";
     const summaryIcon  = flagCount>0 ? "⚠" : "✓";
     html = `<div style="padding:10px 14px;border-radius:8px;border:1.5px solid ${summaryColor};background:${flagCount>0?"rgba(231,76,60,0.07)":"rgba(39,174,96,0.07)"};margin-bottom:16px;font-size:13px;">
@@ -8802,6 +8830,87 @@ window.runPointsAudit = async function(){
     console.error("runPointsAudit error:",e);
   }finally{
     runBtn.disabled=false;
+  }
+};
+
+// ─────────────────────────────────────────────
+//  ADMIN: APPLY AUDIT CORRECTION
+//  Removes a duplicate modifier from one submission doc,
+//  recalculates pts, decrements registry.points,
+//  writes an auditable corrections doc, and triggers
+//  the Cloud Function email notification.
+// ─────────────────────────────────────────────
+window.applyAuditCorrection = async function(subId, modifierType, oldPts, weekIdx, uid, regId, memberName){
+  if(!currentUser||!currentUser.isAdmin) return;
+
+  const wDef     = WEEKS[weekIdx]||{};
+  const weekLabel = wDef.label ? `${wDef.month||""} ${wDef.label}` : `Week ${weekIdx+1}`;
+  const modLabel  = modifierType==="challenge" ? "Weekly Challenge" : "Show Your Face";
+
+  if(!confirm(
+    `Remove the ${modLabel} modifier from this submission?\n\n` +
+    `Week: ${weekLabel}\n` +
+    `Points will decrease by 5.\n\n` +
+    `An email notification will be sent to ${memberName}.\n\n` +
+    `This action is logged and cannot be undone from the platform.`
+  )) return;
+
+  try{
+    const {
+      updateDoc, doc:dcRef, addDoc, collection:col, increment, serverTimestamp
+    } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    // Recalculate pts without the modifier (-5)
+    const newPts  = Math.max(0, oldPts - 5);
+    const ptsDelta = newPts - oldPts; // always -5
+
+    // 1. Strip modifier flag + update pts on submission doc
+    const subUpdate = { pts: newPts };
+    if(modifierType==="challenge") subUpdate.challengeApplied = false;
+    if(modifierType==="syf")       subUpdate.syfApplied       = false;
+    await updateDoc(dcRef(db,"submissions",subId), subUpdate);
+
+    // 2. Decrement registry.points
+    if(regId){
+      await updateDoc(dcRef(db,"smac_registry",regId), { points: increment(ptsDelta) });
+    }
+
+    // 3. Write corrections audit doc
+    // Cloud Function listens to this collection and sends the email
+    await addDoc(col(db,"corrections"),{
+      submissionId:   subId,
+      uid:            uid,
+      memberName:     memberName,
+      weekIdx:        weekIdx,
+      weekLabel:      weekLabel,
+      correctionType: "duplicate_modifier_removed",
+      modifierType:   modifierType,   // "challenge" | "syf"
+      modifierLabel:  modLabel,
+      oldPts:         oldPts,
+      newPts:         newPts,
+      ptsDelta:       ptsDelta,
+      correctedBy:    currentUser.uid,
+      correctedByEmail: currentUser.email || ADMIN_EMAIL,
+      correctedAt:    serverTimestamp(),
+      reason:         `Duplicate ${modLabel} modifier — max 1 per week`,
+      notified:       false,
+    });
+
+    // 4. Update UI — mark row as fixed without full re-render
+    const row = document.getElementById(`auditrow-${subId}`);
+    if(row){
+      row.style.background = "rgba(39,174,96,0.06)";
+      const fixCell = row.querySelector("td:last-child");
+      if(fixCell) fixCell.innerHTML = `<span style="color:#27ae60;font-size:11px;font-weight:700;">✓ Fixed</span>`;
+      const ptsCell = row.cells[5];
+      if(ptsCell) ptsCell.textContent = newPts;
+    }
+
+    showToast(`✓ Correction applied. −5 pts. Email notification queued.`);
+
+  }catch(e){
+    console.error("applyAuditCorrection error:",e);
+    showToast("Error applying correction: "+e.message);
   }
 };
 
