@@ -1201,6 +1201,7 @@
             <option value="">Select a member…</option>
           </select>
           <button class="btn-sm" id="audit-run-btn" onclick="runPointsAudit()" style="background:var(--gold);color:#000;border-color:var(--gold);">Run Audit</button>
+          <button class="btn-sm" id="audit-run-all-btn" onclick="runPointsAuditAll()" style="margin-left:4px;">Run All Members</button>
         </div>
         <div id="audit-status" style="font-size:13px;color:var(--text-muted);display:none;margin-bottom:12px;"></div>
         <div id="audit-results" style="display:none;"></div>
@@ -8912,6 +8913,214 @@ window.applyAuditCorrection = async function(subId, modifierType, oldPts, weekId
     console.error("applyAuditCorrection error:",e);
     showToast("Error applying correction: "+e.message);
   }
+};
+
+// ─────────────────────────────────────────────
+//  ADMIN: POINT AUDIT — ALL MEMBERS
+//  Fetches all submissions, engagements, and registry docs
+//  in 3 reads. Evaluates every member for duplicate modifiers,
+//  over-limit posts/engagements, and grace-week pts.
+//  Shows compact summary table; click any flagged row to
+//  run the full single-member audit inline.
+// ─────────────────────────────────────────────
+window.runPointsAuditAll = async function(){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const statusEl  = document.getElementById("audit-status");
+  const resultsEl = document.getElementById("audit-results");
+  const runBtn    = document.getElementById("audit-run-all-btn");
+  const singleBtn = document.getElementById("audit-run-btn");
+
+  statusEl.style.display="block";
+  statusEl.textContent="Fetching all docs… (3 reads)";
+  resultsEl.style.display="none";
+  runBtn.disabled=true;
+  singleBtn.disabled=true;
+
+  try{
+    const {getDocs,collection:col,query:q,orderBy:ob} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    const [regSnap, subSnap, engSnap] = await Promise.all([
+      getDocs(col(db,"smac_registry")),
+      getDocs(q(col(db,"submissions"), ob("ts","asc"))),
+      getDocs(col(db,"engagements")),
+    ]);
+
+    const GRACE_WEEK_IDXS    = [0,1];
+    const MAX_PTS_PER_POST   = 17;
+    const MAX_ENG_PTS_PER_WEEK = MAX_ENG_PER_WEEK * PTS_ENGAGEMENT;
+
+    // Index subs and engs by uid
+    const subsByUid = {}, engsByUid = {};
+    subSnap.docs.forEach(d=>{
+      const data = d.data();
+      const uid  = data.uid||""; if(!uid) return;
+      if(!subsByUid[uid]) subsByUid[uid]=[];
+      subsByUid[uid].push({...data,_id:d.id});
+    });
+    engSnap.docs.forEach(d=>{
+      const data = d.data();
+      const uid  = data.uid||""; if(!uid) return;
+      if(!engsByUid[uid]) engsByUid[uid]=[];
+      engsByUid[uid].push({...data,_id:d.id});
+    });
+
+    // Evaluate each registry member
+    const results = regSnap.docs.map(d=>{
+      const reg    = d.data();
+      const uid    = reg.uid||"";
+      const isPro  = !!reg.isPro;
+      const regPts = reg.points||0;
+      const subs   = subsByUid[uid]||[];
+      const engs   = engsByUid[uid]||[];
+
+      // Build week buckets
+      const wkSubs = {}, wkEngs = {};
+      subs.forEach(s=>{ const wi=s.weekIdx; if(!wkSubs[wi]) wkSubs[wi]=[]; wkSubs[wi].push(s); });
+      engs.forEach(e=>{ const wi=e.weekIdx; if(!wkEngs[wi]) wkEngs[wi]=[]; wkEngs[wi].push(e); });
+
+      const flags = [];
+      let computedPts = 0;
+
+      // Check all weeks with activity
+      const allWks = [...new Set([...Object.keys(wkSubs),...Object.keys(wkEngs)].map(Number))];
+      allWks.forEach(wi=>{
+        const realSubs  = (wkSubs[wi]||[]).filter(s=>s.status!=="grace");
+        const weekEngs  = wkEngs[wi]||[];
+        const isGrace   = GRACE_WEEK_IDXS.includes(wi);
+        const required  = weekRequirementFor(wi, isPro);
+        const postPts   = realSubs.reduce((s,sub)=>s+(sub.pts||0),0);
+        const engPts    = weekEngs.reduce((s,e)=>s+(e.pts||0),0);
+        const maxPost   = isGrace ? 0 : required * MAX_PTS_PER_POST;
+        const maxTotal  = maxPost + MAX_ENG_PTS_PER_WEEK;
+        const weekTotal = postPts + engPts;
+        computedPts    += weekTotal;
+
+        const wLabel = WEEKS[wi] ? `${WEEKS[wi].month||""} ${WEEKS[wi].label||"W"+(wi+1)}` : `W${wi+1}`;
+
+        if(isGrace && postPts>0)
+          flags.push(`Grace week pts in ${wLabel}`);
+        if(!isGrace && realSubs.length > required)
+          flags.push(`${realSubs.length} posts in ${wLabel} (max ${required})`);
+        if(weekEngs.length > MAX_ENG_PER_WEEK)
+          flags.push(`${weekEngs.length} engagements in ${wLabel} (max ${MAX_ENG_PER_WEEK})`);
+        if(weekTotal > maxTotal)
+          flags.push(`Exceeds max in ${wLabel} (${weekTotal}>${maxTotal})`);
+
+        const chalCount = realSubs.filter(s=>s.challengeApplied).length;
+        const syfCount  = realSubs.filter(s=>s.syfApplied).length;
+        if(chalCount > 1) flags.push(`${chalCount}× Challenge in ${wLabel}`);
+        if(syfCount  > 1) flags.push(`${syfCount}× SYF in ${wLabel}`);
+      });
+
+      const ptsDelta = computedPts - regPts;
+      if(Math.abs(ptsDelta) > 0) flags.push(`Registry drift: Δ${ptsDelta>0?"+":""}${ptsDelta}`);
+
+      return {
+        id:    d.id,
+        uid,
+        name:  reg.name||"(unnamed)",
+        regPts,
+        computedPts,
+        ptsDelta,
+        flagCount: flags.length,
+        flags,
+      };
+    });
+
+    // Sort: flagged first (by flag count desc), then alpha
+    results.sort((a,b)=>{
+      if(a.flagCount !== b.flagCount) return b.flagCount - a.flagCount;
+      return (a.name||"").localeCompare(b.name||"");
+    });
+
+    const flaggedCount = results.filter(r=>r.flagCount>0).length;
+    const cleanCount   = results.filter(r=>r.flagCount===0).length;
+
+    let html = `<div style="padding:10px 14px;border-radius:8px;border:1.5px solid ${flaggedCount?"#e74c3c":"#27ae60"};background:${flaggedCount?"rgba(231,76,60,0.07)":"rgba(39,174,96,0.07)"};margin-bottom:16px;font-size:13px;">
+      <strong style="color:${flaggedCount?"#e74c3c":"#27ae60"};">${flaggedCount?"⚠ "+flaggedCount+" member"+(flaggedCount>1?"s":"")+" flagged":"✓ All members clean"}</strong>
+      &nbsp;·&nbsp; ${results.length} members checked · ${cleanCount} clean
+    </div>`;
+
+    html += `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="border-bottom:2px solid var(--border);">
+        <th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:600;">Member</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Registry</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Computed</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Delta</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:600;">Flags</th>
+        <th style="padding:6px 8px;"></th>
+      </tr></thead><tbody>`;
+
+    results.forEach(r=>{
+      const hasFlagRow = r.flagCount > 0;
+      const rowBg  = hasFlagRow ? "background:rgba(231,76,60,0.05);" : "";
+      const deltaColor = r.ptsDelta===0 ? "var(--text-muted)" : r.ptsDelta>0 ? "#e74c3c" : "#e67e22";
+      const deltaStr   = r.ptsDelta===0 ? "—" : (r.ptsDelta>0?"+":"")+r.ptsDelta;
+      const flagSummary = r.flags.length
+        ? `<span style="color:#e67e22;font-size:11px;">${r.flags.slice(0,2).map(f=>esc(f)).join(" · ")}${r.flags.length>2?" · +"+(r.flags.length-2)+" more":""}</span>`
+        : `<span style="color:#27ae60;font-size:11px;">✓ Clean</span>`;
+      const drillBtn = hasFlagRow
+        ? `<button onclick="drillAuditMember('${esc(r.uid)}','${esc(r.id)}','${esc(r.name)}')" style="font-size:11px;padding:3px 10px;border:1px solid var(--gold);color:var(--gold);background:transparent;border-radius:5px;cursor:pointer;white-space:nowrap;">Full Audit →</button>`
+        : "";
+
+      html += `<tr style="border-bottom:1px solid var(--border);${rowBg}">
+        <td style="padding:6px 8px;font-weight:${hasFlagRow?"700":"400"};">${esc(r.name)}</td>
+        <td style="text-align:right;padding:6px 8px;">${r.regPts}</td>
+        <td style="text-align:right;padding:6px 8px;">${r.computedPts}</td>
+        <td style="text-align:right;padding:6px 8px;font-weight:700;color:${deltaColor};">${deltaStr}</td>
+        <td style="padding:6px 8px;">${flagSummary}</td>
+        <td style="padding:6px 8px;text-align:right;">${drillBtn}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    html += `<div id="audit-drill-results" style="margin-top:24px;"></div>`;
+
+    statusEl.style.display="none";
+    resultsEl.innerHTML = html;
+    resultsEl.style.display="block";
+
+  }catch(e){
+    statusEl.textContent="Error: "+e.message;
+    console.error("runPointsAuditAll error:",e);
+  }finally{
+    runBtn.disabled=false;
+    singleBtn.disabled=false;
+  }
+};
+
+// Drill into a single member from the all-members view
+window.drillAuditMember = async function(uid, regId, name){
+  const drillEl = document.getElementById("audit-drill-results");
+  if(!drillEl) return;
+  drillEl.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:12px 0;">Loading full audit for ${esc(name)}…</div>`;
+  drillEl.scrollIntoView({behavior:"smooth", block:"start"});
+
+  // Pre-select in the dropdown so runPointsAudit() picks it up
+  const sel = document.getElementById("audit-member-select");
+  if(sel){
+    for(let i=0;i<sel.options.length;i++){
+      if(sel.options[i].value===uid){ sel.selectedIndex=i; break; }
+    }
+  }
+
+  // Temporarily redirect audit output to drill div
+  const realResults = document.getElementById("audit-results");
+  const realStatus  = document.getElementById("audit-status");
+  const savedDisplay = realResults.style.display;
+
+  // Swap IDs temporarily
+  realResults.id = "audit-results-hidden";
+  drillEl.id     = "audit-results";
+  realStatus.style.display = "none";
+
+  await runPointsAudit();
+
+  // Restore IDs
+  drillEl.id     = "audit-drill-results";
+  realResults.id = "audit-results";
+  realResults.style.display = savedDisplay;
 };
 
 // ─────────────────────────────────────────────
