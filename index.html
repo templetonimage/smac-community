@@ -974,7 +974,7 @@
   <div class="page" id="page-tracker">
     <div class="page-header">
       <h1 class="page-title">My Tracker</h1>
-      <p class="page-subtitle" id="tracker-pts-summary">Log your weekly posts — check off <em>after</em> you've posted, not before</p>
+      <p class="page-subtitle" id="tracker-pts-summary">Your tracker updates automatically when you submit a post. Tap any unchecked box to mark it manually.</p>
     </div>
     <div class="tracker-header">
       <h2>Round 2 Progress</h2>
@@ -3910,6 +3910,32 @@ function initGracePeriod(tracked){
 function buildTracker(){
   const key=`smac_tracker_${currentUser.uid}`;
   let tracked=lsGet(key)||{};
+
+  // ── Lazy backfill (runs once per session) ──────────────────────────────────
+  // For members who submitted before submission-driven sync shipped, compare
+  // real submission counts against tracker slots and patch any gaps silently.
+  if(!window._trackerBackfillDone&&!useLocalFallback&&db){
+    window._trackerBackfillDone=true;
+    (async()=>{
+      try{
+        const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        const snap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid)));
+        const subs=snap.docs.map(d=>d.data()).filter(s=>s.status!=="grace");
+        let needsRebuild=false;
+        for(let wi=0;wi<WEEKS.length;wi++){
+          const realCount=subs.filter(s=>s.weekIdx===wi).length;
+          const existing=(tracked[WEEKS[wi].id]||[]).filter(Boolean).length;
+          if(realCount>existing){
+            await syncTrackerFromSubmission(wi,currentUser.uid,realCount);
+            needsRebuild=true;
+          }
+        }
+        if(needsRebuild)buildTracker();
+      }catch(e){console.warn("Tracker backfill failed:",e);}
+    })();
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   // Auto-apply grace period on first load
   const changed=initGracePeriod(tracked);
   if(changed){
@@ -3965,6 +3991,33 @@ function buildTracker(){
     }
   }
 }
+// ─────────────────────────────────────────────
+//  TRACKER SYNC — driven by submissions
+// ─────────────────────────────────────────────
+// Derives tracker slot state for a given week from realCount (non-grace subs).
+// Slots 0..realCount-1 are set true; slots above that preserve manual checks.
+// Called after submit, after delete, and during lazy backfill on buildTracker().
+async function syncTrackerFromSubmission(weekIdx, uid, realCount){
+  if(!WEEKS[weekIdx]) return;
+  const weekId=WEEKS[weekIdx].id;
+  const isPro=!!(currentUser&&currentUser.isPro===true);
+  const required=weekRequirementFor(weekIdx,isPro);
+  const lsKey=`smac_tracker_${uid}`;
+  const tracked=lsGet(lsKey)||{};
+  const existing=tracked[weekId]||[];
+  // Fill slots from index 0 up to realCount; preserve manual checks beyond that
+  const slots=Array.from({length:required},(_,i)=>i<realCount?true:(existing[i]===true));
+  tracked[weekId]=slots;
+  lsSet(lsKey,tracked);
+  if(!useLocalFallback&&db){
+    try{
+      const {setDoc,doc:dcRef}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await setDoc(dcRef(db,'trackers',uid),{name:currentUser.name,uid,tracked,updatedAt:Date.now()},{merge:true});
+      _trackerCache[uid]={...(_trackerCache[uid]||{}),tracked,updatedAt:Date.now()};
+    }catch(e){console.warn('Tracker sync failed:',e);}
+  }
+}
+
 window.toggleCheck=async function(wid,idx){
   const key=`smac_tracker_${currentUser.uid}`;
   const tracked=lsGet(key)||{};
@@ -7340,6 +7393,10 @@ window.submitIgPost=async function(){
         await refundGraceToken(weekIdx);
       }
 
+      // Sync tracker — auto-fill slot for this week from submission count
+      // realPostCount is pre-delete count; +1 for the doc just written
+      await syncTrackerFromSubmission(weekIdx,currentUser.uid,realPostCount+1);
+
       document.getElementById("submit-ig-url").value="";
       clearScreenshot();
       selectFormat("Static");
@@ -7601,7 +7658,7 @@ async function loadMySubmissions(){
             ${s.status==="ontime"?'<span class="sub-ontime">On time</span>':s.status==="late"?'<span class="sub-late">Late</span>':'<span class="sub-late">Missed</span>'}
             <span class="sub-pts">+${s.pts||0}</span>
             <button onclick="${canEdit?`toggleSubEdit('${s.id}')`:'showToast("Edit window closed — submissions can only be edited within 7 days.")'}" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:${canEdit?"var(--text-muted)":"var(--border)"};cursor:${canEdit?"pointer":"not-allowed"};opacity:${canEdit?"1":"0.5"};" title="${editTitle}">✏️</button>
-            <button onclick="deleteMemberSubmission('${s.id}',${s.pts||0})" style="background:none;border:1px solid #e74c3c;border-radius:6px;padding:4px 8px;font-size:11px;color:#e74c3c;cursor:pointer;" title="Delete submission">🗑️</button>
+            <button onclick="deleteMemberSubmission('${s.id}',${s.pts||0},${s.weekIdx??-1})" style="background:none;border:1px solid #e74c3c;border-radius:6px;padding:4px 8px;font-size:11px;color:#e74c3c;cursor:pointer;" title="Delete submission">🗑️</button>
           </div>
         </div>
         <div id="sub-edit-${s.id}" style="display:none;margin-top:8px;">
@@ -7631,16 +7688,22 @@ async function loadMySubmissions(){
   loadMyEngLog();
 }
 
-window.deleteMemberSubmission=async function(subId, pts){
+window.deleteMemberSubmission=async function(subId, pts, weekIdx){
   if(!confirm("Delete this submission? Your points will be adjusted accordingly."))return;
   if(!useLocalFallback&&db){
     try{
-      const {deleteDoc,doc:docRef,updateDoc,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const {deleteDoc,doc:docRef,updateDoc,increment,getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       await deleteDoc(docRef(db,"submissions",subId));
       if(currentUser.registryId){
         const update={totalPosts:increment(-1)};
         if(pts>0)update.points=increment(-pts);
         await updateDoc(docRef(db,"smac_registry",currentUser.registryId),update);
+      }
+      // Re-derive tracker slots for this week from remaining real submissions
+      if(weekIdx!=null&&weekIdx>=0){
+        const remaining=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx)));
+        const realCount=remaining.docs.filter(d=>d.data().status!=="grace").length;
+        await syncTrackerFromSubmission(weekIdx,currentUser.uid,realCount);
       }
       showToast(pts>0?`Submission deleted. -${pts} pts removed.`:"Submission deleted.");
       loadMySubmissions();
@@ -7652,6 +7715,11 @@ window.deleteMemberSubmission=async function(subId, pts){
   } else {
     const subs=(lsGet("smac_submissions")||[]).filter(s=>s.id!==subId);
     lsSet("smac_submissions",subs);
+    // Local fallback: re-derive tracker from remaining local subs
+    if(weekIdx!=null&&weekIdx>=0){
+      const realCount=subs.filter(s=>s.uid===currentUser.uid&&s.weekIdx===weekIdx&&s.status!=="grace").length;
+      syncTrackerFromSubmission(weekIdx,currentUser.uid,realCount);
+    }
     showToast(pts>0?`Submission deleted. -${pts} pts removed.`:"Submission deleted.");
     loadMySubmissions();
   }
