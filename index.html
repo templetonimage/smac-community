@@ -1071,7 +1071,7 @@
 
       <!-- Filters -->
       <div class="sub-filter-row">
-        <select class="sub-filter-select" id="sub-filter-week" onchange="renderSubViewer()">
+        <select class="sub-filter-select" id="sub-filter-week" style="display:none;" onchange="renderSubViewer()">
           <option value="">All Weeks</option>
           <option value="0">W1 · Mar 1–7</option>
           <option value="1">W2 · Mar 8–14</option>
@@ -1087,7 +1087,7 @@
           <option value="11">W12 · May 22–31</option>
         </select>
         <select class="sub-filter-select" id="sub-filter-member" onchange="renderSubViewer()">
-          <option value="">All Members</option>
+          <option value="">Select a member...</option>
         </select>
         <select class="sub-filter-select" id="sub-filter-status" onchange="renderSubViewer()">
           <option value="">All Statuses</option>
@@ -1186,6 +1186,24 @@
           </div>
           <button id="sweep-fix-all-btn" onclick="fixAllMismatches()" style="display:none;margin-top:16px;background:#e74c3c;color:#fff;border:1px solid #e74c3c;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;">Fix All Mismatches</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ADMIN: Point Audit Tool -->
+    <div id="point-audit-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🧾 Point Audit</div>
+      <div class="card" style="border:1.5px solid var(--border);">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+          Reconstructs a full week-by-week points ledger for any member from raw Firestore docs. Flags weeks where earned points exceed the theoretical maximum.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
+          <select class="sub-filter-select" id="audit-member-select" style="max-width:260px;">
+            <option value="">Select a member…</option>
+          </select>
+          <button class="btn-sm" id="audit-run-btn" onclick="runPointsAudit()" style="background:var(--gold);color:#000;border-color:var(--gold);">Run Audit</button>
+        </div>
+        <div id="audit-status" style="font-size:13px;color:var(--text-muted);display:none;margin-bottom:12px;"></div>
+        <div id="audit-results" style="display:none;"></div>
       </div>
     </div>
 
@@ -2395,6 +2413,7 @@ function bootApp(){
     document.getElementById("member-reset-tool").style.display="block";
     document.getElementById("archive-round-tool").style.display="block";
     document.getElementById("points-sweep-tool").style.display="block";
+    document.getElementById("point-audit-tool").style.display="block";
     document.getElementById("eng-viewer").style.display="block";
     document.getElementById("bug-reports-viewer").style.display="block";
     document.getElementById("admin-spotlight-compose").style.display="block";
@@ -2423,6 +2442,7 @@ function bootApp(){
     document.getElementById("member-reset-tool").style.display="none";
     document.getElementById("archive-round-tool").style.display="none";
     document.getElementById("points-sweep-tool").style.display="none";
+    document.getElementById("point-audit-tool").style.display="none";
     document.getElementById("eng-viewer").style.display="none";
     document.getElementById("bug-reports-viewer").style.display="none";
     document.getElementById("admin-spotlight-compose").style.display="none";
@@ -2563,7 +2583,7 @@ window.navTo=function(page,el){
   if(page==="leaderboard")loadLeaderboard();
   if(page==="feed"){loadFeed();loadAnnouncements();loadSpotlights();}
   if(page==="submit"){loadSubmitPage();renderWeeklyChallenge();renderSYFModifier();}
-  if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin){loadSubViewer();loadEngViewer();loadBugReports();}}
+  if(page==="reports"){loadTrackerReport();if(currentUser&&currentUser.isAdmin){loadSubViewer();loadEngViewer();loadBugReports();loadAuditMemberDropdown();}}
   if(page==="pro"){renderProPage();}
   if(page==="chat"){
     clearNavDot("chat");
@@ -7715,7 +7735,11 @@ window.setSubView = function(mode, btn){
   _subViewMode = mode;
   document.querySelectorAll(".sub-toggle-btn").forEach(b=>b.classList.remove("active"));
   if(btn) btn.classList.add("active");
-  // Both filters always visible — mode only affects grouping/sorting
+  // Show/hide relevant filters
+  const wkSel = document.getElementById("sub-filter-week");
+  const memSel = document.getElementById("sub-filter-member");
+  if(wkSel) wkSel.style.display = (mode==="week") ? "block" : "none";
+  if(memSel) memSel.style.display = (mode==="member") ? "block" : "none";
   renderSubViewer();
 };
 
@@ -7733,7 +7757,7 @@ window.loadSubViewer = async function(){
     const memSel = document.getElementById("sub-filter-member");
     if(memSel){
       const names = [...new Set(_allSubmissions.map(s=>s.memberName||"Unknown"))].sort();
-      memSel.innerHTML = '<option value="">All Members</option>' + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+      memSel.innerHTML = '<option value="">Select a member...</option>' + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
     }
     renderSubViewer();
   }catch(e){
@@ -7750,20 +7774,23 @@ window.renderSubViewer = function(){
   const weekFilter = document.getElementById("sub-filter-week")?.value;
   const memberFilter = document.getElementById("sub-filter-member")?.value || "";
 
-  // Render gate: need at least one of member or week selected
-  const hasSelection = memberFilter || (weekFilter !== "" && weekFilter !== undefined);
+  // Render gate: nothing shows until a member or week is selected
+  const hasSelection = (_subViewMode==="member" && memberFilter) || (_subViewMode==="week" && weekFilter!=="" && weekFilter!==undefined);
   if(!hasSelection){
     if(countEl) countEl.textContent = "";
-    body.innerHTML = `<div class='sub-viewer-empty'>${_subDataLoaded ? "Select a member or week above to view submissions." : "Loading submissions..."}</div>`;
+    const prompt = _subViewMode==="member"
+      ? "Select a member above to view their submissions."
+      : "Select a week above to view its submissions.";
+    body.innerHTML = `<div class='sub-viewer-empty'>${_subDataLoaded ? prompt : "Loading submissions..."}</div>`;
     return;
   }
 
   let subs = [..._allSubmissions];
 
-  // Apply all active filters simultaneously
-  if(memberFilter) subs = subs.filter(s => s.uid===memberFilter || s.memberName===memberFilter);
-  if(weekFilter !== "" && weekFilter !== undefined) subs = subs.filter(s => String(s.weekIdx)===String(weekFilter));
+  // Apply filters
   if(statusFilter) subs = subs.filter(s => statusFilter==="reviewed" ? s.reviewed : s.status===statusFilter);
+  if(_subViewMode==="week" && weekFilter!=="") subs = subs.filter(s => String(s.weekIdx)===String(weekFilter));
+  if(_subViewMode==="member" && memberFilter) subs = subs.filter(s => s.uid===memberFilter || s.memberName===memberFilter);
 
   // Sort
   if(_subViewMode==="week"){
@@ -8516,6 +8543,265 @@ window.fixAllMismatches = async function(){
   }catch(e){
     statusEl.textContent="Error: "+e.message;
     fixBtn.disabled=false;
+  }
+};
+
+// ─────────────────────────────────────────────
+//  ADMIN: POINT AUDIT TOOL
+//  Reconstructs full week-by-week ledger for one member.
+//  Fetches all submission + engagement docs, groups by week,
+//  computes theoretical max per week, and flags anomalies.
+// ─────────────────────────────────────────────
+
+// Populate audit member dropdown from smac_registry
+window.loadAuditMemberDropdown = async function(){
+  const sel = document.getElementById("audit-member-select");
+  if(!sel || sel.options.length > 1) return; // already populated
+  try{
+    const registry = lsGet("smac_registry") || [];
+    if(registry.length){
+      const sorted = [...registry].filter(m=>m.name).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+      sel.innerHTML = '<option value="">Select a member…</option>' +
+        sorted.map(m=>`<option value="${esc(m.uid||m._uid||"")}" data-regid="${esc(m.id||m.registryId||"")}" data-name="${esc(m.name||"")}">${esc(m.name||"Unknown")}</option>`).join("");
+    }
+  }catch(e){ /* silent */ }
+};
+
+window.runPointsAudit = async function(){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const sel    = document.getElementById("audit-member-select");
+  const uid    = sel?.value || "";
+  const name   = sel?.options[sel?.selectedIndex]?.dataset?.name || sel?.options[sel?.selectedIndex]?.text || "";
+  const regId  = sel?.options[sel?.selectedIndex]?.dataset?.regid || "";
+  const statusEl  = document.getElementById("audit-status");
+  const resultsEl = document.getElementById("audit-results");
+  const runBtn    = document.getElementById("audit-run-btn");
+
+  if(!uid){ showToast("Select a member first."); return; }
+
+  statusEl.style.display="block";
+  statusEl.textContent="Fetching docs…";
+  resultsEl.style.display="none";
+  runBtn.disabled=true;
+
+  try{
+    const {getDocs,collection:col,query:q,where,doc:dcRef,getDoc} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    const [subSnap, engSnap, regDocSnap] = await Promise.all([
+      getDocs(q(col(db,"submissions"), where("uid","==",uid))),
+      getDocs(q(col(db,"engagements"), where("uid","==",uid))),
+      regId ? getDoc(dcRef(db,"smac_registry",regId)) : Promise.resolve(null)
+    ]);
+
+    const registryPts = regDocSnap?.exists?.() ? (regDocSnap.data().points||0) : "N/A";
+    const isPro       = regDocSnap?.exists?.() ? !!regDocSnap.data().isPro : false;
+
+    // Build week buckets (0–11)
+    const weeks = Array.from({length:12},(_,i)=>({
+      weekIdx: i,
+      subs: [],
+      engs: [],
+    }));
+
+    subSnap.docs.forEach(d=>{
+      const data = d.data();
+      const wi = data.weekIdx;
+      if(wi>=0 && wi<=11) weeks[wi].subs.push({...data, _id:d.id});
+      else weeks.push({weekIdx:wi, subs:[{...data,_id:d.id}], engs:[]}); // out-of-range bucket
+    });
+    engSnap.docs.forEach(d=>{
+      const data = d.data();
+      const wi = data.weekIdx;
+      if(wi>=0 && wi<=11) weeks[wi].engs.push({...data,_id:d.id});
+    });
+
+    // Per-week theoretical max
+    // Post max: weekRequirementFor(wi, isPro) posts × max pts per post
+    // Max pts per post = 10 (on-time) + 2 (format) + 5 (modifier) = 17
+    // Engagement max: MAX_ENG_PER_WEEK × PTS_ENGAGEMENT = 5 × 2 = 10
+    // Grace weeks (W1=0, W2=1 for R2): post submissions should earn 0 pts
+    const GRACE_WEEK_IDXS = [0,1]; // R2 W1 and W2
+    const MAX_PTS_PER_POST = 17; // 10 + 2 format + 5 modifier
+    const MAX_ENG_PTS_PER_WEEK = MAX_ENG_PER_WEEK * PTS_ENGAGEMENT; // 5×2=10
+
+    let grandTotalEarned = 0;
+    let flagCount = 0;
+    let html = `<div style="font-size:13px;font-weight:600;margin-bottom:16px;">
+      <span style="color:var(--text-muted);">Member:</span> <strong>${esc(name)}</strong>
+      &nbsp;·&nbsp; <span style="color:var(--text-muted);">Registry pts:</span> <strong>${registryPts}</strong>
+      &nbsp;·&nbsp; <span style="color:var(--text-muted);">Pro:</span> <strong>${isPro?"Yes":"No"}</strong>
+    </div>`;
+
+    // Week-by-week table
+    html += `<div style="overflow-x:auto;margin-bottom:20px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border);">
+            <th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:600;white-space:nowrap;">Week</th>
+            <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;"># Posts</th>
+            <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Post Pts</th>
+            <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;"># Engs</th>
+            <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Eng Pts</th>
+            <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Week Total</th>
+            <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Max</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:600;">Flags</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    // Only show weeks with activity + all 12 standard weeks
+    const weekIdxsToShow = [...new Set([...Array.from({length:12},(_,i)=>i), ...weeks.filter(w=>w.weekIdx>11).map(w=>w.weekIdx)])].sort((a,b)=>a-b);
+
+    weekIdxsToShow.forEach(wi=>{
+      const bucket = weeks[wi] || {weekIdx:wi,subs:[],engs:[]};
+      const wDef   = WEEKS[wi] || {};
+      const required = weekRequirementFor(wi, isPro);
+      const isGrace  = GRACE_WEEK_IDXS.includes(wi);
+
+      const realSubs = bucket.subs.filter(s=>s.status!=="grace");
+      const postPts  = realSubs.reduce((s,sub)=>s+(sub.pts||0),0);
+      const engPts   = bucket.engs.reduce((s,e)=>s+(e.pts||0),0);
+      const weekTotal = postPts + engPts;
+      grandTotalEarned += weekTotal;
+
+      // Theoretical max for this week
+      const maxPostPts  = isGrace ? 0 : required * MAX_PTS_PER_POST;
+      const maxEngPts   = MAX_ENG_PTS_PER_WEEK;
+      const maxTotal    = maxPostPts + maxEngPts;
+
+      // Flag conditions
+      const flags = [];
+      if(isGrace && postPts > 0)
+        flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ Grace week post pts: ${postPts}</span>`);
+      if(!isGrace && realSubs.length > required)
+        flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ ${realSubs.length} posts (max ${required})</span>`);
+      if(bucket.engs.length > MAX_ENG_PER_WEEK)
+        flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ ${bucket.engs.length} engagements (max ${MAX_ENG_PER_WEEK})</span>`);
+      if(weekTotal > maxTotal)
+        flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ Exceeds max (${weekTotal} > ${maxTotal})</span>`);
+
+      // Check for multiple modifiers in same week
+      const modSubs = realSubs.filter(s=>s.challengeApplied||s.syfApplied);
+      if(modSubs.length > 1)
+        flags.push(`<span style="color:#e67e22;font-weight:700;">⚠ ${modSubs.length} modifier claims this week</span>`);
+
+      if(flags.length) flagCount++;
+
+      const rowBg = flags.length ? "background:rgba(231,76,60,0.06);" : (weekTotal===0 ? "opacity:0.45;" : "");
+      const weekLabel = wDef.label ? `${wDef.month||""} ${wDef.label} (W${wi+1})` : `W${wi+1}`;
+      const graceTag  = isGrace ? ` <span style="font-size:10px;background:rgba(212,175,55,.2);color:var(--gold);border-radius:4px;padding:1px 5px;">Grace</span>` : "";
+
+      html += `<tr style="border-bottom:1px solid var(--border);${rowBg}">
+        <td style="padding:6px 8px;white-space:nowrap;">${esc(weekLabel)}${graceTag}</td>
+        <td style="text-align:right;padding:6px 8px;">${realSubs.length}</td>
+        <td style="text-align:right;padding:6px 8px;">${postPts}</td>
+        <td style="text-align:right;padding:6px 8px;">${bucket.engs.length}</td>
+        <td style="text-align:right;padding:6px 8px;">${engPts}</td>
+        <td style="text-align:right;padding:6px 8px;font-weight:700;">${weekTotal}</td>
+        <td style="text-align:right;padding:6px 8px;color:var(--text-muted);">${isGrace?`0 post / ${maxEngPts} eng`:maxTotal}</td>
+        <td style="padding:6px 8px;">${flags.join(" ")}</td>
+      </tr>`;
+    });
+
+    // Totals row
+    const computedTotal = grandTotalEarned;
+    const delta = computedTotal - (typeof registryPts==="number" ? registryPts : computedTotal);
+    html += `<tr style="border-top:2px solid var(--border);font-weight:700;">
+      <td colspan="5" style="padding:8px 8px;">Computed Total</td>
+      <td style="text-align:right;padding:8px 8px;color:var(--gold);">${computedTotal}</td>
+      <td colspan="2" style="padding:8px 8px;font-size:12px;color:${delta===0?"#27ae60":delta>0?"#e74c3c":"#e67e22"};">
+        ${delta===0?"✓ Matches registry":`Δ ${delta>0?"+":""}${delta} vs registry`}
+      </td>
+    </tr>`;
+
+    html += `</tbody></table></div>`;
+
+    // Per-submission detail (expandable)
+    html += `<div style="font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Submission Detail</div>`;
+    const allSubs = [...subSnap.docs.map(d=>({...d.data(),_id:d.id}))].sort((a,b)=>(a.weekIdx-b.weekIdx)||(a.ts-b.ts));
+    if(allSubs.length){
+      html += `<div style="overflow-x:auto;margin-bottom:16px;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="border-bottom:1px solid var(--border);">
+          <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Week</th>
+          <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Status</th>
+          <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Format</th>
+          <th style="text-align:center;padding:5px 8px;color:var(--text-muted);">Challenge</th>
+          <th style="text-align:center;padding:5px 8px;color:var(--text-muted);">SYF</th>
+          <th style="text-align:right;padding:5px 8px;color:var(--text-muted);">Pts</th>
+          <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Date</th>
+        </tr></thead><tbody>`;
+      allSubs.forEach(s=>{
+        const wDef = WEEKS[s.weekIdx]||{};
+        const isGrace = GRACE_WEEK_IDXS.includes(s.weekIdx);
+        const rowFlag = (isGrace && (s.pts||0)>0) ? "background:rgba(231,76,60,0.08);" : "";
+        const dateStr = s.ts ? new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—";
+        html += `<tr style="border-bottom:1px solid var(--border);${rowFlag}">
+          <td style="padding:5px 8px;white-space:nowrap;">${esc(wDef.label?`${wDef.month||""} ${wDef.label}`:`W${(s.weekIdx||0)+1}`)}</td>
+          <td style="padding:5px 8px;">${esc(s.status||"ontime")}</td>
+          <td style="padding:5px 8px;">${esc(s.format||"Static")}</td>
+          <td style="text-align:center;padding:5px 8px;">${s.challengeApplied?"⭐":""}</td>
+          <td style="text-align:center;padding:5px 8px;">${s.syfApplied?"🎥":""}</td>
+          <td style="text-align:right;padding:5px 8px;font-weight:700;color:${(isGrace&&(s.pts||0)>0)?"#e74c3c":"var(--text)"};">${s.pts||0}</td>
+          <td style="padding:5px 8px;color:var(--text-muted);">${dateStr}</td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+    } else {
+      html += `<div style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">No submissions found.</div>`;
+    }
+
+    // Engagement detail
+    html += `<div style="font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Engagement Detail</div>`;
+    const allEngs = [...engSnap.docs.map(d=>({...d.data(),_id:d.id}))].sort((a,b)=>(a.weekIdx-b.weekIdx)||(a.ts-b.ts));
+    if(allEngs.length){
+      // Group by week for count display
+      const engByWk = {};
+      allEngs.forEach(e=>{ const w=e.weekIdx; engByWk[w]=(engByWk[w]||[]); engByWk[w].push(e); });
+      html += `<div style="overflow-x:auto;margin-bottom:16px;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="border-bottom:1px solid var(--border);">
+          <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Week</th>
+          <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Type</th>
+          <th style="text-align:right;padding:5px 8px;color:var(--text-muted);">Pts</th>
+          <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Date</th>
+          <th style="text-align:left;padding:5px 8px;color:var(--text-muted);">Week Count</th>
+        </tr></thead><tbody>`;
+      allEngs.forEach(e=>{
+        const wDef = WEEKS[e.weekIdx]||{};
+        const wkCount = engByWk[e.weekIdx]?.length || 0;
+        const overLimit = wkCount > MAX_ENG_PER_WEEK;
+        const rowFlag = overLimit ? "background:rgba(231,76,60,0.08);" : "";
+        const dateStr = e.ts ? new Date(e.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—";
+        html += `<tr style="border-bottom:1px solid var(--border);${rowFlag}">
+          <td style="padding:5px 8px;white-space:nowrap;">${esc(wDef.label?`${wDef.month||""} ${wDef.label}`:`W${(e.weekIdx||0)+1}`)}</td>
+          <td style="padding:5px 8px;">${esc(e.type||"—")}</td>
+          <td style="text-align:right;padding:5px 8px;font-weight:700;">${e.pts||0}</td>
+          <td style="padding:5px 8px;color:var(--text-muted);">${dateStr}</td>
+          <td style="padding:5px 8px;${overLimit?"color:#e74c3c;font-weight:700;":""}">${wkCount}/${MAX_ENG_PER_WEEK}${overLimit?" ⚠":""}</td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+    } else {
+      html += `<div style="color:var(--text-muted);font-size:13px;">No engagement submissions found.</div>`;
+    }
+
+    // Summary banner
+    const summaryColor = flagCount>0 ? "#e74c3c" : "#27ae60";
+    const summaryIcon  = flagCount>0 ? "⚠" : "✓";
+    html = `<div style="padding:10px 14px;border-radius:8px;border:1.5px solid ${summaryColor};background:${flagCount>0?"rgba(231,76,60,0.07)":"rgba(39,174,96,0.07)"};margin-bottom:16px;font-size:13px;">
+      <strong style="color:${summaryColor};">${summaryIcon} ${flagCount>0 ? flagCount+" flag"+(flagCount>1?"s":"")+" found" : "No integrity issues found"}</strong>
+      &nbsp;·&nbsp; ${subSnap.size} submissions · ${engSnap.size} engagements · ${computedTotal} computed pts
+    </div>` + html;
+
+    statusEl.style.display="none";
+    resultsEl.innerHTML = html;
+    resultsEl.style.display="block";
+
+  }catch(e){
+    statusEl.textContent="Error: "+e.message;
+    console.error("runPointsAudit error:",e);
+  }finally{
+    runBtn.disabled=false;
   }
 };
 
