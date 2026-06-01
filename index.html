@@ -698,7 +698,7 @@
       <div class="dash-stat-card dash-animate" style="animation-delay:0.46s;">
         <span class="dash-stat-icon">📅</span>
         <div class="dash-stat-value" id="dash-val-count">0</div>
-        <div class="dash-stat-label">Post Submissions</div>
+        <div class="dash-stat-label">Posts Made</div>
       </div>
       <div class="dash-stat-card dash-animate" style="animation-delay:0.53s;">
         <span class="dash-stat-icon">🌟</span>
@@ -2828,7 +2828,7 @@ window.loadDashboard=async function(){
       .slice(0,10);
 
     const communityPts=Math.max(0,totalPts-postPts-engPts);
-    _renderDashboard({total:totalPts,postPts,engPts,communityPts,trackerPostCount,submissionCount:subs.length,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,myUid:uid});
+    _renderDashboard({total:totalPts,postPts,engPts,communityPts,trackerPostCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,myUid:uid});
 
     // Render Analytics Snapshot banner (round-start / round-end pilot)
     try { renderSnapshotBanner(); } catch(e) { console.error('Snapshot banner error:',e); }
@@ -2862,7 +2862,7 @@ function _dashCountUp(el,target,delay=0,duration=900){
   },delay);
 }
 
-function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,submissionCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,myUid}){
+function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,myUid}){
   // ── Status pills ──
   const strip=document.getElementById('dash-status-strip');
   if(strip){
@@ -2879,7 +2879,7 @@ function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,su
   _dashCountUp(document.getElementById('dash-val-total'), total,        120);
   _dashCountUp(document.getElementById('dash-val-posts'), postPts,      200);
   _dashCountUp(document.getElementById('dash-val-eng'),   engPts,       280);
-  _dashCountUp(document.getElementById('dash-val-count'), submissionCount??trackerPostCount, 360);
+  _dashCountUp(document.getElementById('dash-val-count'), trackerPostCount, 360);
   _dashCountUp(document.getElementById('dash-val-comm'),  communityPts, 440);
 
   // ── All-star progress bar (tracker-based, matches Tracker page) ──
@@ -2922,14 +2922,13 @@ function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,su
     const rankDisplay=i<3?medals[i]:`#${i+1}`;
     const initials=(m.name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
     const trackerDoc=_trackerCache[m.uid||m.id||'']||{};
-    const trackerPosts=WEEKS.reduce((s,w)=>{const c=(trackerDoc.tracked||{})[w.id]||[];return s+c.filter(Boolean).length;},0);
-    const posts=trackerPosts||m.totalPosts||0;
+    const submissionCount=m.totalPosts||0;
     html+=`<div class="dash-lb-row${isYou?' you':''}">
       <div class="dash-lb-rank${i<3?' top3':''}">${rankDisplay}</div>
       ${avatarHTML(m.name,m.uid||m.id,'lb-avatar',isYou?'background:linear-gradient(135deg,var(--gold),var(--gold-dark));box-shadow:0 2px 8px rgba(201,168,76,0.35);':'')}
       <div class="dash-lb-info">
         <div class="dash-lb-name">${esc(m.name)}${isYou?'<span class="dash-you-badge">YOU</span>':''}${m.isAllStar?' ⭐':''}${m.isFounder?'<span class="founder-badge" style="font-size:9px;padding:1px 6px;margin-left:4px;">FOUNDER</span>':''}</div>
-        <div class="dash-lb-sub">${posts} post${posts!==1?'s':''}</div>
+        <div class="dash-lb-sub">${submissionCount} post submission${submissionCount!==1?'s':''}</div>
       </div>
       <div class="dash-lb-pts">${m.points||0}</div>
     </div>`;
@@ -7829,11 +7828,9 @@ window.loadLeaderboard=async function(){
   const displayMembers=currentUser.isAdmin?members:members.filter(m=>!m._isAdminSynthetic&&!m.isAdmin&&m.email!==ADMIN_EMAIL);
   el.innerHTML=displayMembers.map((m,i)=>{
     const pts=m.points||0;
-    // Use tracker-based post count (same source as Reports/Profile)
-    const trackerDoc=_trackerCache[m.uid||m.id||""]||{};
-    const trackerPosts=WEEKS.reduce((s,w)=>{const c=(trackerDoc.tracked||{})[w.id]||[];return s+c.filter(Boolean).length;},0);
-    const posts=trackerPosts||m.totalPosts||0;
-    const milestones=getMilestoneBadges(posts);
+    // Use registry totalPosts — incremented/decremented on every post submission
+    const submissionCount=m.totalPosts||0;
+    const milestones=getMilestoneBadges(submissionCount);
     const badges=`${m.isAllStar?"⭐":""}${m.isFounder?"🏅":""}${m.isVIP?"⚡":""}${milestones}`;
     const proBadge=m.isPro?`<span class="lb-pro-badge">PRO</span>`:"";
     const founderBadge=m.isFounder?`<span class="lb-founder-badge">FOUNDER</span>`:"";
@@ -7842,7 +7839,7 @@ window.loadLeaderboard=async function(){
       ${avatarHTML(m.name, m.uid||m._uid||"", "lb-avatar")}
       <div class="lb-info">
         <div class="lb-name">${esc(m.name)} ${badges}${proBadge}${founderBadge}</div>
-        <div class="lb-meta">${posts} posts · ${m.ig?`<a href="https://instagram.com/${esc(m.ig.replace("@",""))}" target="_blank" style="color:var(--gold);">@${esc(m.ig.replace("@",""))}</a>`:"no IG linked"}</div>
+        <div class="lb-meta">${submissionCount} post submission${submissionCount!==1?"s":""} · ${m.ig?`<a href="https://instagram.com/${esc(m.ig.replace("@",""))}" target="_blank" style="color:var(--gold);">@${esc(m.ig.replace("@",""))}</a>`:"no IG linked"}</div>
       </div>
       <div class="lb-pts">${pts}<span style="font-size:12px;color:var(--text-muted);"> pts</span></div>
     </div>`;
