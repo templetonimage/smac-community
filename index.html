@@ -927,9 +927,11 @@
         🤝 Engagement screenshot (like/comment/share/save): <strong>+2 pts</strong> · max 5/week<br>
         <br>
         <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Community Points</span><br>
-        ✍️ Community feed post: <strong>+1 pt</strong><br>
+        ✍️ Community feed post: <strong>+2 pts</strong> · max 2/week<br>
+        ♥ Like, give Props, or reply on a feed post: <strong>+1 pt</strong> · max 5/week<br>
         🤝 Coworking RSVP: <strong>+2 pts</strong><br>
         🏢 Coworking attendance: <strong>+5 pts</strong><br>
+        🛡️ Grace Token (Pro): <strong>+10 pts</strong> · covers a missed post (no modifiers)
         <br>
         ⭐ All-Star: complete every weekly requirement all 12 weeks
       </div>
@@ -1318,6 +1320,15 @@
     <div id="admin-clear-feed-tool" style="display:none;margin-bottom:28px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🗑 Clear Feed Posts by Week</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Remove all feed posts for a completed week after you've verified them. This only deletes the social wall cards — tracker submissions, engagement records, and points are NOT touched.</div>
+      <div class="card" style="border:1.5px solid var(--border);margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:700;color:#c0392b;margin-bottom:10px;letter-spacing:0.05em;text-transform:uppercase;">⚡ R2 Archive Sweep</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.5;">Delete all feed posts timestamped before June 1, 2026 (the entire R2 archive) in one shot. Tracker submissions, engagement records, and points are NOT affected.</div>
+        <div style="background:#fff5f5;border:1px solid #f5c6c6;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#c0392b;line-height:1.5;">
+          ⚠️ Irreversible. All R2 posts will be permanently deleted from the Feed.
+        </div>
+        <button class="btn-sm" onclick="archiveR2FeedPosts()" style="background:#c0392b;color:#fff;border-color:#c0392b;">🗄 Archive All R2 Feed Posts</button>
+        <div id="r2-archive-status" style="display:none;margin-top:12px;font-size:13px;color:var(--text-muted);padding:8px;background:var(--surface2);border-radius:6px;"></div>
+      </div>
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="margin-bottom:14px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Select Week to Clear</label>
@@ -2131,13 +2142,16 @@ const PTS_REEL      = 2;
 const PTS_CAROUSEL  = 2;
 const PTS_ENGAGEMENT   = 2;
 // Community Points constants
-const PTS_POST          = 1;   // Community feed post
+const PTS_POST          = 2;   // Community feed post (+2, max 2/week)
+const PTS_LIKE_PROPS    = 1;   // Like, Props, or Reply on a feed post (+1, max 5/week)
 const PTS_PVR           = 5;   // Peer Review Request
 const PTS_RER           = 10;  // Expert Review Request
 const PTS_BACKLINK      = 15;  // Backlink directory listing (first add only)
 const PTS_COWORK_RSVP   = 2;   // Coworking RSVP
 const PTS_COWORK_ATTEND = 5;   // Coworking attendance (admin-awarded)
-const MAX_ENG_PER_WEEK = 5; // max engagement submissions per week
+const MAX_ENG_PER_WEEK  = 5;   // max engagement submissions per week
+const FEED_POSTS_PER_WEEK = 2; // max feed posts earning points per week
+const MAX_FEED_INT_PER_WEEK = 5; // max like/props/reply interactions earning points per week
 
 // Get which week index (0-11) a timestamp falls in, or -1 if outside schedule
 function getWeekIndex(ts){
@@ -2202,14 +2216,29 @@ function evaluateAllStar(tracked, overrides, isPro){
 
 // ─────────────────────────────────────────────
 //  GRACE TOKENS — SMAC Pro streak-saver (Phase 3)
-//  Pro-only. 2 tokens/month, no rollover. Per-missing-post unit.
-//  Spending a token writes a status:"grace" submission (pts:0) that
-//  counts toward All-Star but never toward points.
+//  Pro-only. Variable monthly limit: Month 1 = 2, Month 2 = 3, Month 3 = 4.
+//  No rollover. Spending a token writes a status:"grace" submission
+//  (pts:+10, no modifiers) that counts toward All-Star.
 //  State lives on the smac_registry doc:
 //    graceTokens: { monthKey:"YYYY-MM", remaining:N, covered:[{weekIdx,subId,ts}] }
 //  Monthly reset is LAZY — computed on read by getGraceState().
 // ─────────────────────────────────────────────
-const GRACE_TOKENS_PER_MONTH = 2;
+const GRACE_PTS = 10; // points awarded when a Grace Token is used (no modifiers)
+
+// Return the Grace Token allowance for a given calendar month key ("YYYY-MM"),
+// based on which program month (1/2/3) it falls in.
+function graceTokensForMonth(monthKey){
+  if(!monthKey || !Array.isArray(window.MONTHS)) return 2;
+  const d = new Date(monthKey + "-15").getTime(); // mid-month representative
+  const idx = window.MONTHS.findIndex(m => m && m.start && m.end && d >= m.start && d <= m.end);
+  if(idx === 0) return 2;
+  if(idx === 1) return 3;
+  if(idx === 2) return 4;
+  return 2; // fallback
+}
+
+// Convenience: allowance for the current calendar month.
+function graceTokensThisMonth(){ return graceTokensForMonth(currentMonthKey()); }
 
 // Current calendar month key, e.g. "2026-06".
 function currentMonthKey(){
@@ -2222,12 +2251,13 @@ function currentMonthKey(){
 function getGraceState(regData){
   const stored = (regData && regData.graceTokens) ? regData.graceTokens : null;
   const mk = currentMonthKey();
+  const allowance = graceTokensForMonth(mk);
   if(!stored || stored.monthKey !== mk){
-    return { monthKey: mk, remaining: GRACE_TOKENS_PER_MONTH, covered: [] };
+    return { monthKey: mk, remaining: allowance, covered: [] };
   }
   return {
     monthKey: mk,
-    remaining: typeof stored.remaining === "number" ? stored.remaining : GRACE_TOKENS_PER_MONTH,
+    remaining: typeof stored.remaining === "number" ? stored.remaining : allowance,
     covered: Array.isArray(stored.covered) ? stored.covered : []
   };
 }
@@ -2427,7 +2457,7 @@ window.handleLogin=async function(){
     const firebaseUid=userCred.user.uid;
     const isAdmin=email===ADMIN_EMAIL.toLowerCase();
     if(isAdmin){
-      currentUser={name:"Nate Templeton",email,isAdmin:true,uid:firebaseUid};
+      currentUser={name:"Nate Templeton",email,isAdmin:true,uid:firebaseUid,rounds:[]};
     } else {
       // Look up member record in Firestore registry
       const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
@@ -3066,10 +3096,25 @@ window.submitPost=async function(){
   const post={author:currentUser.name,uid:currentUser.uid,text,link,ts:Date.now(),likes:0,likedBy:[],props:0,propsBy:[],propsNames:[]};
   try{
     if(!useLocalFallback&&db){
+      // Check weekly feed post count for points eligibility (limit: FEED_POSTS_PER_WEEK)
+      const {addDoc:_adc,collection:_col,getDocs:_gds,query:_q,where:_w,orderBy:_ob,updateDoc:_ud,doc:_dc,increment:_inc}=
+        await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       await addDoc(collection(db,"posts"),post);
-      logCommunityPts(currentUser.uid,currentUser.name,'Feed Post',PTS_POST);
+      // Count this user's feed posts this week for points cap
+      const weekStart=WEEK_SCHEDULE[currentWeekIdx()]?.[0]||0;
+      const weekEnd=WEEK_SCHEDULE[currentWeekIdx()]?.[1]||Date.now();
+      const weekSnap=await _gds(_q(_col(db,"posts"),_w("uid","==",currentUser.uid),_w("ts",">=",weekStart),_w("ts","<=",weekEnd)));
+      const feedPostsThisWeek=weekSnap.size; // includes the post just added
+      if(feedPostsThisWeek<=FEED_POSTS_PER_WEEK && currentUser.registryId){
+        await _ud(_dc(db,"smac_registry",currentUser.registryId),{points:_inc(PTS_POST)});
+        logCommunityPts(currentUser.uid,currentUser.name,"Feed Post",PTS_POST);
+        showToast("Post shared! +"+PTS_POST+" pts 🎉");
+      } else {
+        showToast("Post shared! (Max "+FEED_POSTS_PER_WEEK+" pts/week from feed posts)");
+      }
     } else {
       lsPush("smac_posts",{...post,id:Date.now().toString()});
+      showToast("Post shared!");
     }
     document.getElementById("compose-text").value="";
     document.getElementById("compose-link").value="";
@@ -3079,6 +3124,13 @@ window.submitPost=async function(){
     showToast("Post failed: "+e.message);
   }
 };
+
+// Helper: current week index (safe — returns 0 if outside schedule)
+function currentWeekIdx(){
+  const now=Date.now();
+  const idx=WEEK_SCHEDULE.findIndex(([s,e])=>now>=s&&now<=e);
+  return idx>=0?idx:0;
+}
 
 // ── Community Points audit log (append-only, fire-and-forget) ──────────────
 async function logCommunityPts(uid, name, action, pts) {
@@ -3177,13 +3229,26 @@ window.giveProps=function(postId,link,authorName){
 };
 window.confirmProps=async function(postId,authorName){
   if(!useLocalFallback&&db){
-    const ref=doc(db,"posts",postId);
+    const {getDoc,doc:dcRef,getDocs,collection:col,query:q,where,updateDoc,increment:_inc}=
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const ref=dcRef(db,"posts",postId);
     const snap=await getDoc(ref);
     if(!snap.exists())return;
     const d=snap.data();
     const propsBy=d.propsBy||[];
     if(propsBy.includes(currentUser.uid))return;
     await updateDoc(ref,{props:(d.props||0)+1,propsBy:[...propsBy,currentUser.uid],propsNames:[...(d.propsNames||[]),currentUser.name]});
+    // Award +1pt if under weekly interaction limit
+    if(currentUser.registryId){
+      const weekStart=WEEK_SCHEDULE[currentWeekIdx()]?.[0]||0;
+      const weekEnd=WEEK_SCHEDULE[currentWeekIdx()]?.[1]||Date.now();
+      const intSnap=await getDocs(q(col(db,"smac_community_pts"),where("uid","==",currentUser.uid),where("ts",">=",weekStart),where("ts","<=",weekEnd)));
+      const intActions=intSnap.docs.map(d=>d.data().action).filter(a=>["Feed Like","Feed Props","Feed Reply"].includes(a));
+      if(intActions.length<MAX_FEED_INT_PER_WEEK){
+        await updateDoc(dcRef(db,"smac_registry",currentUser.registryId),{points:_inc(PTS_LIKE_PROPS)});
+        logCommunityPts(currentUser.uid,currentUser.name,"Feed Props",PTS_LIKE_PROPS);
+      }
+    }
   } else {
     const posts=lsGet("smac_posts")||[];
     const p=posts.find(x=>x.id===postId);
@@ -3208,9 +3273,22 @@ window.togglePropsList=function(id){
 };
 window.toggleLike=async function(id){
   if(!useLocalFallback&&db){
-    const ref=doc(db,"posts",id);const snap=await getDoc(ref);if(!snap.exists())return;
+    const {getDoc,doc:dcRef,getDocs,collection:col,query:q,where,updateDoc,increment:_inc}=
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const ref=dcRef(db,"posts",id);const snap=await getDoc(ref);if(!snap.exists())return;
     const d=snap.data();const likedBy=d.likedBy||[];const has=likedBy.includes(currentUser.uid);
     await updateDoc(ref,{likes:has?(d.likes||1)-1:(d.likes||0)+1,likedBy:has?likedBy.filter(u=>u!==currentUser.uid):[...likedBy,currentUser.uid]});
+    // Award +1pt on like (not unlike), if under weekly interaction limit
+    if(!has && currentUser.registryId){
+      const weekStart=WEEK_SCHEDULE[currentWeekIdx()]?.[0]||0;
+      const weekEnd=WEEK_SCHEDULE[currentWeekIdx()]?.[1]||Date.now();
+      const intSnap=await getDocs(q(col(db,"smac_community_pts"),where("uid","==",currentUser.uid),where("ts",">=",weekStart),where("ts","<=",weekEnd)));
+      const intActions=intSnap.docs.map(d=>d.data().action).filter(a=>["Feed Like","Feed Props","Feed Reply"].includes(a));
+      if(intActions.length<MAX_FEED_INT_PER_WEEK){
+        await updateDoc(dcRef(db,"smac_registry",currentUser.registryId),{points:_inc(PTS_LIKE_PROPS)});
+        logCommunityPts(currentUser.uid,currentUser.name,"Feed Like",PTS_LIKE_PROPS);
+      }
+    }
   } else {
     const posts=lsGet("smac_posts")||[];const p=posts.find(x=>x.id===id);if(!p)return;
     const has=(p.likedBy||[]).includes(currentUser.uid);
@@ -4510,7 +4588,7 @@ async function loadTrackerReport(){
                   }).join("")}
                   <td style="text-align:center;padding:12px 8px;font-size:18px;">${r.isAllStarDisplay ? "⭐" : "—"}</td>
                   <td style="text-align:center;padding:12px 8px;">${r.isPro
-                    ? `<div style="font-weight:700;font-size:14px;color:var(--gold);">${r.graceRemaining}<span style="font-size:11px;font-weight:400;color:var(--text-muted);">/${GRACE_TOKENS_PER_MONTH}</span></div><div style="font-size:10px;color:var(--text-muted);margin-top:1px;">${r.graceUsed} used</div>`
+                    ? `<div style="font-weight:700;font-size:14px;color:var(--gold);">${r.graceRemaining}<span style="font-size:11px;font-weight:400;color:var(--text-muted);">/${graceTokensThisMonth()}</span></div><div style="font-size:10px;color:var(--text-muted);margin-top:1px;">${r.graceUsed} used</div>`
                     : '<span style="color:var(--border);font-size:13px;">—</span>'}</td>
                 </tr>`).join("")}
             </tbody>
@@ -5025,7 +5103,7 @@ window.useGraceToken = async function(weekIdx){
     return;
   }
   const wLabel = (WEEKS[weekIdx] && WEEKS[weekIdx].label) ? WEEKS[weekIdx].label : ("Week "+(weekIdx+1));
-  const ok = confirm("Use 1 Grace Token to cover a missed post for "+wLabel+"?\n\nThis protects your All-Star streak for that week. It does not add points. If you post on time before the week ends the token is refunded, and you can Undo it anytime this month.");
+  const ok = confirm("Use 1 Grace Token to cover a missed post for "+wLabel+"?\n\nThis awards +"+GRACE_PTS+" pts (no modifiers) and protects your All-Star streak. If you post on time before the week ends the token is refunded, and you can Undo it anytime this month.");
   if(!ok) return;
   const spent = await spendGraceToken(weekIdx);
   if(spent){
@@ -5062,12 +5140,13 @@ function buildGraceCard(graceState, weekCounts){
                : (Array.isArray(_graceWeekCounts) ? _graceWeekCounts : []);
   const g = graceState || (currentUser.graceTokens
     ? getGraceState({graceTokens:currentUser.graceTokens})
-    : { monthKey: currentMonthKey(), remaining: GRACE_TOKENS_PER_MONTH, covered: [] });
-  const remaining = typeof g.remaining==="number" ? g.remaining : GRACE_TOKENS_PER_MONTH;
+    : { monthKey: currentMonthKey(), remaining: graceTokensThisMonth(), covered: [] });
+  const remaining = typeof g.remaining==="number" ? g.remaining : graceTokensThisMonth();
   const covered = Array.isArray(g.covered) ? g.covered : [];
   const nowTs = Date.now();
+  const monthAllowance = graceTokensThisMonth();
 
-  const tokenPips = Array.from({length: GRACE_TOKENS_PER_MONTH}, (_,i) =>
+  const tokenPips = Array.from({length: monthAllowance}, (_,i) =>
     `<div style="width:14px;height:14px;border-radius:50%;background:${i<remaining?'var(--gold)':'var(--surface2)'};border:2px solid ${i<remaining?'var(--gold)':'var(--border)'};"></div>`
   ).join("");
 
@@ -5126,10 +5205,10 @@ function buildGraceCard(graceState, weekCounts){
     <div class="card" style="margin-top:20px;padding:16px;border:1.5px solid var(--gold);">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;color:var(--gold);line-height:1;">🛡️ Grace Tokens</div>
-        <div style="display:flex;align-items:center;gap:6px;">${tokenPips}<span style="font-size:12px;font-weight:700;color:var(--text-muted);margin-left:4px;">${remaining} / ${GRACE_TOKENS_PER_MONTH}</span></div>
+        <div style="display:flex;align-items:center;gap:6px;">${tokenPips}<span style="font-size:12px;font-weight:700;color:var(--text-muted);margin-left:4px;">${remaining} / ${monthAllowance}</span></div>
       </div>
       <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:12px;">
-        A Grace Token protects your All-Star streak for one missed post. ${GRACE_TOKENS_PER_MONTH} per month, no rollover. A covered post keeps your streak — it does not add points. Post on time before the week ends and your token is refunded automatically, or tap Undo to return it yourself.
+        A Grace Token covers a missed post and awards +${GRACE_PTS} pts (no modifiers). ${monthAllowance} available this month (2 in Month 1, 3 in Month 2, 4 in Month 3), no rollover. Post on time before the week ends and your token is refunded automatically, or tap Undo to return it yourself.
       </div>
       ${body}
     </div>
@@ -7244,6 +7323,36 @@ function getSnapshotWindow() {
 // ─────────────────────────────────────────────
 // Deletes documents from the `posts` collection matching a specific weekIdx.
 // Safe: does NOT touch submissions, engagements, or trackers (accountability data).
+// R2 bulk archive sweep — deletes all feed posts with ts before June 1, 2026
+window.archiveR2FeedPosts=async function(){
+  if(!currentUser||!currentUser.isAdmin)return;
+  if(!confirm("Archive ALL Round 2 feed posts?\n\nThis permanently deletes every post timestamped before June 1, 2026. Tracker submissions, engagement records, and points are NOT affected.\n\nThis cannot be undone."))return;
+  if(!db||useLocalFallback){showToast("Firestore required.");return;}
+  const statusEl=document.getElementById("r2-archive-status");
+  if(statusEl){statusEl.style.display="block";statusEl.textContent="Finding R2 posts...";}
+  const R2_CUTOFF=new Date("2026-06-01T00:00:00.000Z").getTime();
+  try{
+    const {getDocs,collection:col,query:q,where,deleteDoc,doc:docRef}=
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap=await getDocs(q(col(db,"posts"),where("ts","<",R2_CUTOFF)));
+    if(!snap.size){
+      if(statusEl)statusEl.textContent="No R2 posts found.";
+      showToast("No R2 posts found.");return;
+    }
+    let deleted=0;
+    for(const d of snap.docs){
+      await deleteDoc(docRef(db,"posts",d.id));
+      deleted++;
+      if(statusEl)statusEl.textContent=`Deleting... ${deleted} of ${snap.size}`;
+    }
+    if(statusEl)statusEl.textContent=`Done — deleted ${deleted} R2 feed post${deleted!==1?"s":""}.`;
+    showToast(`R2 archive complete — ${deleted} post${deleted!==1?"s":""} removed 🗄`);
+    loadFeed();
+  }catch(e){
+    if(statusEl)statusEl.textContent="Error: "+e.message;
+    showToast("Error: "+e.message);
+  }
+};
 window.clearFeedPostsByWeek=async function(){
   if(!currentUser||!currentUser.isAdmin)return;
   const sel=document.getElementById("clear-feed-week-select");
@@ -7619,7 +7728,7 @@ async function spendGraceToken(weekIdx){
       showToast("That week is already covered — no token needed.");
       return false;
     }
-    // Write the grace submission. pts:0, status:"grace", flagged.
+    // Write the grace submission. pts:GRACE_PTS, status:"grace", no modifiers.
     const graceSub={
       uid:currentUser.uid,
       memberName:currentUser.name,
@@ -7627,14 +7736,14 @@ async function spendGraceToken(weekIdx){
       screenshotBase64:"",
       format:"Grace",
       weekIdx:weekIdx,
-      pts:0,
+      pts:GRACE_PTS,
       status:"grace",
       graceToken:true,
       challengeApplied:false,
       challengeTitle:"",
       syfApplied:false,
       ts:nowTs,
-      round:(window.CURRENT_ROUND||"R2")
+      round:(window.CURRENT_ROUND||"R3")
     };
     const newDoc=await addDoc(col(db,"submissions"),graceSub);
     const newGrace={
@@ -7642,11 +7751,12 @@ async function spendGraceToken(weekIdx){
       remaining:grace.remaining-1,
       covered:grace.covered.concat([{weekIdx:weekIdx,subId:newDoc.id,ts:nowTs}])
     };
-    await updateDoc(regRef,{graceTokens:newGrace});
+    const {increment:_inc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await updateDoc(regRef,{graceTokens:newGrace,points:_inc(GRACE_PTS)});
     // Update local state and refresh just the card — instant, no re-fetch.
     currentUser.graceTokens=newGrace;
     if(typeof refreshGraceCard==="function") refreshGraceCard();
-    showToast("🛡️ Grace Token applied — your streak is protected for Week "+(weekIdx+1)+".");
+    showToast("🛡️ Grace Token applied — +"+GRACE_PTS+" pts awarded for Week "+(weekIdx+1)+".");
     // All-Star recheck runs in the background — the UI does not wait on it.
     checkAllStar(currentUser.uid,currentUser.registryId).catch(e=>console.warn("All-Star recheck:",e));
     return true;
@@ -7706,7 +7816,7 @@ async function refundGraceToken(weekIdx, manual){
     if(!refunded) return false;
     const newGrace={
       monthKey:grace.monthKey,
-      remaining:Math.min(GRACE_TOKENS_PER_MONTH,grace.remaining+refunded),
+      remaining:Math.min(graceTokensThisMonth(),grace.remaining+refunded),
       covered:grace.covered.filter(c=>!refundedIds.includes(c.subId))
     };
     await updateDoc(regRef,{graceTokens:newGrace});
@@ -8414,7 +8524,7 @@ window.deleteSubmission = async function(id, memberName){
           const wasThisMonth = grace.covered.some(c=>c.subId===id);
           await updateDoc(regRef,{graceTokens:{
             monthKey:grace.monthKey,
-            remaining:wasThisMonth?Math.min(GRACE_TOKENS_PER_MONTH,grace.remaining+1):grace.remaining,
+            remaining:wasThisMonth?Math.min(graceTokensThisMonth(),grace.remaining+1):grace.remaining,
             covered:stillCovered
           }});
         }
