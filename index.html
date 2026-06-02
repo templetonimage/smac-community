@@ -3293,8 +3293,44 @@ window.deleteFeedPost=async function(id, isMine){
   if(!currentUser||(! isMine&&!currentUser.isAdmin))return;
   if(!confirm("Delete this post?"))return;
   if(!useLocalFallback&&db){
-    const {deleteDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const {deleteDoc,doc:dcRef,getDoc,getDocs,collection:col,query:q,where,updateDoc,increment:_inc}=
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    // Fetch the post before deleting so we can check its week and owner
+    const postSnap=await getDoc(dcRef(db,"posts",id));
+    const postData=postSnap.exists()?postSnap.data():null;
     await deleteDoc(dcRef(db,"posts",id));
+    // Deduct points if this post earned them (owner only, within weekly cap)
+    if(postData && postData.uid){
+      const ownerUid=postData.uid;
+      const postTs=postData.ts||0;
+      // Find which week this post belonged to
+      const weekIdx=WEEK_SCHEDULE.findIndex(([s,e])=>postTs>=s&&postTs<=e);
+      if(weekIdx>=0){
+        const weekStart=WEEK_SCHEDULE[weekIdx][0];
+        const weekEnd=WEEK_SCHEDULE[weekIdx][1];
+        // Count remaining posts (after deletion) for this owner in that week
+        const remainingSnap=await getDocs(q(col(db,"posts"),where("uid","==",ownerUid),where("ts",">=",weekStart),where("ts","<=",weekEnd)));
+        const remainingCount=remainingSnap.size; // already deleted above
+        // The deleted post earned points only if it was within the cap
+        // (i.e. remaining posts were < FEED_POSTS_PER_WEEK before deletion,
+        //  meaning remaining+1 <= FEED_POSTS_PER_WEEK → remaining < FEED_POSTS_PER_WEEK)
+        if(remainingCount < FEED_POSTS_PER_WEEK){
+          // Find this user's registry doc to deduct from
+          const registryId = (ownerUid===currentUser.uid)
+            ? currentUser.registryId
+            : null; // admin deleting someone else's post: look up by uid
+          if(registryId){
+            await updateDoc(dcRef(db,"smac_registry",registryId),{points:_inc(-PTS_POST)});
+          } else {
+            // Admin deleted another member's post — look up their registry doc
+            const {getDocs:_gds,collection:_col,query:_q,where:_w}=
+              await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+            const regSnap=await _gds(_q(_col(db,"smac_registry"),_w("uid","==",ownerUid)));
+            if(!regSnap.empty) await updateDoc(regSnap.docs[0].ref,{points:_inc(-PTS_POST)});
+          }
+        }
+      }
+    }
   } else {
     lsSet("smac_posts",(lsGet("smac_posts")||[]).filter(p=>p.id!==id));
     loadFeed();
