@@ -2673,8 +2673,10 @@ function bootApp(){
   if(currentUser.isAdmin)setTimeout(initPasswordField,500);
   // New features
   setTimeout(showWelcomeModal, 600);
-  // Round 3 renewal prompt — only if the welcome modal isn't showing
+  // Round 3 renewal prompt — only for non-R3 members, and only if welcome modal isn't showing
   setTimeout(()=>{
+    const isR3Enrolled = currentUser && (currentUser.isFounder || (currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3"));
+    if(isR3Enrolled) return; // R3 members / founders: welcome modal handles them
     const wOpen=document.getElementById("welcome-overlay")?.classList.contains("open");
     if(!wOpen) maybeShowRenewModal();
   }, 900);
@@ -4263,16 +4265,29 @@ async function loadTrackerReport(){
     return;
   }
 
-  // Firebase is connected — load all tracker docs + registry
+  // Firebase is connected — load all tracker docs + registry + R3 submissions
   document.getElementById("tracker-report-body").innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading...</div>`;
 
   try {
-    const { getDocs, collection: col } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    // Load trackers AND registry in parallel
-    const [trackerSnap, registrySnap] = await Promise.all([
+    const { getDocs, collection: col, query: q, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    // Load trackers, registry, and current-round submissions in parallel
+    const roundStart = WEEK_SCHEDULE[0][0];
+    const roundEnd   = WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1];
+    const [trackerSnap, registrySnap, subSnap] = await Promise.all([
       getDocs(col(db, "trackers")),
-      getDocs(col(db, "smac_registry"))
+      getDocs(col(db, "smac_registry")),
+      getDocs(q(col(db, "submissions"), where("round","==",window.CURRENT_ROUND||"R3")))
     ]);
+
+    // Build uid → R3 submission counts per weekIdx (authoritative for this round)
+    const subsByUid = {};
+    subSnap.docs.forEach(d => {
+      const sd = d.data();
+      if(!sd.uid || sd.status==="grace") return;
+      if(!subsByUid[sd.uid]) subsByUid[sd.uid] = {};
+      const wi = sd.weekIdx;
+      subsByUid[sd.uid][wi] = (subsByUid[sd.uid][wi]||0) + 1;
+    });
 
     // Build a map of uid → tracker data
     const trackerMap = {};
@@ -4283,19 +4298,26 @@ async function loadTrackerReport(){
       .map(d => ({ id: d.id, ...d.data() }))
       .filter(m => m.isFounder || (m.rounds||[]).includes(CURRENT_ROUND));
 
-    // Merge: use tracker doc if exists, else create empty placeholder
-    // Tracker docs are keyed by Firebase Auth UID (m.uid), NOT registry doc ID (m.id)
-    // isPro lives ONLY on the registry doc — thread it into every row as _isPro.
+    // Merge: use tracker doc for metadata (name, overrides, graceTokens),
+    // but OVERRIDE tracked slots from R3 submissions so R2 data never bleeds in.
     const mergedDocs = registryMembers.map(m => {
       const isProMember = (m.isPro === true);
       const graceTok = m.graceTokens || null;
       const trackerByUid = m.uid ? trackerMap[m.uid] : null;
       const trackerById  = trackerMap[m.id];
-      if(trackerByUid) return { ...trackerByUid, _isPro: isProMember, _graceTokens: graceTok };
-      if(trackerById)  return { ...trackerById,  _isPro: isProMember, _graceTokens: graceTok };
-      // No tracker doc yet — placeholder row; use Auth UID if available
-      const resolvedId = m.uid || m.id;
-      return { name: m.name, uid: resolvedId, _docId: resolvedId, tracked: {}, _noTracker: true, _isPro: isProMember, _graceTokens: graceTok };
+      const base = trackerByUid || trackerById || { name: m.name, uid: m.uid||m.id, _docId: m.uid||m.id, tracked: {}, _noTracker: true };
+      // Rebuild tracked from R3 submission counts — fills true for each slot up to count
+      const memberUid = m.uid || m.id;
+      const r3Counts = subsByUid[memberUid] || {};
+      const r3Tracked = {};
+      WEEKS.forEach((w, wi) => {
+        const count = r3Counts[wi] || 0;
+        const req = weekRequirementFor(wi, isProMember);
+        r3Tracked[w.id] = Array.from({length: req}, (_, i) => i < count);
+      });
+      // Also fold in any grace-week overrides from the tracker doc
+      const overrides = (base.overrides) || {};
+      return { ...base, tracked: r3Tracked, overrides, _isPro: isProMember, _graceTokens: graceTok };
     });
 
     // Deduplicate by _docId (prevents double-entries)
@@ -4723,7 +4745,7 @@ window.renderProDashboard = async function(){
   const scroller = document.getElementById("app-scroll");
   if(scroller) scroller.scrollTop = 0;
 
-  const cacheKey = `smac_pro_dash_${currentUser.uid}`;
+  const cacheKey = `smac_pro_dash_${currentUser.uid}_${window.CURRENT_ROUND||"R3"}`;
 
   // ── Helper: render dashboard HTML from data ───────────────────────────────
   function buildDashHTML(totalPts, postsThisWeek, proTarget, weekCounts, graceState){
@@ -4914,7 +4936,7 @@ window.useGraceToken = async function(weekIdx){
   if(spent){
     // Card already refreshed in place by spendGraceToken. Refresh the cached
     // dashboard data in the background so a later full render is consistent.
-    try{ sessionStorage.removeItem(`smac_pro_dash_${currentUser.uid}`); }catch(e){}
+    try{ sessionStorage.removeItem(`smac_pro_dash_${currentUser.uid}_${window.CURRENT_ROUND||"R3"}`); }catch(e){}
   }
 };
 
@@ -4930,7 +4952,7 @@ window.undoGraceToken = async function(weekIdx){
   if(!ok) return;
   const undone = await refundGraceToken(weekIdx, true); // true = manual
   if(undone){
-    try{ sessionStorage.removeItem(`smac_pro_dash_${currentUser.uid}`); }catch(e){}
+    try{ sessionStorage.removeItem(`smac_pro_dash_${currentUser.uid}_${window.CURRENT_ROUND||"R3"}`); }catch(e){}
   }
 };
 
@@ -7635,7 +7657,7 @@ async function loadMySubmissions(){
   if(!useLocalFallback&&db){
     try{
       const {getDocs,collection:col,query:q,where,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      const snap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),ob("ts","desc")));
+      const snap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("round","==",window.CURRENT_ROUND||"R3"),ob("ts","desc")));
       subs=snap.docs.map(d=>({id:d.id,...d.data()}));
     }catch(e){console.warn("Submissions load error:",e);}
   } else {
