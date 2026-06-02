@@ -2737,7 +2737,7 @@ window.navTo=function(page,el){
     const pageEl=document.getElementById("page-"+page);
     if(pageEl){
       const rNum=(window.CURRENT_ROUND||"R3").replace("R","");
-      pageEl.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:40px 24px;">
+      pageEl.innerHTML=`<div data-gated="1" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:40px 24px;">
         <div style="font-size:40px;margin-bottom:16px;">🔒</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:8px;">Round ${rNum} Access Required</div>
         <div style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:280px;margin-bottom:28px;">This section is only available to active Round ${rNum} members.</div>
@@ -2748,6 +2748,11 @@ window.navTo=function(page,el){
     if(el)el.classList.add("active");
     const scroller=document.getElementById("app-scroll");if(scroller)scroller.scrollTop=0;
     return;
+  }
+  // ── Clear stale gate screen if member is now enrolled ──
+  if(!isUnenrolledMember()&&_GATED_PAGES.has(page)){
+    const _gatedEl=document.getElementById("page-"+page);
+    if(_gatedEl&&_gatedEl.querySelector("[data-gated]")) _gatedEl.innerHTML="";
   }
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
@@ -11402,9 +11407,27 @@ if(!useLocalFallback&&auth){
         saved.email.toLowerCase()===user.email.toLowerCase() &&
         Array.isArray(saved.rounds); // rounds field required — missing = R2-era stale session
       if(sessionValid){
+        // Restore from localStorage first so bootApp() can run immediately,
+        // then silently re-fetch the registry doc to pick up any admin changes
+        // (e.g. rounds updated, isPro toggled) since the session was saved.
         currentUser = saved;
         _booted = true;
         bootApp();
+        // Background refresh — update currentUser.rounds/isPro without blocking UI
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDocs,collection:col,query:q,where})=>{
+          getDocs(q(col(db,"smac_registry"),where("email","==",user.email.toLowerCase()))).then(snap=>{
+            if(snap.empty) return;
+            const m = snap.docs[0].data();
+            const freshRounds = Array.isArray(m.rounds)?m.rounds:currentUser.rounds;
+            const freshIsPro = m.isPro===true;
+            // Only update + re-save if something actually changed
+            if(JSON.stringify(freshRounds)!==JSON.stringify(currentUser.rounds)||freshIsPro!==currentUser.isPro){
+              currentUser.rounds = freshRounds;
+              currentUser.isPro  = freshIsPro;
+              lsSet("smac_session", currentUser);
+            }
+          }).catch(()=>{});
+        }).catch(()=>{});
       } else {
         // Stale or mismatched session — clear it and show login
         localStorage.removeItem("smac_session");
