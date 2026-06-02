@@ -2453,12 +2453,18 @@ window.handleLogin=async function(){
       }
       const member=sanitizeMember({id:snap.docs[0].id,...snap.docs[0].data()});
       const enrolled=(member.rounds||[]).includes(CURRENT_ROUND)||member.isFounder;
+      const hasPriorRound=(member.rounds||[]).length>0;
       if(!enrolled){
-        err.style.display="block";
-        err.textContent=`You\'re not enrolled in Round ${CURRENT_ROUND.replace("R","")} yet. Contact Nate.`;
-        btn.textContent="Enter Community";btn.disabled=false;
-        await signOut(auth);
-        return;
+        // Prior-round members: let them in — navTo gate handles page restrictions
+        // and the renewal modal fires automatically via maybeShowRenewModal()
+        if(!hasPriorRound){
+          err.style.display="block";
+          err.textContent="Account not found for this round. Contact Nate.";
+          btn.textContent="Enter Community";btn.disabled=false;
+          await signOut(auth);
+          return;
+        }
+        // else: fall through to bootApp() — prior-round member allowed in
       }
       currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null,hasSMS:member.hasSMS||false,rounds:Array.isArray(member.rounds)?member.rounds:[]};
       // Write uid to registry doc if missing — self-healing, runs once per member
@@ -2710,9 +2716,39 @@ function bootApp(){
 // ─────────────────────────────────────────────
 //  NAV
 // ─────────────────────────────────────────────
+// Returns true for members who have at least one prior round but are NOT enrolled in the current round.
+// Admins and founders are always considered enrolled.
+function isUnenrolledMember(){
+  if(!currentUser||currentUser.isAdmin||currentUser.isFounder) return false;
+  return !(currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3");
+}
+
+// Pages accessible to unenrolled prior-round members (everything else shows the gate screen)
+const _GATED_PAGES = new Set(["feed","submit","leaderboard","tracker","resources","pro","reports","directory"]);
+
 window.navTo=function(page,el){
   // Unsubscribe chat listener when leaving chat
   if(page!=="chat"&&window._chatUnsub){window._chatUnsub();window._chatUnsub=null;}
+
+  // ── Prior-round / unenrolled gate ──
+  if(isUnenrolledMember()&&_GATED_PAGES.has(page)){
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    const pageEl=document.getElementById("page-"+page);
+    if(pageEl){
+      const rNum=(window.CURRENT_ROUND||"R3").replace("R","");
+      pageEl.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:40px 24px;">
+        <div style="font-size:40px;margin-bottom:16px;">🔒</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:8px;">Round ${rNum} Access Required</div>
+        <div style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:280px;margin-bottom:28px;">This section is only available to active Round ${rNum} members.</div>
+        <button onclick="openRenewModal()" style="background:var(--gold);color:#fff;border:none;border-radius:var(--radius);padding:14px 32px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;cursor:pointer;">Renew for Round ${rNum} →</button>
+      </div>`;
+      pageEl.classList.add("active");
+    }
+    if(el)el.classList.add("active");
+    const scroller=document.getElementById("app-scroll");if(scroller)scroller.scrollTop=0;
+    return;
+  }
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   const pageEl=document.getElementById("page-"+page);
