@@ -646,7 +646,7 @@
     <div class="dash-status-strip dash-animate" id="dash-status-strip" style="animation-delay:0.15s;"></div>
 
     <!-- ROUND 3 RENEWAL CARD -->
-    <div class="dash-card dash-animate" id="dash-renew-card" style="animation-delay:0.17s;border:1.5px solid var(--gold);background:#fffbf0;margin-bottom:14px;">
+    <div class="dash-card dash-animate" id="dash-renew-card" style="display:none;animation-delay:0.17s;border:1.5px solid var(--gold);background:#fffbf0;margin-bottom:14px;">
       <div class="dash-card-title-row">
         <div class="dash-card-title">🔁 Round 3 Starts June 1</div>
       </div>
@@ -658,8 +658,8 @@
       </button>
     </div>
 
-    <!-- ROUND 2 FEEDBACK CARD -->
-    <div class="dash-card dash-animate" style="animation-delay:0.175s;margin-bottom:14px;">
+    <!-- ROUND 2 FEEDBACK CARD — hidden, R2 is over -->
+    <div class="dash-card dash-animate" id="dash-feedback-card" style="display:none;animation-delay:0.175s;margin-bottom:14px;">
       <div class="dash-card-title-row">
         <div class="dash-card-title">💬 Leave Feedback on SMAC Round 2</div>
       </div>
@@ -677,6 +677,9 @@
 
     <!-- Coworking session card (hidden until active session found) -->
     <div id="dash-cowork-card-mount" style="display:none;"></div>
+
+    <!-- Weekly Challenge Modifier — above stat cards -->
+    <div id="dash-challenge-banner" class="dash-animate" style="animation-delay:0.22s;margin-bottom:4px;"></div>
 
     <div class="dash-stats-grid">
       <div class="dash-stat-card highlight dash-animate" style="animation-delay:0.25s;">
@@ -723,8 +726,7 @@
         <svg style="flex-shrink:0;margin-left:auto;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </a>
     </div>
-    <!-- Weekly Challenge on Dashboard -->
-    <div id="dash-challenge-banner" class="dash-animate" style="animation-delay:0.53s;margin-bottom:4px;"></div>
+    <!-- Weekly Challenge on Dashboard — rendered above stats grid -->
     <div id="dash-next-challenge" class="dash-animate" style="animation-delay:0.54s;margin-bottom:10px;padding:0 2px;"></div>
     <div class="dash-allstar-banner dash-animate" style="animation-delay:0.55s;">
       <div class="dash-allstar-top">
@@ -746,7 +748,7 @@
     <div class="dash-card dash-animate" style="animation-delay:0.62s;">
       <div class="dash-card-title-row">
         <div class="dash-card-title">🏆 Top 10 Standings</div>
-        <div class="dash-card-meta">Live · Round 2</div>
+        <div class="dash-card-meta" id="dash-lb-round-label">Live · Round 3</div>
       </div>
       <div id="dash-lb-list"><div class="empty-state" style="padding:24px;"><div class="empty-icon">🏆</div><div class="empty-title">Loading...</div></div></div>
       <button class="dash-view-all-btn" onclick="navTo('leaderboard',document.getElementById('nav-leaderboard'));loadLeaderboard();">
@@ -2740,6 +2742,16 @@ window.loadDashboard=async function(){
   if(!currentUser)return;
   loadZoomCard();
 
+  // ── Show/hide R2-era cards based on R3 enrollment ──
+  const _isR3Dash = currentUser.isFounder || (currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3");
+  const _renewCard = document.getElementById("dash-renew-card");
+  if(_renewCard) _renewCard.style.display = _isR3Dash ? "none" : "";
+  const _feedbackCard = document.getElementById("dash-feedback-card");
+  if(_feedbackCard) _feedbackCard.style.display = "none"; // R2 feedback always hidden now
+  // Update Top 10 round label dynamically
+  const _lbRoundLabel = document.getElementById("dash-lb-round-label");
+  if(_lbRoundLabel) _lbRoundLabel.textContent = "Live · Round " + (window.CURRENT_ROUND||"R3").replace("R","");
+
   // ── Reset animations so they replay on every visit ──
   document.querySelectorAll('#page-dashboard .dash-animate').forEach(el=>{
     el.style.animation='none';
@@ -2782,11 +2794,13 @@ window.loadDashboard=async function(){
     const {getDocs,collection:col,query:q,where,orderBy:ob,limit:lim,getDoc,doc:dc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const uid=currentUser.uid;
     const registryId=currentUser.registryId||uid;
+    const _roundStart=WEEK_SCHEDULE[0][0];
+    const _roundEnd=WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1];
 
-    // Fetch in parallel
+    // Fetch in parallel — submissions and engagements filtered to current round by timestamp
     const [regSnap, subSnap, engSnap, trackerSnap, lbSnap]=await Promise.all([
       getDoc(dc(db,'smac_registry',registryId)),
-      getDocs(q(col(db,'submissions'),where('uid','==',uid))),
+      getDocs(q(col(db,'submissions'),where('uid','==',uid),where('round','==',window.CURRENT_ROUND||'R3'))),
       getDocs(q(col(db,'engagements'),where('uid','==',uid))),
       getDoc(dc(db,'trackers',uid)),
       (async()=>{
@@ -2795,13 +2809,17 @@ window.loadDashboard=async function(){
       })()
     ]);
 
-    // ── Points — registry is source of truth for total ──
+    // ── Points — scoped to current round ──
     const regData=regSnap.exists()?regSnap.data():{};
-    const totalPts=regData.points||0;
-    const subs=subSnap.docs.map(d=>({...d.data(),id:d.id}));
-    const engs=engSnap.docs.map(d=>({...d.data(),id:d.id}));
+    const subs=subSnap.docs.map(d=>({...d.data(),id:d.id})).filter(s=>s.status!=="grace");
+    const allEngs=engSnap.docs.map(d=>({...d.data(),id:d.id}));
+    // Filter engagements to current round by timestamp
+    const engs=allEngs.filter(e=>{ const ts=e.ts||0; return ts>=_roundStart&&ts<=_roundEnd; });
     const postPts=subs.reduce((a,s)=>a+(s.pts||0),0);
     const engPts=engs.reduce((a,e)=>a+(e.pts||0),0);
+    // Total points = post + eng + community (all round-scoped)
+    const communityPtsRaw=Math.max(0,(regData.points||0)-subs.reduce((a,s)=>a+(s.pts||0),0)-allEngs.filter(e=>{ const ts=e.ts||0; return ts>=_roundStart&&ts<=_roundEnd; }).reduce((a,e)=>a+(e.pts||0),0));
+    const totalPts=postPts+engPts+Math.max(0,communityPtsRaw);
 
     // ── Tracker-based post count (matches Reports/Tracker page logic) ──
     const trackerData=trackerSnap.exists()?trackerSnap.data():{};
@@ -2837,18 +2855,28 @@ window.loadDashboard=async function(){
       .slice(0,10);
 
     // ── Round-scoped submission counts for mini-leaderboard ──
+    // Reuse the shared leaderboard cache (90s TTL) to avoid a second full collection scan.
     const _dashRoundStart=WEEK_SCHEDULE&&WEEK_SCHEDULE.length?WEEK_SCHEDULE[0][0]:0;
     const _dashRoundEnd=WEEK_SCHEDULE&&WEEK_SCHEDULE.length?WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1]:Date.now();
+    if(!window._lbSubCache) window._lbSubCache={counts:{},ts:0,round:""};
     let _dashSubCounts={};
-    try{
-      const _allSubSnap=await getDocs(col(db,'submissions'));
-      _allSubSnap.docs.forEach(d=>{
-        const sd=d.data();
-        if(!sd.uid||sd.status==='grace')return;
-        const ts=sd.ts||0;
-        if(ts>=_dashRoundStart&&ts<=_dashRoundEnd){_dashSubCounts[sd.uid]=(_dashSubCounts[sd.uid]||0)+1;}
-      });
-    }catch(e){console.warn('Dash sub count error:',e);}
+    const _dashCacheAge=Date.now()-window._lbSubCache.ts;
+    if(_dashCacheAge<90000 && window._lbSubCache.round===(window.CURRENT_ROUND||"")){
+      _dashSubCounts=window._lbSubCache.counts;
+    }else{
+      try{
+        const _allSubSnap=await getDocs(col(db,'submissions'));
+        const _freshCounts={};
+        _allSubSnap.docs.forEach(d=>{
+          const sd=d.data();
+          if(!sd.uid||sd.status==='grace')return;
+          const ts=sd.ts||0;
+          if(ts>=_dashRoundStart&&ts<=_dashRoundEnd){_freshCounts[sd.uid]=(_freshCounts[sd.uid]||0)+1;}
+        });
+        _dashSubCounts=_freshCounts;
+        window._lbSubCache={counts:_freshCounts,ts:Date.now(),round:window.CURRENT_ROUND||""};
+      }catch(e){console.warn('Dash sub count error:',e);}
+    }
 
     const communityPts=Math.max(0,totalPts-postPts-engPts);
     _renderDashboard({total:totalPts,postPts,engPts,communityPts,trackerPostCount,submissionCount:subs.length,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,lbSubCounts:_dashSubCounts,myUid:uid});
@@ -7659,9 +7687,19 @@ async function loadMySubmissions(){
       const {getDocs,collection:col,query:q,where,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       const snap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("round","==",window.CURRENT_ROUND||"R3"),ob("ts","desc")));
       subs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    }catch(e){console.warn("Submissions load error:",e);}
+    }catch(e){
+      // Index may still be building — fall back to unfiltered fetch and filter client-side
+      console.warn("Submissions load (round filter fallback):",e.message||e);
+      try{
+        const {getDocs:_gd,collection:_col,query:_q,where:_w,orderBy:_ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        const _snap=await _gd(_q(_col(db,"submissions"),_w("uid","==",currentUser.uid),_ob("ts","desc")));
+        const _roundStart=WEEK_SCHEDULE[0][0]; const _roundEnd=WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1];
+        subs=_snap.docs.map(d=>({id:d.id,...d.data()})).filter(s=>{ const ts=s.ts||0; return ts>=_roundStart&&ts<=_roundEnd; });
+      }catch(_){console.warn("Submissions fallback failed:",_);}
+    }
   } else {
-    subs=(lsGet("smac_submissions")||[]).filter(s=>s.uid===currentUser.uid);
+    const _roundStart=WEEK_SCHEDULE[0][0]; const _roundEnd=WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1];
+    subs=(lsGet("smac_submissions")||[]).filter(s=>s.uid===currentUser.uid&&(s.ts||0)>=_roundStart&&(s.ts||0)<=_roundEnd);
   }
   card.style.display="block";
   if(!subs.length){
@@ -7810,10 +7848,12 @@ async function loadMyEngLog(){
     try{
       const {getDocs,collection:col,query:q,where,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       const snap=await getDocs(q(col(db,"engagements"),where("uid","==",currentUser.uid),ob("ts","desc")));
-      engs=snap.docs.map(d=>({id:d.id,...d.data()}));
+      const _eRoundStart=WEEK_SCHEDULE[0][0]; const _eRoundEnd=WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1];
+      engs=snap.docs.map(d=>({id:d.id,...d.data()})).filter(e=>{ const ts=e.ts||0; return ts>=_eRoundStart&&ts<=_eRoundEnd; });
     }catch(e){console.warn("Eng log:",e);card.style.display="block";totalEl.innerHTML=`<span style="color:#e74c3c;font-size:12px;">⚠️ Could not load — check browser console for a Firestore index link.</span>`;list.innerHTML="";return;}
   } else {
-    engs=(lsGet("smac_engagements")||[]).filter(e=>e.uid===currentUser.uid).sort((a,b)=>b.ts-a.ts);
+    const _eRoundStart2=WEEK_SCHEDULE[0][0]; const _eRoundEnd2=WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1];
+    engs=(lsGet("smac_engagements")||[]).filter(e=>e.uid===currentUser.uid&&(e.ts||0)>=_eRoundStart2&&(e.ts||0)<=_eRoundEnd2).sort((a,b)=>b.ts-a.ts);
   }
   card.style.display="block";
   if(!engs.length){
