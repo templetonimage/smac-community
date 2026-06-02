@@ -2928,15 +2928,13 @@ function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,su
     if(i===3&&!youInserted)html+='<div class="dash-lb-divider"></div>';
     const rankDisplay=i<3?medals[i]:`#${i+1}`;
     const initials=(m.name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
-    const trackerDoc=_trackerCache[m.uid||m.id||'']||{};
-    const trackerPosts=WEEKS.reduce((s,w)=>{const c=(trackerDoc.tracked||{})[w.id]||[];return s+c.filter(Boolean).length;},0);
-    const posts=trackerPosts||m.totalPosts||0;
+    const submissions=m.totalPosts||0;
     html+=`<div class="dash-lb-row${isYou?' you':''}">
       <div class="dash-lb-rank${i<3?' top3':''}">${rankDisplay}</div>
       ${avatarHTML(m.name,m.uid||m.id,'lb-avatar',isYou?'background:linear-gradient(135deg,var(--gold),var(--gold-dark));box-shadow:0 2px 8px rgba(201,168,76,0.35);':'')}
       <div class="dash-lb-info">
         <div class="dash-lb-name">${esc(m.name)}${isYou?'<span class="dash-you-badge">YOU</span>':''}${m.isAllStar?' ⭐':''}${m.isFounder?'<span class="founder-badge" style="font-size:9px;padding:1px 6px;margin-left:4px;">FOUNDER</span>':''}</div>
-        <div class="dash-lb-sub">${posts} post${posts!==1?'s':''}</div>
+        <div class="dash-lb-sub">${submissions} submission${submissions!==1?'s':''} made</div>
       </div>
       <div class="dash-lb-pts">${m.points||0}</div>
     </div>`;
@@ -7904,11 +7902,8 @@ window.loadLeaderboard=async function(){
   const displayMembers=currentUser.isAdmin?members:members.filter(m=>!m._isAdminSynthetic&&!m.isAdmin&&m.email!==ADMIN_EMAIL);
   el.innerHTML=displayMembers.map((m,i)=>{
     const pts=m.points||0;
-    // Use tracker-based post count (same source as Reports/Profile)
-    const trackerDoc=_trackerCache[m.uid||m.id||""]||{};
-    const trackerPosts=WEEKS.reduce((s,w)=>{const c=(trackerDoc.tracked||{})[w.id]||[];return s+c.filter(Boolean).length;},0);
-    const posts=trackerPosts||m.totalPosts||0;
-    const milestones=getMilestoneBadges(posts);
+    const submissions=m.totalPosts||0;
+    const milestones=getMilestoneBadges(submissions);
     const badges=`${m.isAllStar?"⭐":""}${m.isFounder?"🏅":""}${m.isVIP?"⚡":""}${milestones}`;
     const proBadge=m.isPro?`<span class="lb-pro-badge">PRO</span>`:"";
     const founderBadge=m.isFounder?`<span class="lb-founder-badge">FOUNDER</span>`:"";
@@ -7917,7 +7912,7 @@ window.loadLeaderboard=async function(){
       ${avatarHTML(m.name, m.uid||m._uid||"", "lb-avatar")}
       <div class="lb-info">
         <div class="lb-name">${esc(m.name)} ${badges}${proBadge}${founderBadge}</div>
-        <div class="lb-meta">${posts} posts · ${m.ig?`<a href="https://instagram.com/${esc(m.ig.replace("@",""))}" target="_blank" style="color:var(--gold);">@${esc(m.ig.replace("@",""))}</a>`:"no IG linked"}</div>
+        <div class="lb-meta">${submissions} submission${submissions!==1?"s":""} made · ${m.ig?`<a href="https://instagram.com/${esc(m.ig.replace("@",""))}" target="_blank" style="color:var(--gold);">@${esc(m.ig.replace("@",""))}</a>`:"no IG linked"}</div>
       </div>
       <div class="lb-pts">${pts}<span style="font-size:12px;color:var(--text-muted);"> pts</span></div>
     </div>`;
