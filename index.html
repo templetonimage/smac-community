@@ -717,7 +717,7 @@
       </button>
     </div>
     <div class="dash-animate" style="animation-delay:0.54s;display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
-      <a href="https://calendar.app.google/8HeX3qpKYBkWU4X27" target="_blank" rel="noopener noreferrer" class="dash-cal-btn">
+      <a href="https://calendar.app.google/yUTU1tW2531xCLZL8" target="_blank" rel="noopener noreferrer" class="dash-cal-btn">
         <span class="dash-cal-btn-icon">🗓️</span>
         <span class="dash-quick-btn-label">Get Weekly Google Calendar Reminders<span class="dash-quick-btn-sub">Never miss a post — add to your calendar</span></span>
         <svg style="flex-shrink:0;margin-left:auto;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
@@ -1157,6 +1157,13 @@
           Run this <strong>once</strong> when a round ends. For every member it adds their current round points to <strong>lifetimePoints</strong>, records a <strong>roundHistory</strong> entry, then sets <strong>points</strong> back to 0 for the next round.
           <br><br>
           This does <strong>not</strong> change <code>CURRENT_ROUND</code>, clear trackers, or delete submissions — handle those separately.
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Round to Archive</label>
+          <select id="archive-round-select" class="sub-filter-select" style="display:block;width:100%;max-width:200px;" onchange="onArchiveRoundSelectChange()">
+            <option value="">— select round —</option>
+          </select>
         </div>
 
         <button class="btn-sm" id="archive-round-preview-btn" onclick="previewArchiveRound()">
@@ -2511,6 +2518,7 @@ function bootApp(){
     document.getElementById("admin-sub-viewer").style.display="block";
     document.getElementById("member-reset-tool").style.display="block";
     document.getElementById("archive-round-tool").style.display="block";
+    initArchiveRoundSelect();
     document.getElementById("points-sweep-tool").style.display="block";
     document.getElementById("point-audit-tool").style.display="block";
     document.getElementById("eng-viewer").style.display="block";
@@ -8410,9 +8418,36 @@ window.runMemberReset = async function(){
 // ─────────────────────────────────────────────
 let _archiveRoundTarget = null;
 
+// Populate the archive round selector from ROUND_CONFIGS keys, defaulting to CURRENT_ROUND.
+function initArchiveRoundSelect(){
+  const sel = document.getElementById("archive-round-select");
+  if(!sel) return;
+  const keys = Object.keys(window.ROUND_CONFIGS || {});
+  sel.innerHTML = '<option value="">— select round —</option>' +
+    keys.map(k => `<option value="${k}"${k===window.CURRENT_ROUND?" selected":""}>${k.replace("R","Round ")}</option>`).join("");
+}
+
+// Reset preview area when admin changes the round selector.
+window.onArchiveRoundSelectChange = function(){
+  const previewEl = document.getElementById("archive-round-preview");
+  const runBtn    = document.getElementById("archive-round-run-btn");
+  const statusEl  = document.getElementById("archive-round-status");
+  if(previewEl) previewEl.style.display = "none";
+  if(runBtn)    runBtn.style.display    = "none";
+  if(statusEl)  statusEl.style.display  = "none";
+  _archiveRoundTarget = null;
+
+  const sel   = document.getElementById("archive-round-select");
+  const round = sel ? sel.value : "";
+  const labelEls = [document.getElementById("archive-round-label"),
+                    document.getElementById("archive-round-run-label")];
+  labelEls.forEach(el=>{ if(el) el.textContent = round ? "Round " + round.replace("R","") : "this round"; });
+};
+
 window.previewArchiveRound = async function(){
   if(!currentUser||!currentUser.isAdmin) return;
-  const round = window.CURRENT_ROUND || "";
+  const sel   = document.getElementById("archive-round-select");
+  const round = (sel ? sel.value : "") || window.CURRENT_ROUND || "";
   const previewEl   = document.getElementById("archive-round-preview");
   const previewBody = document.getElementById("archive-round-preview-body");
   const runBtn      = document.getElementById("archive-round-run-btn");
@@ -8431,7 +8466,7 @@ window.previewArchiveRound = async function(){
     return;
   }
   if(!round){
-    previewBody.textContent = "CURRENT_ROUND is not set — cannot archive.";
+    previewBody.textContent = "Select a round above before previewing.";
     previewEl.style.display = "block";
     return;
   }
