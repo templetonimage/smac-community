@@ -834,7 +834,7 @@
   <div class="page" id="page-submit">
     <div id="round-ended-banner" style="display:none;" class="round-ended-banner">
       <div class="round-ended-icon">🏁</div>
-      <div><div class="round-ended-title">Round 2 Has Ended</div><div class="round-ended-sub">Submissions are closed. Thanks for an amazing 90 days!</div></div>
+      <div><div class="round-ended-title" id="round-ended-title">Round Has Ended</div><div class="round-ended-sub">Submissions are closed. Thanks for an amazing 90 days!</div></div>
     </div>
     <div class="page-header">
       <h1 class="page-title">Submit</h1>
@@ -1747,7 +1747,7 @@
       <div class="welcome-modal-tagline">Social Media Accountability Challenge</div>
     </div>
     <div class="welcome-modal-body">
-      <h3>Welcome to Round 2! 👋</h3>
+      <h3 id="welcome-modal-heading">Welcome to Round 3! 👋</h3>
       <div class="welcome-step">
         <div class="welcome-step-icon">📸</div>
         <div class="welcome-step-text"><strong>Submit your posts</strong><span id="welcome-submit-copy">Hit Submit each week after you post on Instagram. March = 1/week, April = 2/week, May = 3/week.</span></div>
@@ -1787,8 +1787,8 @@
   <div class="member-modal" id="renew-modal-content" style="max-width:440px;">
     <button class="member-modal-close" onclick="closeRenewModalDirect()">✕</button>
     <div style="padding:4px 2px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Round 3 Starts June 1</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;">You've built momentum. Keep it going — renew your spot for the next 90-day round.</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;" id="renew-modal-heading">Registration Extended to June 6</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;" id="renew-modal-subtext">You've built momentum. Keep it going — your spot in Round 3 is still available through June 6 at 11:59 PM ET.</div>
 
       <div style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
         <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:8px;">Why continue</div>
@@ -1806,7 +1806,7 @@
       <div id="renew-countdown-wrap" style="background:#fffbf0;border:1.5px solid var(--gold);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:center;">
         <div style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:6px;">Registration closes in</div>
         <div id="renew-countdown" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.03em;line-height:1;color:var(--text);">—</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">May 31, 2026 · 11:59 PM ET</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">June 6, 2026 · 11:59 PM ET</div>
       </div>
 
       <div style="background:#fffbf0;border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
@@ -2452,7 +2452,7 @@ window.handleLogin=async function(){
         await signOut(auth);
         return;
       }
-      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null,hasSMS:member.hasSMS||false};
+      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null,hasSMS:member.hasSMS||false,rounds:Array.isArray(member.rounds)?member.rounds:[]};
       // Write uid to registry doc if missing — self-healing, runs once per member
       if(!member.uid&&member.id&&!useLocalFallback&&db){
         import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:_dc})=>{
@@ -3939,7 +3939,7 @@ function buildTracker(){
     (async()=>{
       try{
         const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-        const snap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid)));
+        const snap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("round","==",window.CURRENT_ROUND||"R3")));
         const subs=snap.docs.map(d=>d.data()).filter(s=>s.status!=="grace");
         let needsRebuild=false;
         for(let wi=0;wi<WEEKS.length;wi++){
@@ -7342,7 +7342,7 @@ window.submitEngagement=async function(){
       :`<span style="color:#e74c3c;font-weight:600;">Weekly limit reached (${MAX_ENG_PER_WEEK}/${MAX_ENG_PER_WEEK}).</span> Resets next week.`;
     if(submitBtn2){submitBtn2.disabled=newRemaining===0;submitBtn2.style.opacity=newRemaining===0?"0.5":"1";}
   }
-  loadEngHistory();loadMyEngLog();loadLeaderboard();
+  loadEngHistory();loadMyEngLog();if(window._lbSubCache) window._lbSubCache.ts=0;loadLeaderboard();
 };
 window.submitIgPost=async function(){
   const url=document.getElementById("submit-ig-url").value.trim();
@@ -7388,13 +7388,13 @@ window.submitIgPost=async function(){
       // Check weekly post submission limit (per-tier: base 1/2/3, Pro 3/4/5)
       const {addDoc,collection:col,getDocs,query:q,where,orderBy:ob,updateDoc,doc:docRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       const weekLimit=weekRequirement(weekIdx)||1;
-      const weekCountSnap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx)));
+      const weekCountSnap=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx),where("round","==",window.CURRENT_ROUND||"R3")));
       // Grace Token docs are placeholders, not real posts — exclude them from
       // the weekly limit so a member can still post on time and trigger a refund.
       const realPostCount=weekCountSnap.docs.filter(d=>d.data().status!=="grace").length;
       if(realPostCount>=weekLimit){errEl.style.display="block";errEl.textContent=`Weekly limit reached — max ${weekLimit} post${weekLimit!==1?"s":""} this week.`;return;}
       // Check for duplicate URL this week
-      const dupCheck=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx),where("url","==",url)));
+      const dupCheck=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx),where("round","==",window.CURRENT_ROUND||"R3"),where("url","==",url)));
       if(!dupCheck.empty){errEl.style.display="block";errEl.textContent="You already submitted this post.";return;}
 
       await addDoc(col(db,"submissions"),submission);
@@ -7426,6 +7426,7 @@ window.submitIgPost=async function(){
       await renderSYFModifier();
       showToast(pts>0?`+${pts} pts earned! 🎉`:"Submitted (0 pts — window closed).");
       loadMySubmissions();
+      if(window._lbSubCache) window._lbSubCache.ts=0; // bust cache so leaderboard shows new count
       loadLeaderboard();
     }catch(e){console.error(e);errEl.style.display="block";errEl.textContent="Error saving submission.";}
   } else {
@@ -7888,6 +7889,8 @@ window.loadLeaderboard=async function(){
   if(!el)return;
   let members=[];
   let _lbSubCounts={};
+  // ── In-memory cache for submissions bulk-fetch (90s TTL) ──
+  if(!window._lbSubCache) window._lbSubCache={counts:{},ts:0,round:""};
   if(!useLocalFallback&&db){
     try{
       const {getDocs,collection:col,query:q,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
@@ -7910,17 +7913,25 @@ window.loadLeaderboard=async function(){
           members.sort((a,b)=>(b.points||0)-(a.points||0));
         }
       }
-      // Bulk-fetch all submissions, build uid->R3-count map (one read, no composite index)
+      // Bulk-fetch all submissions, build uid->round-count map (one read, no composite index)
+      // Uses 90-second in-memory cache to avoid re-reading on every leaderboard open.
       const _lbRoundStart=WEEK_SCHEDULE&&WEEK_SCHEDULE.length?WEEK_SCHEDULE[0][0]:0;
       const _lbRoundEnd=WEEK_SCHEDULE&&WEEK_SCHEDULE.length?WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1]:Date.now();
-      const _lbSubSnap=await getDocs(col(db,"submissions"));
-      const _lbSubCounts={};
-      _lbSubSnap.docs.forEach(d=>{
-        const sd=d.data();
-        if(!sd.uid||sd.status==="grace")return;
-        const ts=sd.ts||0;
-        if(ts>=_lbRoundStart&&ts<=_lbRoundEnd){_lbSubCounts[sd.uid]=(_lbSubCounts[sd.uid]||0)+1;}
-      });
+      const _cacheAge=Date.now()-window._lbSubCache.ts;
+      if(_cacheAge<90000 && window._lbSubCache.round===(window.CURRENT_ROUND||"")){
+        _lbSubCounts=window._lbSubCache.counts;
+      }else{
+        const _lbSubSnap=await getDocs(col(db,"submissions"));
+        const _freshCounts={};
+        _lbSubSnap.docs.forEach(d=>{
+          const sd=d.data();
+          if(!sd.uid||sd.status==="grace")return;
+          const ts=sd.ts||0;
+          if(ts>=_lbRoundStart&&ts<=_lbRoundEnd){_freshCounts[sd.uid]=(_freshCounts[sd.uid]||0)+1;}
+        });
+        _lbSubCounts=_freshCounts;
+        window._lbSubCache={counts:_freshCounts,ts:Date.now(),round:window.CURRENT_ROUND||""};
+      }
     }catch(e){console.error("Leaderboard error:",e);el.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load leaderboard</div><div class="empty-desc">'+e.message+'</div></div>';return;}
   }
   if(!members.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">No scores yet</div><div class="empty-desc">Submit your first post to get on the board!</div></div>';return;}
@@ -10919,9 +10930,9 @@ initFirebase();
 
 // ─────────────────────────────────────────────
 //  ROUND END DETECTION
+//  Uses the active round's schedule (WEEK_SCHEDULE) — not a hardcoded date.
 // ─────────────────────────────────────────────
-const ROUND_END_TS = Date.UTC(2026,5,1,3,59,59,999); // Jun 1 00:00 ET = Jun 1 03:59:59 UTC (May 31 end)
-function isRoundOver(){ return Date.now() > ROUND_END_TS; }
+function isRoundOver(){ return !!(WEEK_SCHEDULE && WEEK_SCHEDULE.length && Date.now() > WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1]); }
 function initRanksWatcher(){
   if(!db||useLocalFallback||!currentUser) return;
   import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({collection:col,query:q,orderBy:ob,limit:lim,onSnapshot})=>{
@@ -10942,6 +10953,9 @@ function checkRoundEnd(){
   if(!isRoundOver()) return;
   const banner = document.getElementById("round-ended-banner");
   if(banner) banner.style.display = "flex";
+  // Update title to reflect the actual round that ended
+  const titleEl = document.getElementById("round-ended-title");
+  if(titleEl) titleEl.textContent = (window.CURRENT_ROUND || "Round") + " Has Ended";
   // Disable submit buttons
   const submitBtn = document.querySelector('#page-submit .btn-post');
   if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = "Round Ended"; submitBtn.style.opacity = "0.5"; }
@@ -10953,8 +10967,15 @@ function checkRoundEnd(){
 //  WELCOME MODAL
 // ─────────────────────────────────────────────
 function showWelcomeModal(){
+  // R3 members see the welcome modal; R2-only members do not (they get the renewal modal instead)
+  const isR3Member = !!(currentUser && (currentUser.isFounder || (currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3")));
+  if(!isR3Member) return;
   const key = "smac_welcomed_" + (currentUser?.uid||"");
   if(localStorage.getItem(key)) return;
+  // Set dynamic round heading
+  const headingEl = document.getElementById("welcome-modal-heading");
+  const roundLabel = (window.CURRENT_ROUND||"R3").replace("R","");
+  if(headingEl) headingEl.textContent = `Welcome to Round ${roundLabel}! 👋`;
   // Per-tier welcome copy
   const isPro = !!(currentUser && currentUser.isPro===true);
   const total = (typeof totalRequirementForCurrentUser==="function") ? totalRequirementForCurrentUser() : (isPro?48:24);
@@ -10999,8 +11020,8 @@ function applySpotCountdowns() {
   });
 }
 
-// Registration deadline: May 31, 2026 11:59 PM ET (EDT = UTC-4) → 2026-06-01T03:59:00Z
-const RENEW_DEADLINE_TS = new Date("2026-06-01T03:59:00Z").getTime();
+// Registration deadline: June 6, 2026 11:59 PM ET (EDT = UTC-4) → 2026-06-07T03:59:00Z
+const RENEW_DEADLINE_TS = new Date("2026-06-07T03:59:00Z").getTime();
 let _renewCountdownTimer = null;
 
 function _renderRenewCountdown(){
@@ -11049,9 +11070,21 @@ window.dismissRenewModal = function(){
   closeRenewModalDirect();
   if(typeof showToast==="function") showToast("Got it — we won't show this again.");
 };
-// Auto-pop once per login if not dismissed. Skips admins.
+// Auto-pop once per login if not dismissed. Skips admins and active R3 members.
+// Always shows for R2-only members who haven't enrolled in R3 yet.
 function maybeShowRenewModal(){
   if(!currentUser || currentUser.isAdmin) return;
+  // R3 members (or founders) are already enrolled — skip the renewal modal entirely
+  const isR3Member = currentUser.isFounder || (currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3");
+  if(isR3Member) return;
+  // R2-only member: registration is extended — show unconditionally (ignore dismiss key)
+  // so they always see the updated deadline on login
+  const isR2Only = (currentUser.rounds||[]).includes("R2") && !isR3Member;
+  if(isR2Only){
+    setTimeout(()=>{ openRenewModal(); }, 1200);
+    return;
+  }
+  // All other non-R3 members: respect dismiss key
   let dismissed=false;
   try{ dismissed = localStorage.getItem(_renewDismissKey())==="1"; }catch(_){}
   if(dismissed) return;
