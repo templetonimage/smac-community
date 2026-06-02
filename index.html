@@ -680,6 +680,7 @@
 
     <!-- Weekly Challenge Modifier — above stat cards -->
     <div id="dash-challenge-banner" class="dash-animate" style="animation-delay:0.22s;margin-bottom:4px;"></div>
+    <div id="dash-next-challenge" class="dash-animate" style="animation-delay:0.23s;margin-bottom:10px;padding:0 2px;"></div>
 
     <div class="dash-stats-grid">
       <div class="dash-stat-card highlight dash-animate" style="animation-delay:0.25s;">
@@ -727,7 +728,6 @@
       </a>
     </div>
     <!-- Weekly Challenge on Dashboard — rendered above stats grid -->
-    <div id="dash-next-challenge" class="dash-animate" style="animation-delay:0.54s;margin-bottom:10px;padding:0 2px;"></div>
     <div class="dash-allstar-banner dash-animate" style="animation-delay:0.55s;">
       <div class="dash-allstar-top">
         <div class="dash-allstar-star">⭐</div>
@@ -978,7 +978,7 @@
       <p class="page-subtitle" id="tracker-pts-summary">Your tracker updates automatically when you submit a post. Tap any unchecked box to mark it manually.</p>
     </div>
     <div class="tracker-header">
-      <h2>Round 2 Progress</h2>
+      <h2 id="tracker-round-heading">Round 3 Progress</h2>
       <div class="progress-label" id="tracker-progress-label">0 of 24 posts completed</div>
       <div class="progress-bar"><div class="progress-fill" id="tracker-bar" style="width:0%"></div></div>
     </div>
@@ -987,7 +987,7 @@
       <div class="star-icon">⭐</div>
       <div>
         <div class="allstar-track-title">SMAC All-Star</div>
-        <div class="allstar-track-desc">Complete every weekly requirement across all 12 weeks to earn All-Star status. 1 post/week in March, 2/week in April, and 3/week in May — 24 posts total.</div>
+        <div class="allstar-track-desc" id="allstar-track-desc">Complete every weekly requirement across all 12 weeks to earn All-Star status.</div>
       </div>
     </div>
   </div>
@@ -996,7 +996,7 @@
   <div class="page" id="page-directory">
     <div class="page-header">
       <h1 class="page-title">Member Directory</h1>
-      <p class="page-subtitle">Your Round 2 crew — tap any card to visit their Instagram</p>
+      <p class="page-subtitle" id="directory-round-sub">Your Round 3 crew — tap any card to visit their Instagram</p>
     </div>
     <!-- Admin: create member account -->
     <div class="compose-box admin-compose" id="admin-dir-compose" style="display:none;">
@@ -1828,8 +1828,8 @@
   <div class="member-modal" id="snap-modal-content" style="max-width:480px;">
     <button class="member-modal-close" onclick="closeSnapModalDirect()">✕</button>
     <div style="padding:4px 2px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Your Round 2 Growth</div>
-      <div id="snap-modal-sub" style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;">Upload a screenshot of your Instagram Insights for the last 90 days. We'll pull the key numbers and show you what changed during Round 2.</div>
+      <div id="snap-modal-heading" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Your Round 3 Growth</div>
+      <div id="snap-modal-sub" style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;">Upload a screenshot of your Instagram Insights for the last 90 days. We'll pull the key numbers and show you what changed during Round 3.</div>
 
       <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.65;color:var(--text-muted);">
         <strong style="color:var(--text);">How to find it:</strong> Open Instagram → tap Professional Dashboard → Insights → tap "Last 90 days" → screenshot the Overview screen showing Views, Reach, and Profile Visits.
@@ -2673,6 +2673,21 @@ function bootApp(){
     loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();renderSYFModifier();loadDashboard();
   }
   if(currentUser.isAdmin)setTimeout(initPasswordField,500);
+  // Pre-warm the leaderboard submissions cache in the background so the first
+  // leaderboard open is instant regardless of which page the member visits first.
+  setTimeout(()=>{
+    if(!db||useLocalFallback||window._lbSubCache?.ts>0) return;
+    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDocs,collection:col})=>{
+      if(!window._lbSubCache) window._lbSubCache={counts:{},ts:0,round:""};
+      if(window._lbSubCache.ts>0) return; // already warmed
+      const _rs=WEEK_SCHEDULE[0][0]; const _re=WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1];
+      getDocs(col(db,"submissions")).then(snap=>{
+        const counts={};
+        snap.docs.forEach(d=>{const sd=d.data();if(!sd.uid||sd.status==="grace")return;const ts=sd.ts||0;if(ts>=_rs&&ts<=_re){counts[sd.uid]=(counts[sd.uid]||0)+1;}});
+        window._lbSubCache={counts,ts:Date.now(),round:window.CURRENT_ROUND||""};
+      }).catch(()=>{});
+    }).catch(()=>{});
+  }, 4000); // fire after initial page loads settle
   // New features
   setTimeout(showWelcomeModal, 600);
   // Round 3 renewal prompt — only for non-R3 members, and only if welcome modal isn't showing
@@ -4031,6 +4046,12 @@ function buildTracker(){
   let done=0;WEEKS.forEach(w=>{const c=tracked[w.id]||[];done+=c.filter(Boolean).length;});
   document.getElementById("tracker-progress-label").textContent=`${done} of ${total} posts completed`;
   document.getElementById("tracker-bar").style.width=total>0?Math.round((done/total)*100)+"%":"0%";
+  // Update round-specific static labels
+  const rNum=(window.CURRENT_ROUND||"R3").replace("R","");
+  const rhEl=document.getElementById("tracker-round-heading");
+  if(rhEl) rhEl.textContent=`Round ${rNum} Progress`;
+  const dirSub=document.getElementById("directory-round-sub");
+  if(dirSub) dirSub.textContent=`Your Round ${rNum} crew — tap any card to visit their Instagram`;
   // Per-tier All-Star explainer copy
   const asDesc=document.querySelector(".allstar-track-desc");
   if(asDesc){
@@ -6640,11 +6661,18 @@ window.clearSnapScreenshot = function() {
 window.openSnapModal = function(type) {
   _snapType = (type === "start") ? "start" : "end";
   const ov = document.getElementById("snap-modal-overlay");
+  const heading = document.getElementById("snap-modal-heading");
   const sub = document.getElementById("snap-modal-sub");
+  const rNum = (window.CURRENT_ROUND||"R3").replace("R","");
+  if (heading) {
+    heading.textContent = (_snapType === "start")
+      ? `Set Your Round ${rNum} Baseline`
+      : `Your Round ${rNum} Growth`;
+  }
   if (sub) {
     sub.textContent = (_snapType === "start")
       ? "Upload your current Instagram Insights screenshot. This becomes your starting baseline for the round."
-      : "Upload screenshots of your Instagram Insights for the last 90 days. We'll pull the key numbers and show you what changed during Round 2.";
+      : `Upload screenshots of your Instagram Insights for the last 90 days. We'll pull the key numbers and show you what changed during Round ${rNum}.`;
   }
   // Reset state
   clearSnapScreenshot();
@@ -10786,7 +10814,7 @@ async function renderProfileHero(prof){
     <div class="profile-name">${esc(prof.name||currentUser.name)}</div>
     <div class="profile-business">${esc(prof.business||(currentUser.isAdmin?"Founder of SMAC":"SMAC Member"))}</div>
     <div class="profile-badges">
-      <span class="badge badge-round">Round 2 · 2026</span>
+      <span class="badge badge-round">Round ${(window.CURRENT_ROUND||"R3").replace("R","")} · ${new Date().getFullYear()}</span>
       ${isAllStar?`<span class="badge badge-allstar">⭐ All-Star</span>`:""}
       ${currentUser.isAdmin?`<span class="badge" style="background:#1a1a1a;color:#fff;">Admin</span>`:""}
       ${currentUser.isPro&&!currentUser.isAdmin?`<span class="pro-badge" style="margin-left:0;margin-top:2px;">PRO</span>`:""}
@@ -11313,7 +11341,12 @@ if(!useLocalFallback&&auth){
     if(user){
       const saved = lsGet("smac_session");
       // CRITICAL: validate saved session belongs to the currently logged-in Firebase user
-      if(saved?.name && saved?.email && saved.email.toLowerCase()===user.email.toLowerCase()){
+      // Also invalidate sessions saved before `rounds` was added (R2-era sessions lack it)
+      // so the modal guards work correctly. Forces one re-login per stale session.
+      const sessionValid = saved?.name && saved?.email &&
+        saved.email.toLowerCase()===user.email.toLowerCase() &&
+        Array.isArray(saved.rounds); // rounds field required — missing = R2-era stale session
+      if(sessionValid){
         currentUser = saved;
         _booted = true;
         bootApp();
