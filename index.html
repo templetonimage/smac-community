@@ -2834,8 +2834,22 @@ window.loadDashboard=async function(){
       .filter(m=>!m.isAdmin&&m.email!==ADMIN_EMAIL)
       .slice(0,10);
 
+    // ── Round-scoped submission counts for mini-leaderboard ──
+    const _dashRoundStart=WEEK_SCHEDULE&&WEEK_SCHEDULE.length?WEEK_SCHEDULE[0][0]:0;
+    const _dashRoundEnd=WEEK_SCHEDULE&&WEEK_SCHEDULE.length?WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1]:Date.now();
+    let _dashSubCounts={};
+    try{
+      const _allSubSnap=await getDocs(col(db,'submissions'));
+      _allSubSnap.docs.forEach(d=>{
+        const sd=d.data();
+        if(!sd.uid||sd.status==='grace')return;
+        const ts=sd.ts||0;
+        if(ts>=_dashRoundStart&&ts<=_dashRoundEnd){_dashSubCounts[sd.uid]=(_dashSubCounts[sd.uid]||0)+1;}
+      });
+    }catch(e){console.warn('Dash sub count error:',e);}
+
     const communityPts=Math.max(0,totalPts-postPts-engPts);
-    _renderDashboard({total:totalPts,postPts,engPts,communityPts,trackerPostCount,submissionCount:subs.length,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,myUid:uid});
+    _renderDashboard({total:totalPts,postPts,engPts,communityPts,trackerPostCount,submissionCount:subs.length,weekSubmitted,trackerThisWeek,trackerDots,leaderboard:lbMembers,lbSubCounts:_dashSubCounts,myUid:uid});
 
     // Render Analytics Snapshot banner (round-start / round-end pilot)
     try { renderSnapshotBanner(); } catch(e) { console.error('Snapshot banner error:',e); }
@@ -2869,7 +2883,7 @@ function _dashCountUp(el,target,delay=0,duration=900){
   },delay);
 }
 
-function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,submissionCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,myUid}){
+function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,submissionCount,weekSubmitted,trackerThisWeek,trackerDots,leaderboard,lbSubCounts,myUid}){
   // ── Status pills ──
   const strip=document.getElementById('dash-status-strip');
   if(strip){
@@ -2928,7 +2942,8 @@ function _renderDashboard({total,postPts,engPts,communityPts,trackerPostCount,su
     if(i===3&&!youInserted)html+='<div class="dash-lb-divider"></div>';
     const rankDisplay=i<3?medals[i]:`#${i+1}`;
     const initials=(m.name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
-    const submissions=m.totalPosts||0;
+    const _mUid=m.uid||m.id||'';
+    const submissions=(lbSubCounts||{})[_mUid]??0;
     html+=`<div class="dash-lb-row${isYou?' you':''}">
       <div class="dash-lb-rank${i<3?' top3':''}">${rankDisplay}</div>
       ${avatarHTML(m.name,m.uid||m.id,'lb-avatar',isYou?'background:linear-gradient(135deg,var(--gold),var(--gold-dark));box-shadow:0 2px 8px rgba(201,168,76,0.35);':'')}
@@ -7872,6 +7887,7 @@ window.loadLeaderboard=async function(){
   const el=document.getElementById("leaderboard-list");
   if(!el)return;
   let members=[];
+  let _lbSubCounts={};
   if(!useLocalFallback&&db){
     try{
       const {getDocs,collection:col,query:q,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
@@ -7894,15 +7910,28 @@ window.loadLeaderboard=async function(){
           members.sort((a,b)=>(b.points||0)-(a.points||0));
         }
       }
+      // Bulk-fetch all submissions, build uid->R3-count map (one read, no composite index)
+      const _lbRoundStart=WEEK_SCHEDULE&&WEEK_SCHEDULE.length?WEEK_SCHEDULE[0][0]:0;
+      const _lbRoundEnd=WEEK_SCHEDULE&&WEEK_SCHEDULE.length?WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1]:Date.now();
+      const _lbSubSnap=await getDocs(col(db,"submissions"));
+      const _lbSubCounts={};
+      _lbSubSnap.docs.forEach(d=>{
+        const sd=d.data();
+        if(!sd.uid||sd.status==="grace")return;
+        const ts=sd.ts||0;
+        if(ts>=_lbRoundStart&&ts<=_lbRoundEnd){_lbSubCounts[sd.uid]=(_lbSubCounts[sd.uid]||0)+1;}
+      });
     }catch(e){console.error("Leaderboard error:",e);el.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load leaderboard</div><div class="empty-desc">'+e.message+'</div></div>';return;}
   }
   if(!members.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">No scores yet</div><div class="empty-desc">Submit your first post to get on the board!</div></div>';return;}
   cachedLeaderboard=members;
   // Members never see the admin synthetic entry — admin sees it for testing only
   const displayMembers=currentUser.isAdmin?members:members.filter(m=>!m._isAdminSynthetic&&!m.isAdmin&&m.email!==ADMIN_EMAIL);
+  const _subCounts=_lbSubCounts;
   el.innerHTML=displayMembers.map((m,i)=>{
     const pts=m.points||0;
-    const submissions=m.totalPosts||0;
+    const mUid=m.uid||m.id||m._uid||"";
+    const submissions=_subCounts[mUid]??0;
     const milestones=getMilestoneBadges(submissions);
     const badges=`${m.isAllStar?"⭐":""}${m.isFounder?"🏅":""}${m.isVIP?"⚡":""}${milestones}`;
     const proBadge=m.isPro?`<span class="lb-pro-badge">PRO</span>`:"";
