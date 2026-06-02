@@ -1484,8 +1484,8 @@
     <div class="page-header"><h1 class="page-title">Profile</h1></div>
     <div class="profile-hero" id="profile-hero"></div>
 
-    <!-- ROUND 3 RENEWAL -->
-    <div class="card" style="border:1.5px solid var(--gold);background:#fffbf0;">
+    <!-- ROUND 3 RENEWAL — hidden for R3-enrolled members, shown only for R2-only -->
+    <div class="card" id="profile-renew-card" style="border:1.5px solid var(--gold);background:#fffbf0;display:none;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:6px;">🔁 Round 3 — June 1</div>
       <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Renew your spot for the next 90-day round, or upgrade to SMAC Pro for higher goals and AI-powered tools.</div>
       <button class="btn-post" style="width:100%;" onclick="openRenewModal()">Renew for Round 3</button>
@@ -1556,11 +1556,17 @@
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Change Password</div>
       <div class="profile-form-field">
         <label class="field-label">New Password</label>
-        <input class="field-input" id="new-password" type="password" placeholder="At least 6 characters" />
+        <div style="position:relative;">
+          <input class="field-input" id="new-password" type="password" placeholder="At least 6 characters" style="padding-right:44px;" />
+          <button type="button" onclick="togglePwVis('new-password','new-password-eye')" id="new-password-eye" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:var(--text-muted);padding:0;line-height:1;">👁</button>
+        </div>
       </div>
       <div class="profile-form-field">
         <label class="field-label">Confirm New Password</label>
-        <input class="field-input" id="confirm-password" type="password" placeholder="Repeat new password" />
+        <div style="position:relative;">
+          <input class="field-input" id="confirm-password" type="password" placeholder="Repeat new password" style="padding-right:44px;" />
+          <button type="button" onclick="togglePwVis('confirm-password','confirm-password-eye')" id="confirm-password-eye" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:var(--text-muted);padding:0;line-height:1;">👁</button>
+        </div>
       </div>
       <div id="password-change-msg" style="font-size:13px;margin-bottom:12px;min-height:18px;"></div>
       <button class="btn-gold" onclick="changePassword()" style="width:100%;font-size:16px;padding:12px;">Update Password</button>
@@ -2677,13 +2683,12 @@ function bootApp(){
   // leaderboard open is instant regardless of which page the member visits first.
   setTimeout(()=>{
     if(!db||useLocalFallback||window._lbSubCache?.ts>0) return;
-    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDocs,collection:col})=>{
+    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({getDocs,collection:col,query:q,where})=>{
       if(!window._lbSubCache) window._lbSubCache={counts:{},ts:0,round:""};
       if(window._lbSubCache.ts>0) return; // already warmed
-      const _rs=WEEK_SCHEDULE[0][0]; const _re=WEEK_SCHEDULE[WEEK_SCHEDULE.length-1][1];
-      getDocs(col(db,"submissions")).then(snap=>{
+      getDocs(q(col(db,"submissions"),where("round","==",window.CURRENT_ROUND||"R3"))).then(snap=>{
         const counts={};
-        snap.docs.forEach(d=>{const sd=d.data();if(!sd.uid||sd.status==="grace")return;const ts=sd.ts||0;if(ts>=_rs&&ts<=_re){counts[sd.uid]=(counts[sd.uid]||0)+1;}});
+        snap.docs.forEach(d=>{const sd=d.data();if(!sd.uid||sd.status==="grace")return;counts[sd.uid]=(counts[sd.uid]||0)+1;});
         window._lbSubCache={counts,ts:Date.now(),round:window.CURRENT_ROUND||""};
       }).catch(()=>{});
     }).catch(()=>{});
@@ -2880,13 +2885,13 @@ window.loadDashboard=async function(){
       _dashSubCounts=window._lbSubCache.counts;
     }else{
       try{
-        const _allSubSnap=await getDocs(col(db,'submissions'));
+        // Filter by round field — R3 docs only, avoids scanning entire submissions collection
+        const _allSubSnap=await getDocs(q(col(db,'submissions'),where('round','==',window.CURRENT_ROUND||'R3')));
         const _freshCounts={};
         _allSubSnap.docs.forEach(d=>{
           const sd=d.data();
           if(!sd.uid||sd.status==='grace')return;
-          const ts=sd.ts||0;
-          if(ts>=_dashRoundStart&&ts<=_dashRoundEnd){_freshCounts[sd.uid]=(_freshCounts[sd.uid]||0)+1;}
+          _freshCounts[sd.uid]=(_freshCounts[sd.uid]||0)+1;
         });
         _dashSubCounts=_freshCounts;
         window._lbSubCache={counts:_freshCounts,ts:Date.now(),round:window.CURRENT_ROUND||""};
@@ -7262,6 +7267,14 @@ window.handleForgotPassword=async function(){
     err.textContent="Could not send reset email. Check the address and try again.";
   }
 };
+window.togglePwVis=function(inputId,btnId){
+  const inp=document.getElementById(inputId);
+  const btn=document.getElementById(btnId);
+  if(!inp)return;
+  const show=inp.type==="password";
+  inp.type=show?"text":"password";
+  if(btn)btn.textContent=show?"🙈":"👁";
+};
 window.changePassword=async function(){
   const newPass=document.getElementById("new-password").value.trim();
   const confirm=document.getElementById("confirm-password").value.trim();
@@ -7983,7 +7996,7 @@ window.loadLeaderboard=async function(){
   if(!window._lbSubCache) window._lbSubCache={counts:{},ts:0,round:""};
   if(!useLocalFallback&&db){
     try{
-      const {getDocs,collection:col,query:q,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const {getDocs,collection:col,query:q,orderBy:ob,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       let snap;
       try{
         snap=await getDocs(q(col(db,"smac_registry"),ob("points","desc")));
@@ -8011,13 +8024,13 @@ window.loadLeaderboard=async function(){
       if(_cacheAge<90000 && window._lbSubCache.round===(window.CURRENT_ROUND||"")){
         _lbSubCounts=window._lbSubCache.counts;
       }else{
-        const _lbSubSnap=await getDocs(col(db,"submissions"));
+        // Filter by round field — only R3 docs fetched, no full-collection scan
+        const _lbSubSnap=await getDocs(q(col(db,"submissions"),where("round","==",window.CURRENT_ROUND||"R3")));
         const _freshCounts={};
         _lbSubSnap.docs.forEach(d=>{
           const sd=d.data();
           if(!sd.uid||sd.status==="grace")return;
-          const ts=sd.ts||0;
-          if(ts>=_lbRoundStart&&ts<=_lbRoundEnd){_freshCounts[sd.uid]=(_freshCounts[sd.uid]||0)+1;}
+          _freshCounts[sd.uid]=(_freshCounts[sd.uid]||0)+1;
         });
         _lbSubCounts=_freshCounts;
         window._lbSubCache={counts:_freshCounts,ts:Date.now(),round:window.CURRENT_ROUND||""};
@@ -10747,6 +10760,12 @@ function loadProfile(){
   // Firebase setup card only for admin
   const setupCard=document.getElementById("firebase-setup-card");
   if(setupCard)setupCard.style.display=currentUser.isAdmin?"block":"none";
+  // Renewal card — only for members not yet enrolled in R3
+  const profileRenewCard=document.getElementById("profile-renew-card");
+  if(profileRenewCard){
+    const _isR3=currentUser.isFounder||(currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3");
+    profileRenewCard.style.display=_isR3?"none":"block";
+  }
   const prof=lsGet(`smac_profile_${currentUser.uid}`)||{name:currentUser.name,business:"",type:"",ig:"",visible:"yes"};
   document.getElementById("profile-name").value=prof.name||currentUser.name;
   document.getElementById("profile-business").value=prof.business||"";
