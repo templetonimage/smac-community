@@ -1247,12 +1247,6 @@
         </select>
         <select class="sub-filter-select" id="eng-filter-week" onchange="renderEngViewer()">
           <option value="">All Weeks</option>
-          <option value="0">W1 · Mar 1–7</option><option value="1">W2 · Mar 8–14</option>
-          <option value="2">W3 · Mar 15–21</option><option value="3">W4 · Mar 22–31</option>
-          <option value="4">W5 · Apr 1–7</option><option value="5">W6 · Apr 8–14</option>
-          <option value="6">W7 · Apr 15–21</option><option value="7">W8 · Apr 22–30</option>
-          <option value="8">W9 · May 1–7</option><option value="9">W10 · May 8–14</option>
-          <option value="10">W11 · May 15–21</option><option value="11">W12 · May 22–31</option>
         </select>
         <button class="btn-sm" onclick="openAddEngModal()" style="margin-left:auto;background:var(--gold);color:#000;border-color:var(--gold);">+ Add Entry</button>
       </div>
@@ -1272,12 +1266,6 @@
         <div class="profile-form-field">
           <label class="field-label">Week</label>
           <select class="field-select" id="eng-modal-week">
-            <option value="0">W1 · Mar 1–7</option><option value="1">W2 · Mar 8–14</option>
-            <option value="2">W3 · Mar 15–21</option><option value="3">W4 · Mar 22–31</option>
-            <option value="4">W5 · Apr 1–7</option><option value="5">W6 · Apr 8–14</option>
-            <option value="6">W7 · Apr 15–21</option><option value="7">W8 · Apr 22–30</option>
-            <option value="8">W9 · May 1–7</option><option value="9">W10 · May 8–14</option>
-            <option value="10">W11 · May 15–21</option><option value="11">W12 · May 22–31</option>
           </select>
         </div>
         <div class="profile-form-field">
@@ -11647,9 +11635,17 @@ window.loadEngViewer = async function(){
   const countEl = document.getElementById("eng-viewer-count");
   if(!body) return;
   body.innerHTML = "<div style='text-align:center;padding:32px;color:var(--text-muted);font-size:13px;'>Loading...</div>";
+
+  // Populate week dropdowns from live WEEKS config
+  const weekFilterSel = document.getElementById("eng-filter-week");
+  const weekModalSel  = document.getElementById("eng-modal-week");
+  const weekOpts = WEEKS.map((w,i)=>`<option value="${i}">${w.month} ${w.label} · ${w.dates}</option>`).join("");
+  if(weekFilterSel) weekFilterSel.innerHTML = '<option value="">All Weeks</option>' + weekOpts;
+  if(weekModalSel)  weekModalSel.innerHTML  = weekOpts;
+
   try{
-    const {getDocs,collection:col,query:q,orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const snap = await getDocs(q(col(db,"engagements"),ob("ts","desc")));
+    const {getDocs,collection:col,query:q,where,orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await getDocs(q(col(db,"engagements"),where("round","==",window.CURRENT_ROUND||"R3"),ob("ts","desc")));
     _engViewerData = snap.docs.map(d=>({id:d.id,...d.data()}));
 
     // Populate member filter
@@ -11672,7 +11668,7 @@ window.renderEngViewer = function(){
   if(!body) return;
   const memberFilter = document.getElementById("eng-filter-member")?.value || "";
   const weekFilter = document.getElementById("eng-filter-week")?.value;
-  const WEEK_LABELS = ["W1 · Mar 1–7","W2 · Mar 8–14","W3 · Mar 15–21","W4 · Mar 22–31","W5 · Apr 1–7","W6 · Apr 8–14","W7 · Apr 15–21","W8 · Apr 22–30","W9 · May 1–7","W10 · May 8–14","W11 · May 15–21","W12 · May 22–31"];
+  const WEEK_LABELS = WEEKS.map(w=>`${w.month} ${w.label} · ${w.dates}`);
 
   let data = _engViewerData;
   if(memberFilter) data = data.filter(e=>(e.memberName||"") === memberFilter);
