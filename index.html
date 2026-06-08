@@ -9137,7 +9137,7 @@ window.runPointsAudit = async function(){
       if(wi>=0 && wi<=11) weeks[wi].engs.push({...data,_id:d.id});
     });
 
-    const GRACE_WEEK_IDXS    = [0,1]; // R2 W1 and W2
+    const GRACE_WEEK_IDXS    = GRACE_WEEKS.map(wid=>WEEKS.findIndex(w=>w.id===wid)).filter(i=>i>=0);
     const MAX_PTS_PER_POST   = 17;    // 10 on-time + 2 format + 5 modifier
     const MAX_ENG_PTS_PER_WEEK = MAX_ENG_PER_WEEK * PTS_ENGAGEMENT; // 10
 
@@ -9461,7 +9461,7 @@ window.runPointsAuditAll = async function(){
       getDocs(q(col(db,"engagements"), where("round","==",_auditAllRound))),
     ]);
 
-    const GRACE_WEEK_IDXS    = [0,1];
+    const GRACE_WEEK_IDXS    = GRACE_WEEKS.map(wid=>WEEKS.findIndex(w=>w.id===wid)).filter(i=>i>=0);
     const MAX_PTS_PER_POST   = 17;
     const MAX_ENG_PTS_PER_WEEK = MAX_ENG_PER_WEEK * PTS_ENGAGEMENT;
 
