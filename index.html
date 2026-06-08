@@ -1269,6 +1269,14 @@
           </select>
         </div>
         <div class="profile-form-field">
+          <label class="field-label">Round</label>
+          <select class="field-select" id="eng-modal-round">
+            <option value="R2">R2 · Mar–May 2026</option>
+            <option value="R3">R3 · Jun–Aug 2026</option>
+            <option value="R4">R4 · Sep–Nov 2026</option>
+          </select>
+        </div>
+        <div class="profile-form-field">
           <label class="field-label">Type</label>
           <select class="field-select" id="eng-modal-type">
             <option value="Like">Like</option>
@@ -11714,9 +11722,9 @@ window.openAddEngModal = function(){
   document.getElementById("eng-modal-doc-id").value = "";
   document.getElementById("eng-modal-pts").value = "2";
   document.getElementById("eng-modal-week").value = "0";
+  document.getElementById("eng-modal-round").value = window.CURRENT_ROUND || "R3";
   document.getElementById("eng-modal-type").value = "Like";
   document.getElementById("eng-modal-status").textContent = "";
-  // Refresh member list in modal
   const sel = document.getElementById("eng-modal-member");
   sel.innerHTML = _engViewerMembers.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
   document.getElementById("eng-modal-overlay").style.display = "block";
@@ -11729,6 +11737,7 @@ window.openEditEngModal = function(docId){
   document.getElementById("eng-modal-doc-id").value = docId;
   document.getElementById("eng-modal-pts").value = entry.pts ?? 2;
   document.getElementById("eng-modal-week").value = entry.weekIdx ?? 0;
+  document.getElementById("eng-modal-round").value = entry.round || window.CURRENT_ROUND || "R3";
   document.getElementById("eng-modal-type").value = entry.type || "Like";
   document.getElementById("eng-modal-status").textContent = "";
   const sel = document.getElementById("eng-modal-member");
@@ -11748,6 +11757,7 @@ window.saveEngModal = async function(){
   const docId = document.getElementById("eng-modal-doc-id").value.trim();
   const memberName = document.getElementById("eng-modal-member").value;
   const weekIdx = parseInt(document.getElementById("eng-modal-week").value);
+  const round = document.getElementById("eng-modal-round").value;
   const type = document.getElementById("eng-modal-type").value;
   const pts = parseInt(document.getElementById("eng-modal-pts").value) || 2;
 
@@ -11759,7 +11769,7 @@ window.saveEngModal = async function(){
       const oldEntry = _engViewerData.find(e=>e.id===docId);
       const oldPts = oldEntry?.pts ?? 2;
       const ptsDelta = pts - oldPts;
-      await updateDoc(dcRef(db,"engagements",docId),{memberName,weekIdx,type,pts});
+      await updateDoc(dcRef(db,"engagements",docId),{memberName,weekIdx,round,type,pts});
       // Adjust registry points by delta
       if(ptsDelta !== 0){
         const regSnap = await getDocs(q(col(db,"smac_registry"),where("name","==",memberName)));
@@ -11769,7 +11779,7 @@ window.saveEngModal = async function(){
     } else {
       // Add new
       const uid = (await getDocs(q(col(db,"smac_registry"),where("name","==",memberName)))).docs[0]?.data()?.uid || "";
-      await addDoc(col(db,"engagements"),{memberName,weekIdx,type,pts,uid,ts:Date.now(),screenshotBase64:""});
+      await addDoc(col(db,"engagements"),{memberName,weekIdx,round,type,pts,uid,ts:Date.now(),screenshotBase64:""});
       // Add pts to registry
       const regSnap = await getDocs(q(col(db,"smac_registry"),where("name","==",memberName)));
       if(!regSnap.empty) await updateDoc(regSnap.docs[0].ref,{points:increment(pts)});
