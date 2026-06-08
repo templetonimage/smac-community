@@ -7545,8 +7545,9 @@ window.clearEngScreenshot=function(){
   document.getElementById("eng-preview").style.display="none";document.getElementById("eng-label-text").textContent="Upload screenshot (date must be visible)";
 };
 async function getWeeklyEngCount(uid,weekIdx){
-  if(!useLocalFallback&&db){try{const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");const snap=await getDocs(q(col(db,"engagements"),where("uid","==",uid),where("weekIdx","==",weekIdx)));return snap.size;}catch(e){return 0;}}
-  return(lsGet("smac_engagements")||[]).filter(e=>e.uid===uid&&e.weekIdx===weekIdx).length;
+  const round=window.CURRENT_ROUND||"R3";
+  if(!useLocalFallback&&db){try{const {getDocs,collection:col,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");const snap=await getDocs(q(col(db,"engagements"),where("uid","==",uid),where("weekIdx","==",weekIdx),where("round","==",round)));return snap.size;}catch(e){return 0;}}
+  return(lsGet("smac_engagements")||[]).filter(e=>e.uid===uid&&e.weekIdx===weekIdx&&(e.round||"R2")===round).length;
 }
 async function loadEngHistory(){
   const weekIdx=getWeekIndex(Date.now());
@@ -7567,7 +7568,7 @@ window.submitEngagement=async function(){
   if(weekIdx<0){errEl.style.display="block";errEl.textContent="Round hasn't started yet.";return;}
   const count=await getWeeklyEngCount(currentUser.uid,weekIdx);
   if(count>=MAX_ENG_PER_WEEK){errEl.style.display="block";errEl.textContent=`Max ${MAX_ENG_PER_WEEK} uploads/week reached.`;return;}
-  const eng={uid:currentUser.uid,memberName:currentUser.name,type:selectedEngType,screenshotBase64:engScreenshotBase64,weekIdx,pts:PTS_ENGAGEMENT,ts:Date.now()};
+  const eng={uid:currentUser.uid,memberName:currentUser.name,type:selectedEngType,screenshotBase64:engScreenshotBase64,weekIdx,round:window.CURRENT_ROUND||"R3",pts:PTS_ENGAGEMENT,ts:Date.now()};
   if(!useLocalFallback&&db){
     try{const {addDoc,collection:col,updateDoc,doc:docRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");await addDoc(col(db,"engagements"),eng);if(currentUser.registryId)await updateDoc(docRef(db,"smac_registry",currentUser.registryId),{points:increment(PTS_ENGAGEMENT)});}
     catch(e){console.error(e);errEl.style.display="block";errEl.textContent="Error saving. Try again.";return;}
