@@ -8877,10 +8877,11 @@ window.runPointsReconciliation = async function(uid, registryId, autoHeal){
     const {getDoc,getDocs,doc:dcRef,collection:col,query:q,where,updateDoc} =
       await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
+    const _reconcileRound = window.CURRENT_ROUND || "R3";
     const [regSnap, subSnap, engSnap] = await Promise.all([
       getDoc(dcRef(db,"smac_registry",registryId)),
-      getDocs(q(col(db,"submissions"), where("uid","==",uid))),
-      getDocs(q(col(db,"engagements"), where("uid","==",uid)))
+      getDocs(q(col(db,"submissions"), where("uid","==",uid), where("round","==",_reconcileRound))),
+      getDocs(q(col(db,"engagements"), where("uid","==",uid), where("round","==",_reconcileRound)))
     ]);
 
     if(!regSnap.exists()) return;
@@ -8956,13 +8957,14 @@ window.runPointsSweep = async function(){
   _sweepResults=[];
 
   try{
-    const {getDocs,collection:col,query:q,orderBy:ob} =
+    const {getDocs,collection:col,query:q,where,orderBy:ob} =
       await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
+    const _sweepRound = window.CURRENT_ROUND || "R3";
     const [regSnap, subSnap, engSnap] = await Promise.all([
       getDocs(col(db,"smac_registry")),
-      getDocs(q(col(db,"submissions"), ob("ts","desc"))),
-      getDocs(col(db,"engagements"))
+      getDocs(q(col(db,"submissions"), where("round","==",_sweepRound))),
+      getDocs(q(col(db,"engagements"), where("round","==",_sweepRound)))
     ]);
 
     // Index subs and engs by uid
@@ -9110,9 +9112,10 @@ window.runPointsAudit = async function(){
     const {getDocs,collection:col,query:q,where,doc:dcRef,getDoc} =
       await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
+    const _auditRound = window.CURRENT_ROUND || "R3";
     const [subSnap, engSnap, regDocSnap] = await Promise.all([
-      getDocs(q(col(db,"submissions"), where("uid","==",uid))),
-      getDocs(q(col(db,"engagements"), where("uid","==",uid))),
+      getDocs(q(col(db,"submissions"), where("uid","==",uid), where("round","==",_auditRound))),
+      getDocs(q(col(db,"engagements"), where("uid","==",uid), where("round","==",_auditRound))),
       regId ? getDoc(dcRef(db,"smac_registry",regId)) : Promise.resolve(null)
     ]);
 
@@ -9448,13 +9451,14 @@ window.runPointsAuditAll = async function(){
   singleBtn.disabled=true;
 
   try{
-    const {getDocs,collection:col,query:q,orderBy:ob} =
+    const {getDocs,collection:col,query:q,where,orderBy:ob} =
       await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
+    const _auditAllRound = window.CURRENT_ROUND || "R3";
     const [regSnap, subSnap, engSnap] = await Promise.all([
       getDocs(col(db,"smac_registry")),
-      getDocs(q(col(db,"submissions"), ob("ts","asc"))),
-      getDocs(col(db,"engagements")),
+      getDocs(q(col(db,"submissions"), where("round","==",_auditAllRound))),
+      getDocs(q(col(db,"engagements"), where("round","==",_auditAllRound))),
     ]);
 
     const GRACE_WEEK_IDXS    = [0,1];
