@@ -2688,13 +2688,7 @@ function bootApp(){
   }, 4000); // fire after initial page loads settle
   // New features
   setTimeout(showWelcomeModal, 600);
-  // Round 3 renewal prompt — only for non-R3 members, and only if welcome modal isn't showing
-  setTimeout(()=>{
-    const isR3Enrolled = currentUser && (currentUser.isFounder || (currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3"));
-    if(isR3Enrolled) return; // R3 members / founders: welcome modal handles them
-    const wOpen=document.getElementById("welcome-overlay")?.classList.contains("open");
-    if(!wOpen) maybeShowRenewModal();
-  }, 900);
+  // Renewal modal auto-pop removed — R3 registration closed June 7.
   setTimeout(initPushNotifications, 1000);
   setTimeout(checkRoundEnd, 300);
   setTimeout(initRanksWatcher, 3000);
@@ -11331,22 +11325,8 @@ window.dismissRenewModal = function(){
 // Auto-pop once per login if not dismissed. Skips admins and active R3 members.
 // Always shows for R2-only members who haven't enrolled in R3 yet.
 function maybeShowRenewModal(){
-  if(!currentUser || currentUser.isAdmin) return;
-  // R3 members (or founders) are already enrolled — skip the renewal modal entirely
-  const isR3Member = currentUser.isFounder || (currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3");
-  if(isR3Member) return;
-  // R2-only member: registration is extended — show unconditionally (ignore dismiss key)
-  // so they always see the updated deadline on login
-  const isR2Only = (currentUser.rounds||[]).includes("R2") && !isR3Member;
-  if(isR2Only){
-    setTimeout(()=>{ openRenewModal(); }, 1200);
-    return;
-  }
-  // All other non-R3 members: respect dismiss key
-  let dismissed=false;
-  try{ dismissed = localStorage.getItem(_renewDismissKey())==="1"; }catch(_){}
-  if(dismissed) return;
-  setTimeout(()=>{ openRenewModal(); }, 1200);
+  // R3 registration closed June 7 — modal never auto-fires. openRenewModal() still available manually.
+  return;
 }
 
 // ─────────────────────────────────────────────
