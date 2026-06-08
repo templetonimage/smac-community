@@ -1093,18 +1093,6 @@
       <div class="sub-filter-row">
         <select class="sub-filter-select" id="sub-filter-week" style="display:none;" onchange="renderSubViewer()">
           <option value="">All Weeks</option>
-          <option value="0">W1 · Mar 1–7</option>
-          <option value="1">W2 · Mar 8–14</option>
-          <option value="2">W3 · Mar 15–21</option>
-          <option value="3">W4 · Mar 22–31</option>
-          <option value="4">W5 · Apr 1–7</option>
-          <option value="5">W6 · Apr 8–14</option>
-          <option value="6">W7 · Apr 15–21</option>
-          <option value="7">W8 · Apr 22–30</option>
-          <option value="8">W9 · May 1–7</option>
-          <option value="9">W10 · May 8–14</option>
-          <option value="10">W11 · May 15–21</option>
-          <option value="11">W12 · May 22–31</option>
         </select>
         <select class="sub-filter-select" id="sub-filter-member" onchange="renderSubViewer()">
           <option value="">Select a member...</option>
@@ -8237,9 +8225,14 @@ window.loadSubViewer = async function(){
   const body = document.getElementById("sub-viewer-body");
   if(!body) return;
   body.innerHTML = "<div class='sub-viewer-empty'>Loading submissions...</div>";
+
+  // Populate week dropdown from live WEEKS config
+  const wkSel = document.getElementById("sub-filter-week");
+  if(wkSel) wkSel.innerHTML = '<option value="">All Weeks</option>' + WEEKS.map((w,i)=>`<option value="${i}">${w.month} ${w.label} · ${w.dates}</option>`).join("");
+
   try{
-    const {getDocs,collection:col,query:q,orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const snap = await getDocs(q(col(db,"submissions"), ob("ts","desc")));
+    const {getDocs,collection:col,query:q,where,orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await getDocs(q(col(db,"submissions"),where("round","==",window.CURRENT_ROUND||"R3"),ob("ts","desc")));
     _allSubmissions = snap.docs.map(d=>({_id:d.id,...d.data()}));
     _subDataLoaded = true;
     // Populate member dropdown from fetched data
@@ -8317,7 +8310,10 @@ window.renderSubViewer = function(){
 };
 
 function buildSubCard(s){
-  const w = WEEKS[s.weekIdx] || {};
+  // Use the submission's own round config for week labels — not the active round
+  const _subRoundCfg = (s.round && window.ROUND_CONFIGS && window.ROUND_CONFIGS[s.round]) ? window.ROUND_CONFIGS[s.round] : null;
+  const _subWeeks = _subRoundCfg ? _subRoundCfg.weekDefs : WEEKS;
+  const w = _subWeeks[s.weekIdx] || {};
   const dateStr = s.ts ? new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "";
   const timeStr = s.ts ? new Date(s.ts).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "";
 
