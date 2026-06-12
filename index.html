@@ -2460,6 +2460,12 @@ window.handleLogin=async function(){
           updateDoc(_dc(db,"smac_registry",member.id),{uid:firebaseUid}).catch(()=>{});
         });
       }
+      // Write lastLogin timestamp — used by admin Inactive Member Export tool
+      if(member.id&&!useLocalFallback&&db){
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:_dlc})=>{
+          updateDoc(_dlc(db,"smac_registry",member.id),{lastLogin:Date.now()}).catch(()=>{});
+        });
+      }
     }
     lsSet("smac_session",currentUser);
     btn.textContent="Enter Community";btn.disabled=false;
@@ -4276,6 +4282,20 @@ function renderAdminRegistry(registry, list){
   }
   const sorted=[...registry].sort((a,b)=>a.name.localeCompare(b.name));
   list.innerHTML=`
+    <!-- INACTIVE MEMBER EXPORT TOOL -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:18px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;margin-bottom:10px;">📤 Inactive Member Export</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="inactive-weeks-select" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;flex:1;min-width:160px;">
+          <option value="1">Not logged in for 1 week</option>
+          <option value="2" selected>Not logged in for 2 weeks</option>
+          <option value="3">Not logged in for 3 weeks</option>
+          <option value="4">Not logged in for 4 weeks</option>
+        </select>
+        <button class="btn-sm" onclick="adminFindInactive()" style="flex-shrink:0;">Find Members</button>
+      </div>
+      <div id="inactive-results" style="margin-top:12px;"></div>
+    </div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;color:var(--text-muted);margin:16px 0 10px;text-transform:uppercase;">
       Registry — ${registry.length} member${registry.length!==1?"s":""} · Round ${CURRENT_ROUND.replace("R","")} active
     </div>
@@ -4321,6 +4341,83 @@ function renderAdminRegistry(registry, list){
     </div>`;
   }).join("")}</div>`;
 }
+
+window.adminFindInactive=async function(){
+  const resultsEl=document.getElementById("inactive-results");
+  if(!resultsEl)return;
+  const weeks=parseInt(document.getElementById("inactive-weeks-select").value,10)||2;
+  const cutoff=Date.now()-(weeks*7*24*60*60*1000);
+  resultsEl.innerHTML=`<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">Fetching fresh registry data...</div>`;
+  let members=[];
+  if(!useLocalFallback&&db){
+    try{
+      const {getDocs,collection:col}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap=await getDocs(col(db,"smac_registry"));
+      members=snap.docs.map(d=>({id:d.id,...d.data()}));
+    }catch(e){
+      resultsEl.innerHTML=`<div style="color:#c0392b;font-size:13px;">Error fetching registry: ${e.message}</div>`;
+      return;
+    }
+  } else {
+    members=lsGet("smac_registry")||[];
+  }
+  const inactive=members.filter(m=>{
+    if(m.email&&m.email.toLowerCase()===ADMIN_EMAIL.toLowerCase())return false;
+    const enrolledNow=m.isFounder||(Array.isArray(m.rounds)&&m.rounds.includes(CURRENT_ROUND));
+    if(!enrolledNow)return false;
+    if(!m.lastLogin)return true;
+    return m.lastLogin<cutoff;
+  }).sort((a,b)=>(a.lastLogin||0)-(b.lastLogin||0));
+  if(!inactive.length){
+    resultsEl.innerHTML=`<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">No inactive members found for this period.</div>`;
+    return;
+  }
+  const csvHeader="Name,Instagram,Email,Last Login";
+  const rows=inactive.map(m=>{
+    const ig=m.ig?m.ig.trim().replace(/^@+/,""):"";
+    const igDisplay=ig?"@"+ig:"(no IG)";
+    const lastLoginLabel=m.lastLogin?new Date(m.lastLogin).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"Never logged in";
+    const nameEsc=(m.name||"").replace(/"/g,'""');
+    const igEsc=igDisplay.replace(/"/g,'""');
+    const emailEsc=(m.email||"").replace(/"/g,'""');
+    const csvRow='"'+nameEsc+'","'+igEsc+'","'+emailEsc+'","'+lastLoginLabel+'"';
+    return{name:m.name||"",ig:igDisplay,email:m.email||"",lastLoginLabel,csvRow};
+  });
+  const plainText=rows.map(r=>r.name+"\t"+r.ig+"\t"+r.email+"\t"+r.lastLoginLabel).join("\n");
+  const csvText=csvHeader+"\n"+rows.map(r=>r.csvRow).join("\n");
+  resultsEl.innerHTML=`
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text);">${inactive.length} member${inactive.length!==1?"s":""} inactive for ${weeks}+ week${weeks!==1?"s":""}:</div>
+    <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:10px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border);">
+          <th style="padding:6px 10px;text-align:left;color:var(--text-muted);font-weight:600;">Name</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--text-muted);font-weight:600;">Instagram</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--text-muted);font-weight:600;">Email</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--text-muted);font-weight:600;">Last Login</th>
+        </tr></thead>
+        <tbody>${rows.map((r,i)=>`<tr style="border-bottom:${i<rows.length-1?"1px solid var(--border)":"none"};">
+          <td style="padding:6px 10px;color:var(--text);">${esc(r.name)}</td>
+          <td style="padding:6px 10px;color:var(--text-muted);">${esc(r.ig)}</td>
+          <td style="padding:6px 10px;color:var(--text-muted);">${esc(r.email)}</td>
+          <td style="padding:6px 10px;${r.lastLoginLabel==="Never logged in"?"color:#e67e22;font-weight:600;":"color:var(--text-muted);"}">${esc(r.lastLoginLabel)}</td>
+        </tr>`).join("")}</tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="inactive-export-btns"></div>`;
+  const btnDiv=document.getElementById("inactive-export-btns");
+  if(btnDiv){
+    const copyBtn=document.createElement("button");
+    copyBtn.className="btn-sm";
+    copyBtn.textContent="📋 Copy Plain Text";
+    copyBtn.onclick=()=>navigator.clipboard.writeText(plainText).then(()=>showToast("Copied to clipboard ✓")).catch(()=>showToast("Copy failed"));
+    const csvBtn=document.createElement("button");
+    csvBtn.className="btn-sm";
+    csvBtn.textContent="⬇ Download CSV";
+    csvBtn.onclick=()=>{const blob=new Blob([csvText],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="smac_inactive_"+weeks+"wk_"+new Date().toISOString().slice(0,10)+".csv";a.click();};
+    btnDiv.appendChild(copyBtn);
+    btnDiv.appendChild(csvBtn);
+  }
+};
 
 let _memberMap={};
 function renderMemberGrid(members, list, isAdmin){
