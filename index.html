@@ -7940,6 +7940,17 @@ window.submitIgPost=async function(){
   };
 
   if(!useLocalFallback&&db){
+    // ── Race guard (Option A) ────────────────────────────────────────────
+    // The weekly-cap check below is read-then-write with no transaction.
+    // Rapid repeated clicks could all read "under limit" before any write
+    // lands, letting many posts slip past the cap. This flag serializes the
+    // submit: it is set synchronously before the first await, so a second
+    // click's handler (which only runs once this one yields at an await)
+    // sees it set and bails. finally{} always clears it.
+    if(window._igSubmitInFlight){ return; }
+    window._igSubmitInFlight = true;
+    const _submitBtn = document.querySelector('button[onclick="submitIgPost()"]');
+    if(_submitBtn){ _submitBtn.disabled = true; _submitBtn.style.opacity = "0.6"; }
     try{
       // Check weekly post submission limit (per-tier: base 1/2/3, Pro 3/4/5)
       const {addDoc,collection:col,getDocs,query:q,where,orderBy:ob,updateDoc,doc:docRef,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
@@ -7985,6 +7996,10 @@ window.submitIgPost=async function(){
       if(window._lbSubCache) window._lbSubCache.ts=0; // bust cache so leaderboard shows new count
       loadLeaderboard();
     }catch(e){console.error(e);errEl.style.display="block";errEl.textContent="Error saving submission.";}
+    finally{
+      window._igSubmitInFlight = false;
+      if(_submitBtn){ _submitBtn.disabled = false; _submitBtn.style.opacity = ""; }
+    }
   } else {
     lsPush("smac_submissions",{...submission,id:Date.now().toString()});
     document.getElementById("submit-ig-url").value="";
@@ -9515,7 +9530,7 @@ window.runPointsAudit = async function(){
       if(isGrace && postPts > 0)
         flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ Grace week post pts: ${postPts}</span>`);
       if(!isGrace && realSubs.length > required)
-        flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ ${realSubs.length} posts (max ${required})</span>`);
+        flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ ${realSubs.length} posts (max ${required})</span> <button onclick="voidOverCapPosts('${esc(uid)}','${esc(regId)}',${wi})" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;margin-left:4px;">Void ${realSubs.length - required} excess</button>`);
       if(bucket.engs.length > MAX_ENG_PER_WEEK)
         flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ ${bucket.engs.length} engagements (max ${MAX_ENG_PER_WEEK})</span>`);
       if(weekTotal > maxTotal)
@@ -9755,6 +9770,146 @@ window.applyAuditCorrection = async function(subId, modifierType, oldPts, weekId
   }catch(e){
     console.error("applyAuditCorrection error:",e);
     showToast("Error applying correction: "+e.message);
+  }
+};
+
+// ─────────────────────────────────────────────
+//  ADMIN: VOID OVER-CAP POSTS
+//  Soft-voids submissions beyond the weekly cap for one member/week.
+//  - Keeps the earliest N posts by ts (N = per-tier weekly requirement).
+//  - Voids the rest: voided:true, _origPts:<pts>, pts:0, voidedReason,
+//    voidedBy, voidedAt. Setting pts:0 means every existing pts-summing
+//    query (Sweep, leaderboard, audit) drops them automatically — no other
+//    query needs to change. _origPts preserves reversibility.
+//  - RECOMPUTES registry.points = sum of all surviving sub+eng pts (matches
+//    the Integrity Sweep's definition exactly, so the Sweep reads delta 0
+//    afterward). Idempotent: re-running yields the same result.
+//  - Decrements registry.totalPosts by the number voided (it is a lifetime
+//    cumulative counter, so we adjust by delta, never overwrite it).
+//  - Logs a corrections doc with full snapshots of every voided doc.
+//
+//  EMAIL NOTE: this writes notified:true + voidEmailPending:true so a
+//  typical "send where notified==false" Cloud Function will NOT auto-fire a
+//  (possibly mis-templated) email. Flip in the CF if/when you add an
+//  over-cap email template and want members notified.
+// ─────────────────────────────────────────────
+window.voidOverCapPosts = async function(uid, regId, weekIdx){
+  if(!currentUser||!currentUser.isAdmin) return;
+  if(!uid || !regId){ showToast("Missing member identifiers."); return; }
+
+  try{
+    const {getDocs,collection:col,query:q,where,doc:dcRef,getDoc,updateDoc,addDoc,increment,serverTimestamp}
+      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    const _round = window.CURRENT_ROUND || "R3";
+
+    // Read member + this round's submissions/engagements
+    const [regDocSnap, subSnap, engSnap] = await Promise.all([
+      getDoc(dcRef(db,"smac_registry",regId)),
+      getDocs(q(col(db,"submissions"), where("uid","==",uid), where("round","==",_round))),
+      getDocs(q(col(db,"engagements"), where("uid","==",uid), where("round","==",_round)))
+    ]);
+
+    if(!regDocSnap.exists()){ showToast("Member registry doc not found."); return; }
+    const regData = regDocSnap.data();
+    const name    = regData.name || "(unnamed)";
+    const isPro   = !!regData.isPro;
+    const oldRegistryPts = regData.points || 0;
+
+    const wDef      = WEEKS[weekIdx] || {};
+    const weekLabel = wDef.label ? `${wDef.month||""} ${wDef.label}` : `Week ${weekIdx+1}`;
+    const keep      = weekRequirementFor(weekIdx, isPro) || 1;
+
+    // Real posts for this week (exclude grace placeholders and already-voided)
+    const weekReal = subSnap.docs
+      .map(d=>({ ...d.data(), _id:d.id }))
+      .filter(s=> s.weekIdx===weekIdx && s.status!=="grace" && s.voided!==true)
+      .sort((a,b)=>(a.ts||0)-(b.ts||0));
+
+    if(weekReal.length <= keep){
+      showToast(`Nothing to void — ${weekReal.length} post(s), cap is ${keep}.`);
+      return;
+    }
+
+    const toVoid    = weekReal.slice(keep);     // everything past the earliest `keep`
+    const ptsToDrop = toVoid.reduce((s,d)=>s+(d.pts||0),0);
+
+    if(!confirm(
+      `Void ${toVoid.length} over-cap post${toVoid.length>1?"s":""} for ${name}?\n\n` +
+      `Week: ${weekLabel}\n` +
+      `Cap: ${keep} · Found: ${weekReal.length} real posts\n` +
+      `Keeping earliest ${keep}, voiding the other ${toVoid.length}.\n` +
+      `Points removed from those docs: ${ptsToDrop}\n\n` +
+      `Soft-void (reversible via _origPts). Registry points will be recomputed ` +
+      `from surviving docs and totalPosts decremented by ${toVoid.length}.\n\n` +
+      `This is logged to corrections.`
+    )) return;
+
+    // 1. Soft-void each over-cap doc
+    for(const d of toVoid){
+      await updateDoc(dcRef(db,"submissions",d._id), {
+        voided:       true,
+        _origPts:     (d.pts||0),
+        pts:          0,
+        voidedReason: `Over-cap: kept earliest ${keep}/week, this was beyond the limit`,
+        voidedBy:     currentUser.uid,
+        voidedAt:     serverTimestamp()
+      });
+    }
+
+    // 2. RECOMPUTE registry.points = sum of all surviving sub + eng pts.
+    //    Voided docs now have pts:0, so they fall out automatically. This
+    //    matches the Integrity Sweep's computed total exactly.
+    let subSum = 0;
+    subSnap.docs.forEach(dd=>{
+      const data = dd.data();
+      const voidedIds = toVoid.map(v=>v._id);
+      // For docs we just voided, count 0; for everything else, count stored pts.
+      subSum += voidedIds.includes(dd.id) ? 0 : (data.pts||0);
+    });
+    const engSum = engSnap.docs.reduce((s,dd)=>s+(dd.data().pts||0),0);
+    const newRegistryPts = subSum + engSum;
+
+    // 3. Write registry: recompute points, decrement lifetime totalPosts
+    await updateDoc(dcRef(db,"smac_registry",regId), {
+      points:     newRegistryPts,
+      totalPosts: increment(-toVoid.length)
+    });
+
+    // 4. Corrections audit doc (full snapshots)
+    await addDoc(col(db,"corrections"), {
+      uid:             uid,
+      memberName:      name,
+      weekIdx:         weekIdx,
+      weekLabel:       weekLabel,
+      round:           _round,
+      correctionType:  "overcap_posts_voided",
+      keptCount:       keep,
+      voidedCount:     toVoid.length,
+      voidedIds:       toVoid.map(d=>d._id),
+      voidedSnapshots: toVoid.map(d=>({
+        id:d._id, weekIdx:d.weekIdx, format:d.format||"", status:d.status||"",
+        origPts:d.pts||0, ts:d.ts||0, url:d.url||""
+      })),
+      oldRegistryPts:  oldRegistryPts,
+      newRegistryPts:  newRegistryPts,
+      ptsRemoved:      oldRegistryPts - newRegistryPts,
+      reason:          `Over-cap posts voided — kept earliest ${keep}, voided ${toVoid.length} (max ${keep}/week)`,
+      correctedBy:     currentUser.uid,
+      correctedByEmail: currentUser.email || ADMIN_EMAIL,
+      correctedAt:     serverTimestamp(),
+      notified:        true,            // don't auto-email on a modifier template
+      voidEmailPending: true            // flip in CF if you add an over-cap email
+    });
+
+    showToast(`✓ Voided ${toVoid.length} post${toVoid.length>1?"s":""}. Registry recomputed: ${oldRegistryPts} → ${newRegistryPts}. Re-running audit…`);
+
+    // 5. Refresh the audit view so the flag clears
+    await runPointsAudit();
+
+  }catch(e){
+    console.error("voidOverCapPosts error:",e);
+    showToast("Error voiding posts: "+e.message);
   }
 };
 
