@@ -679,6 +679,7 @@
     <div id="dash-cowork-card-mount" style="display:none;"></div>
 
     <!-- Weekly Challenge Modifier — above stat cards -->
+    <div id="dash-deadline-banner" class="dash-animate" style="animation-delay:0.215s;margin-bottom:8px;"></div>
     <div id="dash-challenge-banner" class="dash-animate" style="animation-delay:0.22s;margin-bottom:4px;"></div>
     <div id="dash-next-challenge" class="dash-animate" style="animation-delay:0.23s;margin-bottom:10px;padding:0 2px;"></div>
 
@@ -842,7 +843,7 @@
       <h1 class="page-title">Submit</h1>
       <p class="page-subtitle">Log your posts and engagement for points</p>
     </div>
-
+    <div id="submit-deadline-banner" style="margin-bottom:16px;"></div>
     <div class="card" style="margin-bottom:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">📸 Submit Your Post</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Paste your Instagram link <strong>or</strong> upload a screenshot — date &amp; time must be visible.</div>
@@ -1113,6 +1114,32 @@
     </div>
 
     <!-- ADMIN: Per-Member Point Reset Tool -->
+    <!-- ADMIN: Extend Submission Deadline -->
+    <div id="deadline-extend-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">⏰ Extend Submission Deadline</div>
+      <div class="card" style="border:1.5px solid var(--gold);">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+          Pushes the on-time deadline for one week of the current round. On-time / late / missed all shift with it, and modifiers stay eligible up to the new cutoff. Applies to <strong>everyone</strong> in the round. Members pick it up on their next page load.
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Week to Extend</label>
+          <select id="deadline-week-select" class="sub-filter-select" style="display:block;width:100%;max-width:240px;" onchange="onDeadlineWeekChange()"></select>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">New Deadline (your local time)</label>
+          <input type="datetime-local" id="deadline-new-input" class="auth-input" style="max-width:260px;" oninput="updateDeadlinePreview()" />
+        </div>
+
+        <div id="deadline-preview" style="margin-bottom:14px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px;line-height:1.7;color:var(--text-muted);"></div>
+
+        <button class="btn-sm" id="deadline-save-btn" onclick="saveDeadlineOverride()" style="background:var(--gold);color:#000;border-color:var(--gold);">Save Extension</button>
+        <button class="btn-sm" id="deadline-clear-btn" onclick="clearDeadlineOverride()" style="margin-left:8px;">Clear Active Extension</button>
+        <div id="deadline-save-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
+      </div>
+    </div>
+
     <div id="member-reset-tool" style="display:none;margin-bottom:28px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">👤 Reset Member Points</div>
       <div class="card" style="border:1.5px solid var(--border);">
@@ -2487,6 +2514,7 @@ window.handleLogin=async function(){
   }
 };
 window.handleLogout=async function(){
+  try{if(window._deadlineUnsub) window._deadlineUnsub(); window._deadlineUnsub=null;}catch(e){}
   try{if(auth)await signOut(auth);}catch(e){}
   localStorage.removeItem("smac_session");currentUser=null;
   document.getElementById("app").classList.remove("visible");document.getElementById("topnav").style.display="none";
@@ -2497,6 +2525,7 @@ function bootApp(){
   document.getElementById("auth-screen").classList.add("hidden");
   const _appEl=document.getElementById("app");_appEl.removeAttribute("style");_appEl.classList.add("visible");document.getElementById("topnav").style.display="flex";
   document.getElementById("bottomnav").style.display="flex";
+  applyDeadlineOverride(); // patch WEEK_SCHEDULE from Firestore + render extension banner
   document.getElementById("topnav-username").innerHTML=`<strong>${esc(currentUser.name)}</strong>${currentUser.isAdmin?" 🔐":""}`;
   // Pro badge in topnav
   const _proBadgeEl=document.getElementById("topnav-pro-badge");
@@ -2526,6 +2555,8 @@ function bootApp(){
     document.getElementById("member-reset-tool").style.display="block";
     document.getElementById("archive-round-tool").style.display="block";
     initArchiveRoundSelect();
+    document.getElementById("deadline-extend-tool").style.display="block";
+    loadDeadlineEditor();
     document.getElementById("points-sweep-tool").style.display="block";
     document.getElementById("point-audit-tool").style.display="block";
     document.getElementById("eng-viewer").style.display="block";
@@ -3832,6 +3863,212 @@ async function loadZoomCard() {
     wrap.innerHTML = buildZoomCardHTML(cfg);
   } catch(e) { wrap.innerHTML = ""; }
 }
+
+// ─────────────────────────────────────────────
+//  DEADLINE EXTENSION (admin-set, current round)
+//  Firestore: smac_config/deadline_override
+//    { round, weekIdx, newEnd, active, note, updatedAt }
+//  Single active extension at a time. Read on load; members
+//  pick it up on next page load (no live listener in v1).
+// ─────────────────────────────────────────────
+window._DEADLINE_OVERRIDE = null;
+
+function _fmtDeadline(ts){
+  try{ return new Date(ts).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }
+  catch(e){ return String(ts); }
+}
+// Convert a ts to the value string a <input type="datetime-local"> expects (local time)
+function _tsToLocalInput(ts){
+  const d = new Date(ts - new Date(ts).getTimezoneOffset()*60000);
+  return d.toISOString().slice(0,16);
+}
+// Capture the pristine schedule once, before any override is applied
+function _ensureScheduleSnapshot(){
+  if(!window._WEEK_SCHEDULE_ORIG && Array.isArray(window.WEEK_SCHEDULE)){
+    window._WEEK_SCHEDULE_ORIG = window.WEEK_SCHEDULE.map(p=>[p[0],p[1]]);
+  }
+}
+// Restore the two affected weeks back to pristine values
+function _restoreSchedule(){
+  const orig = window._WEEK_SCHEDULE_ORIG;
+  if(!orig) return;
+  for(let i=0;i<window.WEEK_SCHEDULE.length;i++){
+    window.WEEK_SCHEDULE[i][0] = orig[i][0];
+    window.WEEK_SCHEDULE[i][1] = orig[i][1];
+  }
+}
+// Patch week N end (and push week N+1 start to newEnd+1s, per boundary rule)
+function _patchScheduleForOverride(weekIdx,newEnd){
+  if(weekIdx<0||weekIdx>=window.WEEK_SCHEDULE.length) return;
+  window.WEEK_SCHEDULE[weekIdx][1] = newEnd;
+  if(weekIdx+1 < window.WEEK_SCHEDULE.length){
+    window.WEEK_SCHEDULE[weekIdx+1][0] = newEnd + 1000;
+  }
+}
+// Validate against the PRISTINE schedule. Returns {ok,msg}.
+function _validateOverride(weekIdx,newEnd){
+  const orig = window._WEEK_SCHEDULE_ORIG;
+  if(!orig||!orig[weekIdx]) return {ok:false,msg:"Invalid week."};
+  if(!(newEnd>0)) return {ok:false,msg:"Pick a valid date/time."};
+  if(newEnd <= orig[weekIdx][1]) return {ok:false,msg:"New deadline must be later than the current one ("+_fmtDeadline(orig[weekIdx][1])+")."};
+  if(weekIdx+1 < orig.length && newEnd >= orig[weekIdx+1][1])
+    return {ok:false,msg:"Too far — can't extend past the end of the following week ("+_fmtDeadline(orig[weekIdx+1][1])+")."};
+  return {ok:true,msg:""};
+}
+
+// Apply the stored override at load and render member banners
+// Normalize a config doc -> patch schedule -> set window._DEADLINE_OVERRIDE. Returns the override or null.
+function _applyOverrideCfg(cfg){
+  _restoreSchedule(); // always start from pristine, so apply is idempotent
+  let next = null;
+  if(cfg && cfg.active && cfg.round===(window.CURRENT_ROUND||"R3")
+      && typeof cfg.weekIdx==="number" && typeof cfg.newEnd==="number"){
+    const v = _validateOverride(cfg.weekIdx,cfg.newEnd);
+    if(v.ok){
+      _patchScheduleForOverride(cfg.weekIdx,cfg.newEnd);
+      next = {weekIdx:cfg.weekIdx,newEnd:cfg.newEnd,note:cfg.note||""};
+    }
+  }
+  window._DEADLINE_OVERRIDE = next;
+  return next;
+}
+function _overrideSig(o){ return o ? (o.weekIdx+"|"+o.newEnd) : "none"; }
+let _deadlineInit = false; // suppress toast on the first snapshot fire
+
+// Live listener on the override doc. Idempotent attach; detached in handleLogout.
+function applyDeadlineOverride(){
+  _ensureScheduleSnapshot();
+  try{ if(window._deadlineUnsub) window._deadlineUnsub(); }catch(e){}
+  _deadlineInit = false;
+  try{
+    window._deadlineUnsub = onSnapshot(doc(db,"smac_config","deadline_override"), snap=>{
+      const prevSig = _overrideSig(window._DEADLINE_OVERRIDE);
+      const next = _applyOverrideCfg(snap.exists() ? snap.data() : null);
+      renderDeadlineBanners();
+      if(typeof renderWeeklyChallenge==="function") renderWeeklyChallenge();
+      const nextSig = _overrideSig(next);
+      // Toast only on real changes after initial load, for members actually in the affected week
+      if(_deadlineInit && nextSig!==prevSig){
+        if(next && getWeekIndex(Date.now())===next.weekIdx){
+          if(typeof showToast==="function") showToast("⏰ Deadline extended — this week now closes "+_fmtDeadline(next.newEnd));
+        } else if(!next && prevSig!=="none"){
+          if(typeof showToast==="function") showToast("Deadline reverted to the original time.");
+        }
+      }
+      _deadlineInit = true;
+    }, err=>{ /* listener error: leave pristine schedule, render empty banner */ renderDeadlineBanners(); });
+  }catch(e){
+    // Fallback to a one-shot read if the listener can't attach
+    getDoc(doc(db,"smac_config","deadline_override"))
+      .then(snap=>{ _applyOverrideCfg(snap.exists()?snap.data():null); })
+      .catch(()=>{})
+      .finally(()=>renderDeadlineBanners());
+  }
+}
+
+function _buildDeadlineBannerHTML(){
+  const o = window._DEADLINE_OVERRIDE;
+  if(!o) return "";
+  // Only surface to members while they are actually in the extended week
+  if(getWeekIndex(Date.now()) !== o.weekIdx) return "";
+  return `
+    <div style="background:linear-gradient(135deg,#1a1400,#2d2200);border:2px solid var(--gold);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#f5d27a,var(--gold));"></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;">⏰ Deadline Extended</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:4px;">This week now closes ${esc(_fmtDeadline(o.newEnd))}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.72);line-height:1.5;">Posts submitted by then count as on time.${o.note?" "+esc(o.note):""}</div>
+    </div>`;
+}
+function renderDeadlineBanners(){
+  const html = _buildDeadlineBannerHTML();
+  const d = document.getElementById("dash-deadline-banner");
+  const s = document.getElementById("submit-deadline-banner");
+  if(d) d.innerHTML = html;
+  if(s) s.innerHTML = html;
+}
+
+// ── Admin editor ──
+function _defaultDeadlineWeek(){
+  const orig = window._WEEK_SCHEDULE_ORIG || window.WEEK_SCHEDULE;
+  const now = Date.now();
+  let best=0,bestDiff=Infinity;
+  for(let i=0;i<orig.length;i++){
+    const diff = Math.abs(orig[i][1]-now);
+    if(diff<bestDiff){bestDiff=diff;best=i;}
+  }
+  return best;
+}
+async function loadDeadlineEditor(){
+  _ensureScheduleSnapshot();
+  const sel = document.getElementById("deadline-week-select");
+  if(!sel) return;
+  const orig = window._WEEK_SCHEDULE_ORIG || window.WEEK_SCHEDULE;
+  // Read current active override (if any) to preselect
+  let active=null;
+  try{
+    const snap = await getDoc(doc(db,"smac_config","deadline_override"));
+    if(snap.exists() && snap.data().active && snap.data().round===(window.CURRENT_ROUND||"R3")) active=snap.data();
+  }catch(e){}
+  const defIdx = active && typeof active.weekIdx==="number" ? active.weekIdx : _defaultDeadlineWeek();
+  sel.innerHTML = orig.map((p,i)=>`<option value="${i}">Week ${i+1} — currently ends ${esc(_fmtDeadline(p[1]))}</option>`).join("");
+  sel.value = String(defIdx);
+  const inp = document.getElementById("deadline-new-input");
+  if(inp) inp.value = _tsToLocalInput(active && active.weekIdx===defIdx ? active.newEnd : orig[defIdx][1]);
+  updateDeadlinePreview();
+}
+window.onDeadlineWeekChange = function(){
+  const sel = document.getElementById("deadline-week-select");
+  const inp = document.getElementById("deadline-new-input");
+  const orig = window._WEEK_SCHEDULE_ORIG || window.WEEK_SCHEDULE;
+  const i = parseInt(sel.value);
+  if(inp && orig[i]) inp.value = _tsToLocalInput(orig[i][1]);
+  updateDeadlinePreview();
+};
+window.updateDeadlinePreview = function(){
+  const sel = document.getElementById("deadline-week-select");
+  const inp = document.getElementById("deadline-new-input");
+  const box = document.getElementById("deadline-preview");
+  if(!sel||!inp||!box) return;
+  const i = parseInt(sel.value);
+  const newEnd = inp.value ? new Date(inp.value).getTime() : NaN;
+  const v = _validateOverride(i,newEnd);
+  if(!v.ok){ box.style.color="#e67e22"; box.textContent = v.msg; return; }
+  box.style.color="var(--text-muted)";
+  box.innerHTML = `Week ${i+1} on-time deadline moves to <strong style="color:var(--gold);">${esc(_fmtDeadline(newEnd))}</strong>. Late window then runs 24h past that; missed applies after. Everyone in ${esc(window.CURRENT_ROUND||"R3")} is affected.`;
+};
+window.saveDeadlineOverride = async function(){
+  const sel = document.getElementById("deadline-week-select");
+  const inp = document.getElementById("deadline-new-input");
+  const status = document.getElementById("deadline-save-status");
+  if(!sel||!inp||!db) return;
+  const weekIdx = parseInt(sel.value);
+  const newEnd = inp.value ? new Date(inp.value).getTime() : NaN;
+  const v = _validateOverride(weekIdx,newEnd);
+  const show=(msg,color)=>{ if(status){status.style.display="block";status.style.color=color;status.textContent=msg;} };
+  if(!v.ok){ show(v.msg,"#e74c3c"); return; }
+  show("Saving...","var(--text-muted)");
+  try{
+    await setDoc(doc(db,"smac_config","deadline_override"),{
+      round:(window.CURRENT_ROUND||"R3"), weekIdx, newEnd, active:true, note:"", updatedAt:Date.now()
+    });
+    // The live onSnapshot listener applies the schedule patch + re-renders banner/challenge.
+    show("✓ Saved — Week "+(weekIdx+1)+" now closes "+_fmtDeadline(newEnd),"#27ae60");
+    setTimeout(()=>{ if(status) status.style.display="none"; },4000);
+  }catch(e){ show("Save failed: "+e.message,"#e74c3c"); console.error("Deadline save error:",e); }
+};
+window.clearDeadlineOverride = async function(){
+  const status = document.getElementById("deadline-save-status");
+  const show=(msg,color)=>{ if(status){status.style.display="block";status.style.color=color;status.textContent=msg;} };
+  if(!db) return;
+  show("Clearing...","var(--text-muted)");
+  try{
+    await setDoc(doc(db,"smac_config","deadline_override"),{active:false,updatedAt:Date.now()},{merge:true});
+    // The live onSnapshot listener restores the pristine schedule + re-renders.
+    loadDeadlineEditor();
+    show("✓ Extension cleared — original deadlines restored.","#27ae60");
+    setTimeout(()=>{ if(status) status.style.display="none"; },4000);
+  }catch(e){ show("Clear failed: "+e.message,"#e74c3c"); console.error("Deadline clear error:",e); }
+};
 
 // ─────────────────────────────────────────────
 //  ADMIN: Round 3 Seat Availability Editor
