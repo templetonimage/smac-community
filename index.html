@@ -1444,16 +1444,6 @@
       </div>
     </div>
 
-    <!-- ADMIN: SMS Opt-Ins Viewer -->
-    <div id="admin-sms-viewer" style="display:none;margin-bottom:28px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;">📲 SMS Opt-Ins</div>
-        <button class="btn-sm" onclick="loadSmsOptIns()">↻ Refresh</button>
-      </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Pro members and SMS add-on holders who have opted in to deadline reminders.</div>
-      <div id="sms-viewer-body"><div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Click Refresh to load.</div></div>
-    </div>
-
     <div id="tracker-report-body"></div>
   </div>
 
@@ -2562,8 +2552,6 @@ function bootApp(){
     if(_commPtsLog){_commPtsLog.style.display="block";loadCommPtsLog();}
     const _backfillTool=document.getElementById("admin-backfill-pts");
     if(_backfillTool){_backfillTool.style.display="block";}
-    const _smsTool=document.getElementById("admin-sms-viewer");
-    if(_smsTool){_smsTool.style.display="block";loadSmsOptIns();}
     showFirebaseSetupCard();
     if(window._NO_ACTIVE_ROUND&&!document.getElementById("no-round-admin-banner")){const _b=document.createElement("div");_b.id="no-round-admin-banner";_b.style.cssText="position:fixed;top:60px;left:0;right:0;z-index:999;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;";_b.textContent="⚠️ No active round detected — add the next round config to ROUND_CONFIGS in the source file.";document.body.appendChild(_b);}
   } else {
@@ -2593,8 +2581,6 @@ function bootApp(){
     if(_commPtsLogMember)_commPtsLogMember.style.display="none";
     const _backfillMember=document.getElementById("admin-backfill-pts");
     if(_backfillMember)_backfillMember.style.display="none";
-    const _smsViewerMember=document.getElementById("admin-sms-viewer");
-    if(_smsViewerMember)_smsViewerMember.style.display="none";
   }
   // Fire Pro in-app notification sequence (built, currently inactive — flip _PRO_NOTIFS_ACTIVE to enable at launch)
   setTimeout(checkProNotifications, 2000);
@@ -7643,7 +7629,8 @@ async function loadEngHistory(){
   let engs=[];
   if(!useLocalFallback&&db){try{const {getDocs,collection:col,query:q,where,orderBy:ob}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");const snap=await getDocs(q(col(db,"engagements"),where("uid","==",currentUser.uid),ob("ts","desc")));engs=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(e){console.warn("Eng history:",e);}}
   else{engs=(lsGet("smac_engagements")||[]).filter(e=>e.uid===currentUser.uid).sort((a,b)=>b.ts-a.ts);}
-  const thisWeek=engs.filter(e=>e.weekIdx===weekIdx);
+  const _curRound=window.CURRENT_ROUND||"R3";
+  const thisWeek=engs.filter(e=>e.weekIdx===weekIdx&&(e.round||"R2")===_curRound);
   const remaining=Math.max(0,MAX_ENG_PER_WEEK-thisWeek.length);
   const statusEl=document.getElementById("eng-weekly-status");
   if(statusEl)statusEl.innerHTML=remaining>0?`<span style="color:var(--gold);font-weight:600;">${remaining} upload${remaining!==1?"s":""} left this week</span> · +${PTS_ENGAGEMENT}pts each · max ${MAX_ENG_PER_WEEK}/week`:`<span style="color:#e74c3c;font-weight:600;">Weekly limit reached (${MAX_ENG_PER_WEEK}/${MAX_ENG_PER_WEEK}).</span> Resets next week.`;
@@ -7805,7 +7792,7 @@ async function spendGraceToken(weekIdx){
     const [regSnap,subSnap]=await Promise.all([
       getDoc(regRef),
       getDocs(q(col(db,"submissions"),
-        where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx)))
+        where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx),where("round","==",window.CURRENT_ROUND||"R3")))
     ]);
     const regData=regSnap.exists()?regSnap.data():{};
     const grace=getGraceState(regData);
@@ -7892,7 +7879,7 @@ async function refundGraceToken(weekIdx, manual){
     }else{
       // Auto-refund: only when real posts now satisfy the week.
       const subSnap=await getDocs(q(col(db,"submissions"),
-        where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx)));
+        where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx),where("round","==",window.CURRENT_ROUND||"R3")));
       const realPosts=subSnap.docs.filter(d=>d.data().status!=="grace").length;
       const required=weekRequirement(weekIdx)||1;
       if(realPosts<required) return false; // still genuinely short — keep grace
@@ -8065,7 +8052,7 @@ window.deleteMemberSubmission=async function(subId, pts, weekIdx){
       }
       // Re-derive tracker slots for this week from remaining real submissions
       if(weekIdx!=null&&weekIdx>=0){
-        const remaining=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx)));
+        const remaining=await getDocs(q(col(db,"submissions"),where("uid","==",currentUser.uid),where("weekIdx","==",weekIdx),where("round","==",window.CURRENT_ROUND||"R3")));
         const realCount=remaining.docs.filter(d=>d.data().status!=="grace").length;
         await syncTrackerFromSubmission(weekIdx,currentUser.uid,realCount);
       }
@@ -8081,7 +8068,7 @@ window.deleteMemberSubmission=async function(subId, pts, weekIdx){
     lsSet("smac_submissions",subs);
     // Local fallback: re-derive tracker from remaining local subs
     if(weekIdx!=null&&weekIdx>=0){
-      const realCount=subs.filter(s=>s.uid===currentUser.uid&&s.weekIdx===weekIdx&&s.status!=="grace").length;
+      const realCount=subs.filter(s=>s.uid===currentUser.uid&&s.weekIdx===weekIdx&&(s.round||"R2")===(window.CURRENT_ROUND||"R3")&&s.status!=="grace").length;
       syncTrackerFromSubmission(weekIdx,currentUser.uid,realCount);
     }
     showToast(pts>0?`Submission deleted. -${pts} pts removed.`:"Submission deleted.");
@@ -10253,9 +10240,9 @@ window.renderWeeklyChallenge = async function(){
         col(db,"submissions"),
         where("uid","==",currentUser.uid),
         where("weekIdx","==",weekIdx),
-        where("challengeApplied","==",true)
+        where("round","==",window.CURRENT_ROUND||"R3")
       ));
-      _challengeUsedThisWeek = !snap.empty;
+      _challengeUsedThisWeek = snap.docs.some(d=>d.data().challengeApplied===true);
     }catch(e){}
   }
 
@@ -10367,9 +10354,9 @@ window.renderSYFModifier = async function(){
         col(db,"submissions"),
         where("uid","==",currentUser.uid),
         where("weekIdx","==",weekIdx),
-        where("syfApplied","==",true)
+        where("round","==",window.CURRENT_ROUND||"R3")
       ));
-      _syfUsedThisWeek = !snap.empty;
+      _syfUsedThisWeek = snap.docs.some(d=>d.data().syfApplied===true);
     }catch(e){}
   }
 
@@ -12183,94 +12170,6 @@ window.rsvpCowork = async function(sessionId,calUrl,btn) {
     if(calUrl&&calUrl.startsWith('http')) window.open(calUrl,'_blank');
     loadCoworkCard();
   } catch(e){showToast("RSVP error: "+e.message);if(btn){btn.disabled=false;btn.textContent=`RSVP +${PTS_COWORK_RSVP} pts`;}}
-};
-
-// ── ADMIN: SMS Opt-Ins Viewer ──────────────────────────────────────────────
-window.loadSmsOptIns = async function() {
-  const body = document.getElementById("sms-viewer-body");
-  if (!body || !db || useLocalFallback) return;
-  body.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Loading...</div>';
-  try {
-    const { getDocs, collection: col } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const snap = await getDocs(col(db, "smac_registry"));
-    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // Split into opted-in vs pending (hasSMS or isPro, but smsOptIn not yet true)
-    const optedIn  = all.filter(m => m.smsOptIn === true && (m.isPro || m.hasSMS));
-    const pending  = all.filter(m => m.smsOptIn !== true && (m.isPro || m.hasSMS));
-
-    if (!optedIn.length && !pending.length) {
-      body.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">No Pro members or SMS add-on holders found.</div>';
-      return;
-    }
-
-    const fmtDate = ts => ts ? new Date(typeof ts === 'number' ? ts : ts.toMillis ? ts.toMillis() : ts.seconds * 1000).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : '—';
-
-    const rowStyle = 'display:grid;grid-template-columns:1fr 130px 90px 100px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;';
-    const hdrStyle = rowStyle + 'font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);background:var(--surface2);border-radius:8px 8px 0 0;border-bottom:1px solid var(--border);';
-
-    let html = '';
-
-    // ── Opted-In section ──────────────────────────────────────────
-    const optedInPhones = optedIn.map(m => m.phone).filter(Boolean);
-    html += `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;margin-top:4px;">
-        <div style="font-size:13px;font-weight:700;">Active Opt-Ins <span style="font-weight:400;color:var(--text-muted);">(${optedIn.length})</span></div>
-        ${optedInPhones.length ? `<button class="btn-sm" onclick="adminCopySmsPhones()" style="font-size:11px;">Copy All Numbers</button>` : ''}
-      </div>`;
-
-    if (optedIn.length) {
-      html += `<div style="border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;">
-        <div style="${hdrStyle}"><span>Name</span><span>Phone</span><span>Access</span><span>Opted In</span></div>`;
-      html += optedIn.map(m => {
-        const tier = m.isPro ? '<span style="background:var(--gold);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 7px;border-radius:20px;">PRO</span>'
-                             : '<span style="background:var(--surface2);color:var(--text-muted);font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 7px;border-radius:20px;">SMS</span>';
-        return `<div style="${rowStyle}">
-          <span style="font-weight:600;">${esc(m.name||'—')}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-muted);">${esc(m.phone||'—')}</span>
-          <span>${tier}</span>
-          <span style="color:var(--text-muted);">${fmtDate(m.smsSince)}</span>
-        </div>`;
-      }).join('');
-      html += '</div>';
-    } else {
-      html += '<div style="font-size:13px;color:var(--text-muted);padding:12px 0 20px;">No members have opted in yet.</div>';
-    }
-
-    // ── Pending section ───────────────────────────────────────────
-    if (pending.length) {
-      html += `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">Paid But Not Opted In <span style="font-weight:400;color:var(--text-muted);">(${pending.length})</span></div>
-        <div style="border:1.5px solid var(--border);border-radius:10px;overflow:hidden;">
-        <div style="${hdrStyle}"><span>Name</span><span style="grid-column:2/4;">Email</span><span>Access</span></div>`;
-      html += pending.map(m => {
-        const tier = m.isPro ? '<span style="background:var(--gold);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 7px;border-radius:20px;">PRO</span>'
-                             : '<span style="background:var(--surface2);color:var(--text-muted);font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 7px;border-radius:20px;">SMS</span>';
-        return `<div style="${rowStyle}">
-          <span style="font-weight:600;">${esc(m.name||'—')}</span>
-          <span style="grid-column:2/4;font-size:12px;color:var(--text-muted);">${esc(m.email||'—')}</span>
-          <span>${tier}</span>
-        </div>`;
-      }).join('');
-      html += '</div>';
-    }
-
-    // Hidden phone list for copy
-    const allPhonesJson = JSON.stringify(optedInPhones);
-    html += `<div id="sms-phones-data" style="display:none;" data-phones='${allPhonesJson.replace(/'/g,"&#39;")}'></div>`;
-    body.innerHTML = html;
-  } catch(e) {
-    body.innerHTML = `<div style="color:#e74c3c;font-size:13px;padding:12px;">Error: ${esc(e.message)}</div>`;
-  }
-};
-
-window.adminCopySmsPhones = function() {
-  const el = document.getElementById("sms-phones-data");
-  if (!el) return;
-  try {
-    const phones = JSON.parse(el.dataset.phones || "[]");
-    if (!phones.length) { showToast("No numbers to copy."); return; }
-    navigator.clipboard.writeText(phones.join("\n")).then(() => showToast(`Copied ${phones.length} number${phones.length!==1?"s":""} to clipboard.`));
-  } catch(e) { showToast("Copy failed: " + e.message); }
 };
 
 </script>
