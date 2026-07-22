@@ -114,13 +114,13 @@
     .page{display:none;padding:20px;max-width:680px;margin:0 auto;padding-bottom:20px;}
     .page.active{display:block;}
     .page-header{margin-bottom:24px;}
-    .page-title{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:0.04em;line-height:1;}
+    .page-title{font-family:'Sora',sans-serif;font-weight:800;font-size:30px;letter-spacing:-0.01em;line-height:1.1;color:var(--text);margin-bottom:0;}
     .page-subtitle{font-size:13px;color:var(--text-muted);margin-top:4px;}
 
     /* CARDS */
     .card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);}
     .card-meta{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-    .avatar{width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0;}
+    .avatar{width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:16px;flex-shrink:0;}
     .card-author{font-weight:600;font-size:14px;}
     .card-time{font-size:12px;color:var(--text-muted);}
     .card-body{font-size:15px;line-height:1.6;}
@@ -128,12 +128,12 @@
     .card-link{display:inline-flex;align-items:center;gap:6px;margin-top:12px;color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;border:1.5px solid var(--gold);padding:6px 14px;border-radius:8px;transition:all .15s;}
     .card-link:hover{background:var(--gold);color:#fff;}
     .card-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap;}
-    .react-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text-muted);transition:all .15s;}
-    .react-btn:hover{border-color:var(--gold);color:var(--gold);background:#fdf8ec;}
-    .react-btn.active{border-color:var(--gold);color:var(--gold);background:#fdf8ec;}
+    .react-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;color:var(--text-muted);transition:all .15s;}
+    .react-btn:hover{border-color:var(--gold);color:var(--gold-dark);background:var(--accent-bg);}
+    .react-btn.active{border-color:var(--gold);color:var(--gold-dark);background:var(--accent-bg);}
     .react-btn.locked{opacity:.45;cursor:default;}
     .props-summary{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
-    .props-count-btn{background:none;border:none;font-size:13px;color:var(--text-muted);cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;text-align:left;}
+    .props-count-btn{background:none;border:none;font-size:13px;color:var(--text-muted);cursor:pointer;padding:0;font-family:'Inter',sans-serif;text-align:left;}
     .props-count-btn:hover{color:var(--gold);}
     .props-see{color:var(--gold);font-weight:600;text-decoration:underline;}
     .props-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
@@ -141,30 +141,30 @@
 
     /* COMPOSE */
     .compose-box{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px;margin-bottom:24px;box-shadow:var(--shadow);}
-    .compose-textarea{width:100%;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);background:transparent;resize:none;min-height:44px;line-height:1.6;}
+    .compose-textarea{width:100%;border:none;outline:none;font-family:'Inter',sans-serif;font-size:15px;color:var(--text);background:transparent;resize:none;min-height:44px;line-height:1.6;}
     .compose-textarea::placeholder{color:var(--text-muted);}
     .compose-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
     .compose-hint{font-size:12px;color:var(--text-muted);}
-    .btn-post{padding:9px 20px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;cursor:pointer;transition:background .15s;}
-    .btn-post:hover{background:var(--gold-dark);}
-    .admin-compose{background:#eef3f6;border:1.5px dashed var(--gold);}
+    .btn-post{padding:9px 20px;background:var(--black);color:#fff;border:none;border-radius:8px;font-family:'Sora',sans-serif;font-weight:600;font-size:14px;letter-spacing:0.02em;cursor:pointer;transition:background .15s,color .15s;}
+    .btn-post:hover{background:var(--gold);color:var(--black);}
+    .admin-compose{background:var(--accent-bg);border:1.5px dashed var(--gold);}
     /* ── Gamification ── */
     .submit-form{background:var(--surface);border-radius:var(--radius);border:2px solid var(--gold);padding:16px;margin-bottom:24px;box-shadow:var(--shadow);}
-    .submit-form-title{font-family:"Bebas Neue",sans-serif;font-size:20px;letter-spacing:0.04em;color:var(--gold);margin-bottom:12px;}
+    .submit-form-title{font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;color:var(--gold);margin-bottom:12px;}
     .format-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
-    .format-btn{padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-family:"DM Sans",sans-serif;font-size:13px;cursor:pointer;transition:all .15s;}
+    .format-btn{padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-family:'Inter',sans-serif;font-size:13px;cursor:pointer;transition:all .15s;}
     .format-btn.selected{border-color:var(--gold);background:#eef3f6;color:var(--gold);font-weight:700;}
     .pts-preview{font-size:12px;color:var(--text-muted);margin-bottom:12px;}
     .pts-preview strong{color:var(--gold);}
     .leaderboard-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
     .leaderboard-row:last-child{border-bottom:none;}
-    .lb-rank{font-family:"Bebas Neue",sans-serif;font-size:22px;color:var(--text-muted);width:28px;text-align:center;}
+    .lb-rank{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;color:var(--text-muted);width:28px;text-align:center;}
     .lb-rank.top3{color:var(--gold);}
-    .lb-avatar{width:38px;height:38px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:16px;color:#fff;flex-shrink:0;}
+    .lb-avatar{width:38px;height:38px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:16px;color:#fff;flex-shrink:0;}
     .lb-info{flex:1;}
     .lb-name{font-weight:700;font-size:15px;}
     .lb-meta{font-size:12px;color:var(--text-muted);margin-top:2px;}
-    .lb-pts{font-family:"Bebas Neue",sans-serif;font-size:22px;color:var(--gold);}
+    .lb-pts{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;color:var(--gold);}
     .lb-streak{font-size:11px;background:#fff8e1;color:#b8860b;border-radius:6px;padding:2px 7px;font-weight:700;}
     .pts-badge{display:inline-block;background:var(--gold);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;}
     .milestone-badge{display:inline-block;font-size:13px;margin-right:4px;}
@@ -175,10 +175,10 @@
     .sub-late{color:#e74c3c;font-size:11px;}
     .sub-ontime{color:#27ae60;font-size:11px;}
     .sub-viewer-toggle{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
-    .sub-toggle-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+    .sub-toggle-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
     .sub-toggle-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,.08);}
     .sub-filter-row{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;}
-    .sub-filter-select{padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+    .sub-filter-select{padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;}
     .sub-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;position:relative;}
     .sub-card.reviewed{border-left:3px solid #27ae60;}
     .sub-card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
@@ -192,13 +192,13 @@
     .sub-status-pill.reviewed{background:rgba(39,174,96,.2);color:#1e8449;}
     .sub-thumb{width:100%;border-radius:6px;max-height:160px;object-fit:cover;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;}
     .sub-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
-    .sub-pts-edit{width:60px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-align:center;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
+    .sub-pts-edit{width:60px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-align:center;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
     .sub-viewer-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;}
     
 
     /* ── Polls ── */
     .poll-card{background:var(--surface);border:1.5px solid var(--gold);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
-    .poll-question{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:12px;color:var(--text);}
+    .poll-question{font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;margin-bottom:12px;color:var(--text);}
     .poll-option{position:relative;margin-bottom:8px;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);cursor:pointer;transition:border-color .15s;}
     .poll-option:hover{border-color:var(--gold);}
     .poll-option.voted{border-color:var(--gold);}
@@ -243,7 +243,7 @@
     .milestone-bar-wrap{background:var(--surface2);border-radius:var(--radius);padding:14px 16px;margin-top:14px;}
     .milestone-bar-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
     .milestone-bar-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);}
-    .milestone-bar-count{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);}
+    .milestone-bar-count{font-family:'Sora',sans-serif;font-weight:700;font-size:16px;color:var(--gold);}
     .milestone-bar-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
     .milestone-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold-dark),var(--gold));transition:width .6s ease;}
     .milestone-markers{display:flex;justify-content:space-between;margin-top:6px;}
@@ -254,15 +254,15 @@
     .challenge-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;position:relative;}
     .challenge-card.active-challenge{border-color:var(--gold);background:linear-gradient(135deg,#eef3f6,#e9f0f4);}
     .challenge-week-label{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
-    .challenge-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold);letter-spacing:0.04em;margin-bottom:4px;}
+    .challenge-title{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;color:var(--gold);letter-spacing:0.04em;margin-bottom:4px;}
     .challenge-desc{font-size:13px;color:var(--text);line-height:1.55;margin-bottom:12px;}
     .challenge-pts-pill{display:inline-block;background:rgba(212,175,55,0.15);color:var(--gold);font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;margin-bottom:10px;}
     .challenge-submitted{display:inline-flex;align-items:center;gap:5px;background:rgba(39,174,96,.12);color:#27ae60;font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;}
     
-    .admin-banner{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
-    .admin-banner-icon{font-size:24px;}
-    .admin-banner-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;}
-    .admin-banner-sub{font-size:12px;opacity:.7;}
+    .admin-banner{background:linear-gradient(135deg,var(--black),var(--off-black));color:#fff;border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+    .admin-banner-icon{font-size:22px;flex-shrink:0;}
+    .admin-banner-title{font-family:'Sora',sans-serif;font-weight:700;font-size:17px;letter-spacing:-0.01em;line-height:1.1;}
+    .admin-banner-sub{font-size:12px;opacity:.7;margin-top:2px;}
 
     /* ANNOUNCEMENTS */
     .announcement-card{border-left:3px solid var(--gold);padding-left:16px;}
@@ -271,8 +271,8 @@
     .ann-body-wrap.expanded{max-height:2000px;}
     .ann-fade{position:absolute;bottom:0;left:0;right:0;height:52px;background:linear-gradient(to bottom,transparent,var(--surface));pointer-events:none;transition:opacity 0.25s ease;}
     .ann-body-wrap.expanded .ann-fade{opacity:0;}
-    .ann-toggle-btn{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--gold);cursor:pointer;padding:6px 0 0;letter-spacing:0.02em;}
-    .ann-archive-trigger{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius);border:1.5px dashed var(--border);background:var(--surface2);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);transition:all .2s;margin-bottom:16px;width:100%;text-align:left;}
+    .ann-toggle-btn{background:none;border:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--gold);cursor:pointer;padding:6px 0 0;letter-spacing:0.02em;}
+    .ann-archive-trigger{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius);border:1.5px dashed var(--border);background:var(--surface2);cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);transition:all .2s;margin-bottom:16px;width:100%;text-align:left;}
     .ann-archive-trigger:hover{border-color:var(--gold);color:var(--gold);background:#eef3f6;}
     .ann-archive-trigger-icon{font-size:16px;flex-shrink:0;}
     .ann-archive-count{margin-left:auto;font-size:11px;font-weight:700;background:var(--border);color:var(--text-muted);padding:2px 8px;border-radius:999px;transition:background .2s,color .2s;}
@@ -281,7 +281,7 @@
     .ann-archive-overlay.open{display:flex;}
     .ann-archive-modal{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
     .ann-archive-modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-    .ann-archive-modal-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;}
+    .ann-archive-modal-title{font-family:'Sora',sans-serif;font-weight:700;font-size:26px;letter-spacing:0.04em;}
     .ann-archive-modal-sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
     .ann-archive-modal-close{background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-muted);flex-shrink:0;transition:background .15s;}
     .ann-archive-modal-close:hover{background:var(--border);}
@@ -293,7 +293,7 @@
 
     /* RESOURCES */
     .resource-filter{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
-    .filter-btn{padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-muted);transition:all .15s;}
+    .filter-btn{padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-muted);transition:all .15s;}
     .filter-btn.active,.filter-btn:hover{border-color:var(--gold);color:var(--gold);background:#fdf8ec;}
     .resource-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
     @media(max-width:480px){.resource-grid{grid-template-columns:1fr;}}
@@ -338,12 +338,12 @@
     .res-modal-header{padding:28px 24px 0;position:relative;}
     .res-modal-close{position:absolute;top:20px;right:20px;background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
     .res-modal-icon{width:52px;height:52px;background:var(--surface2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:12px;}
-    .res-modal-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.04em;line-height:1.1;margin-bottom:10px;}
+    .res-modal-title{font-family:'Sora',sans-serif;font-weight:700;font-size:32px;letter-spacing:0.04em;line-height:1.1;margin-bottom:10px;}
     .res-modal-tags{display:flex;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
     .res-modal-divider{height:1px;background:var(--border);margin:16px 0 0;}
     .res-modal-body{padding:20px 24px;font-size:15px;line-height:1.75;color:var(--text);white-space:pre-wrap;}
     .res-modal-footer{padding:4px 24px 32px;}
-    .res-modal-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;background:var(--gold);color:#fff;border:none;border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;cursor:pointer;text-decoration:none;transition:background .15s;}
+    .res-modal-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;background:var(--gold);color:#fff;border:none;border-radius:var(--radius);font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.06em;cursor:pointer;text-decoration:none;transition:background .15s;}
     .res-modal-btn:hover{background:var(--gold-dark);}
     .res-admin-btns{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:2;}
     .res-edit-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text);transition:background .15s;}
@@ -353,13 +353,13 @@
 
     /* TRACKER */
     .tracker-header{background:linear-gradient(135deg,var(--gold),var(--gold-dark));border-radius:var(--radius);padding:20px;color:#fff;margin-bottom:20px;}
-    .tracker-header h2{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;}
+    .tracker-header h2{font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;}
     .progress-bar{height:6px;background:rgba(255,255,255,0.3);border-radius:3px;overflow:hidden;margin-top:8px;}
     .progress-fill{height:100%;background:#fff;border-radius:3px;transition:width .4s ease;}
     .progress-label{font-size:13px;opacity:.9;margin-top:10px;}
     .month-section{margin-bottom:24px;}
-    .month-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;}
-    .month-req{font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface2);padding:3px 10px;border-radius:20px;color:var(--text-muted);font-weight:500;letter-spacing:0;}
+    .month-title{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.04em;margin-bottom:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;}
+    .month-req{font-size:12px;font-family:'Inter',sans-serif;background:var(--surface2);padding:3px 10px;border-radius:20px;color:var(--text-muted);font-weight:500;letter-spacing:0;}
     .week-row{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;box-shadow:var(--shadow);}
     .week-label{font-weight:600;font-size:14px;}
     .week-sublabel{font-size:12px;color:var(--text-muted);}
@@ -381,17 +381,17 @@
     .member-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);transition:all .15s;cursor:pointer;}
     .member-card:hover{border-color:var(--gold);transform:translateY(-1px);}
     .member-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-    .member-avatar-sm{width:40px;height:40px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;flex-shrink:0;}
+    .member-avatar-sm{width:40px;height:40px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:17px;flex-shrink:0;}
     .member-name{font-weight:600;font-size:14px;line-height:1.2;}
     .member-biz{font-size:12px;color:var(--text-muted);}
     .member-type-tag{display:inline-block;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:var(--surface2);color:var(--text-muted);padding:3px 9px;border-radius:20px;margin-bottom:10px;}
-    .member-ig-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;text-decoration:none;transition:all .15s;}
+    .member-ig-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:transparent;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;text-decoration:none;transition:all .15s;}
     .member-ig-btn:hover{border-color:#e1306c;color:#e1306c;background:#fff0f5;}
     .member-allstar-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;letter-spacing:0.06em;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;padding:2px 8px;border-radius:20px;margin-bottom:8px;}
 
     /* PROFILE */
     .profile-hero{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:28px 24px;text-align:center;margin-bottom:16px;box-shadow:var(--shadow);}
-    .profile-avatar{width:72px;height:72px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;margin:0 auto 14px;}
+    .profile-avatar{width:72px;height:72px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:32px;margin:0 auto 14px;}
     .avatar img,.lb-avatar img,.member-avatar-sm img,.member-modal-avatar img,.profile-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
     /* ── CHAT ── */
     .chat-wrap{display:flex;flex-direction:column;height:100%;}
@@ -418,7 +418,7 @@
     .chat-reaction-pill:hover{border-color:var(--gold);}
     .chat-reaction-count{font-size:11px;color:var(--text-muted);font-weight:600;}
     .chat-input-bar{padding:10px 14px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:8px;align-items:flex-end;}
-    .chat-input-bar textarea{flex:1;border:1px solid var(--border);border-radius:12px;padding:9px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--text);resize:none;max-height:100px;min-height:38px;line-height:1.4;outline:none;}
+    .chat-input-bar textarea{flex:1;border:1px solid var(--border);border-radius:12px;padding:9px 12px;font-size:14px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);resize:none;max-height:100px;min-height:38px;line-height:1.4;outline:none;}
     .chat-input-bar textarea:focus{border-color:var(--gold);}
     .chat-send-btn{width:38px;height:38px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s;}
     .chat-emoji-input-btn{background:none;border:none;font-size:20px;cursor:pointer;padding:4px 6px;border-radius:8px;transition:background .1s;flex-shrink:0;line-height:1;}
@@ -446,7 +446,7 @@
     .photo-upload-btn:hover{border-color:var(--gold);color:var(--gold);}
     .photo-preview{width:72px;height:72px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 8px;border:3px solid var(--gold);}
     .photo-remove-btn{background:none;border:none;color:#c0392b;font-size:12px;cursor:pointer;display:block;margin:0 auto 8px;font-weight:600;}
-    .profile-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.04em;}
+    .profile-name{font-family:'Sora',sans-serif;font-weight:700;font-size:32px;letter-spacing:0.04em;}
     .profile-business{font-size:14px;color:var(--text-muted);margin-top:2px;}
     .profile-badges{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;}
     .badge{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 12px;border-radius:20px;}
@@ -454,7 +454,7 @@
     .badge-allstar{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;}
     .profile-form-field{margin-bottom:16px;}
     .field-label{display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
-    .field-input,.field-select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;background:var(--surface);color:var(--text);outline:none;transition:border-color .2s;}
+    .field-input,.field-select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;background:var(--surface);color:var(--text);outline:none;transition:border-color .2s;}
     .field-input:focus,.field-select:focus{border-color:var(--gold);}
 
     /* MISC */
@@ -464,10 +464,10 @@
     .welcome-overlay.open{display:flex;}
     .welcome-modal{background:var(--surface);border-radius:20px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.25);}
     .welcome-modal-header{background:linear-gradient(135deg,var(--gold),var(--gold-dark));padding:32px 28px 24px;text-align:center;color:#fff;}
-    .welcome-modal-logo{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:0.08em;line-height:1;}
+    .welcome-modal-logo{font-family:'Sora',sans-serif;font-weight:700;font-size:56px;letter-spacing:0.08em;line-height:1;}
     .welcome-modal-tagline{font-size:13px;opacity:.85;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;}
     .welcome-modal-body{padding:24px 28px;}
-    .welcome-modal-body h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:16px;}
+    .welcome-modal-body h3{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.04em;margin-bottom:16px;}
     .welcome-step{display:flex;gap:14px;margin-bottom:16px;align-items:flex-start;}
     .welcome-step-icon{font-size:22px;flex-shrink:0;margin-top:1px;}
     .welcome-step-text{font-size:14px;line-height:1.5;}
@@ -479,13 +479,13 @@
     .member-modal-overlay.open{display:flex;}
     .member-modal{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:80vh;overflow-y:auto;padding:28px 24px 40px;}
     .member-modal-close{float:right;background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-muted);}
-    .member-modal-avatar{width:64px;height:64px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;margin:12px auto;}
-    .member-modal-name{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;text-align:center;}
+    .member-modal-avatar{width:64px;height:64px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:28px;margin:12px auto;}
+    .member-modal-name{font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;text-align:center;}
     .member-modal-biz{font-size:13px;color:var(--text-muted);text-align:center;margin-top:2px;}
     .member-modal-badges{display:flex;gap:8px;justify-content:center;margin:12px 0;}
     .member-modal-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 0;}
     .member-stat{background:var(--surface2);border-radius:10px;padding:12px;text-align:center;}
-    .member-stat-val{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);}
+    .member-stat-val{font-family:'Sora',sans-serif;font-weight:700;font-size:24px;color:var(--gold);}
     .member-stat-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
     .member-modal-tracker{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:16px 0;}
     .member-tracker-dot{height:10px;border-radius:3px;background:var(--border);}
@@ -494,7 +494,7 @@
     /* ROUND ENDED BANNER */
     .round-ended-banner{background:linear-gradient(135deg,#2d1a1a,#3d2020);border:1.5px solid #e74c3c;border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;color:#fff;}
     .round-ended-icon{font-size:24px;flex-shrink:0;}
-    .round-ended-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;}
+    .round-ended-title{font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;}
     .round-ended-sub{font-size:12px;opacity:.7;margin-top:2px;}
 
     /* PUSH NOTIFICATION CARD */
@@ -503,12 +503,12 @@
     .notif-card-text{flex:1;}
     .notif-card-title{font-weight:600;font-size:14px;margin-bottom:2px;}
     .notif-card-desc{font-size:12px;color:var(--text-muted);line-height:1.4;}
-    .notif-btn{padding:8px 16px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.04em;cursor:pointer;white-space:nowrap;}
+    .notif-btn{padding:8px 16px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Sora',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.04em;cursor:pointer;white-space:nowrap;}
     .notif-btn:disabled{opacity:.5;cursor:default;}
 
     .empty-state{text-align:center;padding:48px 24px;color:var(--text-muted);}
     .empty-icon{font-size:40px;margin-bottom:12px;}
-    .empty-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);margin-bottom:6px;}
+    .empty-title{font-family:'Sora',sans-serif;font-weight:700;font-size:24px;color:var(--text);margin-bottom:6px;}
     .empty-desc{font-size:14px;line-height:1.5;}
 
     #install-dismiss{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);padding:0 4px;}
@@ -606,26 +606,26 @@
     .pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;line-height:1.4;}
     /* ── FOUNDER ── */
     .founder-badge{display:inline-flex;align-items:center;background:var(--off-black);color:var(--gold);font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;line-height:1.4;border:1px solid var(--gold);}
-    .lb-founder-badge{display:inline-flex;align-items:center;background:#1a1a1a;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;border:1px solid var(--gold);}
+    .lb-founder-badge{display:inline-flex;align-items:center;background:#1a1a1a;color:var(--gold);font-family:'Sora',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;border:1px solid var(--gold);}
     .member-founder-badge{display:inline-flex;align-items:center;gap:3px;background:#1a1a1a;color:var(--gold);font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;border:1px solid var(--gold);}
     .pro-locked-card{background:var(--surface);border-radius:var(--radius);border:1.5px dashed var(--gold);padding:20px;margin-bottom:16px;position:relative;overflow:hidden;}
     .pro-locked-card::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(91,132,163,.04),transparent);pointer-events:none;}
-    .pro-locked-label{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:0.1em;padding:3px 10px;border-radius:20px;margin-bottom:10px;}
-    .pro-locked-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:4px;}
+    .pro-locked-label{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;padding:3px 10px;border-radius:20px;margin-bottom:10px;}
+    .pro-locked-title{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.04em;margin-bottom:4px;}
     .pro-locked-desc{font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;}
-    .btn-upgrade{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;border:none;border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;cursor:pointer;text-decoration:none;transition:opacity .15s;}
+    .btn-upgrade{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;border:none;border-radius:var(--radius);font-family:'Sora',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.06em;cursor:pointer;text-decoration:none;transition:opacity .15s;}
     .btn-upgrade:hover{opacity:.85;}
     .pro-page-header{background:linear-gradient(135deg,#1a1500,#2d2000);border-radius:var(--radius);padding:20px;margin-bottom:20px;border:1px solid var(--gold);}
-    .pro-page-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.06em;color:var(--gold);line-height:1;}
+    .pro-page-title{font-family:'Sora',sans-serif;font-weight:700;font-size:32px;letter-spacing:0.06em;color:var(--gold);line-height:1;}
     .pro-page-sub{font-size:13px;color:rgba(91,132,163,.7);margin-top:4px;}
     .pro-feature-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);}
     .pro-feature-icon{font-size:28px;margin-bottom:10px;}
-    .pro-feature-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:6px;}
+    .pro-feature-title{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.04em;margin-bottom:6px;}
     .pro-feature-desc{font-size:13px;color:var(--text-muted);line-height:1.6;}
     .pro-coming-soon{display:inline-block;background:var(--surface2);color:var(--text-muted);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-top:8px;}
     /* Admin Pro controls */
     .pro-admin-section{background:linear-gradient(135deg,#eef3f6,#e3ebf0);border:1.5px solid var(--gold);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
-    .pro-admin-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.05em;margin-bottom:4px;color:var(--gold-dark);}
+    .pro-admin-title{font-family:'Sora',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.05em;margin-bottom:4px;color:var(--gold-dark);}
     .pro-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
     .pro-toggle-row:last-child{border-bottom:none;padding-bottom:0;}
     .pro-toggle-label{font-size:13px;font-weight:600;}
@@ -640,7 +640,7 @@
     .pro-notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--off-black);}
     .nav-notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--off-black);display:none;pointer-events:none;}
     /* leaderboard PRO pill */
-    .lb-pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;}
+    .lb-pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;}
   </style>
 </head>
 <body>
@@ -895,7 +895,7 @@
     </div>
     <div id="submit-deadline-banner" style="margin-bottom:16px;"></div>
     <div class="card" style="margin-bottom:16px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">📸 Submit Your Post</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;margin-bottom:4px;">📸 Submit Your Post</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Paste your Instagram link <strong>or</strong> upload a screenshot — date &amp; time must be visible.</div>
       <input class="form-input" id="submit-ig-url" type="url" placeholder="Instagram post URL (optional if uploading screenshot)" style="margin-bottom:8px;" />
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:var(--text-muted);">
@@ -923,7 +923,7 @@
       <div id="submit-error" style="font-size:13px;color:#e74c3c;margin-top:8px;display:none;"></div>
     </div>
     <div class="card" style="margin-bottom:16px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">🤝 Log Engagement</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;margin-bottom:4px;">🤝 Log Engagement</div>
       <div id="eng-weekly-status" style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Upload screenshots of likes, comments, shares, or saves on other SMAC members' posts. +2 pts each, up to 5/week.</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Engagement type:</div>
       <div class="format-btns" style="margin-bottom:12px;">
@@ -947,14 +947,14 @@
 
     <!-- My Submissions Log -->
     <div class="card" id="my-submissions-card" style="margin-bottom:16px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">📋 My Post Submissions</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:18px;margin-bottom:4px;">📋 My Post Submissions</div>
       <div id="my-points-total" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;"></div>
       <div class="submission-history" id="my-submissions-list"></div>
     </div>
 
     <!-- My Engagement Log -->
     <div class="card" id="my-eng-log-card" style="margin-bottom:16px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">🤝 My Engagement Log</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:18px;margin-bottom:4px;">🤝 My Engagement Log</div>
       <div id="my-eng-log-total" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;"></div>
       <div id="my-eng-log-list"></div>
     </div>
@@ -968,7 +968,7 @@
     </div>
     <div class="card" id="leaderboard-list"><div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">Loading...</div></div></div>
     <div class="card" style="margin-top:16px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:10px;">How Points Work</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:18px;margin-bottom:10px;">How Points Work</div>
       <div style="font-size:13px;color:var(--text-muted);line-height:1.9;">
         ✅ On-time submission (link or screenshot): <strong>10 pts</strong><br>
         🎬 Reel bonus: <strong>+2 pts</strong><br>
@@ -1098,7 +1098,7 @@
       <div id="create-member-result" style="display:none;background:rgba(46,204,113,.08);border:1.5px solid #2ecc71;border-radius:8px;padding:14px;margin-bottom:12px;">
         <div style="font-weight:700;color:#2ecc71;margin-bottom:8px;">✓ Account Created Successfully</div>
         <div id="create-member-result-body" style="font-size:13px;line-height:1.8;"></div>
-        <button onclick="copyWelcomeEmail()" style="margin-top:10px;width:100%;padding:10px;background:var(--gold);color:#000;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:16px;cursor:pointer;">📋 Copy Welcome Email to Clipboard</button>
+        <button onclick="copyWelcomeEmail()" style="margin-top:10px;width:100%;padding:10px;background:var(--gold);color:#000;border:none;border-radius:8px;font-family:'Sora',sans-serif;font-weight:700;font-size:16px;cursor:pointer;">📋 Copy Welcome Email to Clipboard</button>
       </div>
 
       <div id="create-member-error" style="display:none;font-size:13px;color:#e74c3c;margin-bottom:10px;padding:10px;background:rgba(231,76,60,.08);border-radius:6px;"></div>
@@ -1132,7 +1132,7 @@
 
     <!-- ADMIN: Submissions Viewer -->
     <div id="admin-sub-viewer" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">📋 Submissions Viewer</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">📋 Submissions Viewer</div>
 
       <!-- View toggle -->
       <div class="sub-viewer-toggle">
@@ -1166,7 +1166,7 @@
     <!-- ADMIN: Per-Member Point Reset Tool -->
     <!-- ADMIN: Extend Submission Deadline -->
     <div id="deadline-extend-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">⏰ Extend Submission Deadline</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">⏰ Extend Submission Deadline</div>
       <div class="card" style="border:1.5px solid var(--gold);">
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
           Pushes the on-time deadline for one week of the current round. On-time / late / missed all shift with it, and modifiers stay eligible up to the new cutoff. Applies to <strong>everyone</strong> in the round. Members pick it up on their next page load.
@@ -1191,7 +1191,7 @@
     </div>
 
     <div id="member-reset-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">👤 Reset Member Points</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">👤 Reset Member Points</div>
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
           Select a member to zero out their points, post count, and delete all submissions and engagements from W1–W2. Activity from W3 onward is preserved.
@@ -1220,7 +1220,7 @@
 
     <!-- ADMIN: Archive Round Tool (end-of-round lifetime points rollup) -->
     <div id="archive-round-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🏁 Archive Round</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🏁 Archive Round</div>
       <div class="card" style="border:1.5px solid var(--gold);">
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
           Run this <strong>once</strong> when a round ends. For every member it adds their current round points to <strong>lifetimePoints</strong>, records a <strong>roundHistory</strong> entry, then sets <strong>points</strong> back to 0 for the next round.
@@ -1254,7 +1254,7 @@
 
     <!-- ADMIN: Points Integrity Sweep -->
     <div id="points-sweep-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🔍 Points Integrity Sweep</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🔍 Points Integrity Sweep</div>
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
           Compares each member's <strong>registry.points</strong> against the sum of their actual submission + engagement docs. Flags any drift and lets you fix all mismatches in one pass. Uses 3 Firestore reads total regardless of member count.
@@ -1283,7 +1283,7 @@
 
     <!-- ADMIN: Point Audit Tool -->
     <div id="point-audit-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🧾 Point Audit</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🧾 Point Audit</div>
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
           Reconstructs a full week-by-week points ledger for any member from raw Firestore docs. Flags weeks where earned points exceed the theoretical maximum.
@@ -1302,7 +1302,7 @@
 
     <div id="eng-viewer" style="display:none;margin-bottom:28px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;">🤝 Engagement Posts</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;">🤝 Engagement Posts</div>
         <button class="btn-sm" onclick="loadEngViewer()">↻ Refresh</button>
       </div>
       <!-- Filters -->
@@ -1322,7 +1322,7 @@
     <!-- Add/Edit Engagement Modal -->
     <div id="eng-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9000;overflow-y:auto;padding:24px 16px;">
       <div style="background:var(--surface);border-radius:12px;max-width:420px;margin:0 auto;padding:24px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;margin-bottom:16px;" id="eng-modal-title">Edit Engagement</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.05em;margin-bottom:16px;" id="eng-modal-title">Edit Engagement</div>
         <input type="hidden" id="eng-modal-doc-id" />
         <div class="profile-form-field">
           <label class="field-label">Member</label>
@@ -1365,7 +1365,7 @@
     <!-- ADMIN: Bug Reports Viewer -->
     <div id="bug-reports-viewer" style="display:none;margin-bottom:28px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;">🐛 Bug Reports</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;">🐛 Bug Reports</div>
         <button class="btn-sm" onclick="loadBugReports()">↻ Refresh</button>
       </div>
       <div id="bug-reports-body"><div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Loading...</div></div>
@@ -1373,13 +1373,13 @@
 
     <!-- ADMIN: SMAC Pro Management (hidden until _PRO_GLOBAL_ACTIVE) -->
     <div id="admin-pro-panel" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">★ SMAC Pro Management</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">★ SMAC Pro Management</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Pro access is purchase-only and granted per member. Use the per-member Pro toggle and trial access in the Member Directory.</div>
     </div>
 
     <!-- ADMIN: Clear Feed Posts by Week -->
     <div id="admin-clear-feed-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🗑 Clear R2 Feed Posts</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🗑 Clear R2 Feed Posts</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Delete all feed posts from Round 2 (Mar 1 – May 31, 2026). This only removes the social wall cards — tracker submissions, engagement records, and points are NOT touched.</div>
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="background:#fff5f5;border:1px solid #f5c6c6;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#c0392b;line-height:1.5;">
@@ -1392,7 +1392,7 @@
 
     <!-- ADMIN: Round 3 Seats Editor -->
     <div id="admin-seats-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🪑 Round 3 Seat Availability</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🪑 Round 3 Seat Availability</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Updates the "Spots Remaining" countdown shown on the dashboard card and the renewal modal. Saved to Firestore — persists across deploys.</div>
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
@@ -1414,7 +1414,7 @@
 
     <!-- ADMIN: Zoom Card Editor -->
     <div id="admin-zoom-card-editor" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🎥 Zoom Card Editor</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🎥 Zoom Card Editor</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Update the weekly Zoom card shown on every member's dashboard. Toggle visibility to hide the card when there's no upcoming session.</div>
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="margin-bottom:14px;">
@@ -1448,7 +1448,7 @@
 
     <!-- ADMIN: Coworking Sessions Manager -->
     <div id="admin-cowork-tool" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🤝 Coworking Sessions</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🤝 Coworking Sessions</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Create sessions, mark attendees, and award +5 pts for showing up.</div>
       <div class="card" style="border:1.5px solid var(--border);margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Create New Session</div>
@@ -1469,7 +1469,7 @@
     <!-- ADMIN: Community Points Log -->
     <div id="admin-comm-pts-log" style="display:none;margin-bottom:28px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;">🌟 Community Points Log</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;">🌟 Community Points Log</div>
         <button class="btn-sm" onclick="loadCommPtsLog()">↻ Refresh</button>
       </div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">All community activity — append-only audit trail.</div>
@@ -1491,7 +1491,7 @@
 
     <!-- ADMIN: Backfill Missing Points -->
     <div id="admin-backfill-pts" style="display:none;margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🛠 Backfill Community Points</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🛠 Backfill Community Points</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Award missed community points manually. Creates an audit log entry and increments the member's points.</div>
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="margin-bottom:10px;">
@@ -1531,7 +1531,7 @@
 
     <!-- ROUND 3 RENEWAL — hidden for R3-enrolled members, shown only for R2-only -->
     <div class="card" id="profile-renew-card" style="border:1.5px solid var(--gold);background:#eef3f6;display:none;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:6px;">🔁 Round 3 — June 1</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;margin-bottom:6px;">🔁 Round 3 — June 1</div>
       <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Renew your spot for the next 90-day round, or upgrade to SMAC Pro for higher goals and AI-powered tools.</div>
       <button class="btn-post" style="width:100%;" onclick="openRenewModal()">Renew for Round 3</button>
     </div>
@@ -1539,14 +1539,14 @@
     <!-- GROWTH HISTORY (Analytics Snapshots) -->
     <div class="card" id="profile-growth-history" style="display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;">📊 Growth History</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;">📊 Growth History</div>
       </div>
       <div style="font-size:12px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Your analytics snapshots across SMAC rounds. Tap any entry to view.</div>
       <div id="profile-growth-list"></div>
     </div>
 
     <div class="card">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Edit Profile</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Edit Profile</div>
       <div class="profile-form-field">
         <label class="field-label">Full Name</label>
         <input class="field-input" id="profile-name" type="text" placeholder="Your name" readonly style="opacity:0.6;cursor:not-allowed;background:var(--border);" />
@@ -1592,13 +1592,13 @@
 
     <!-- Add to Home Screen card -->
     <div class="card" id="install-card" style="margin-top:16px;display:none;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:4px;">📲 Add SMAC to Your Home Screen</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:18px;margin-bottom:4px;">📲 Add SMAC to Your Home Screen</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;">Access the community like a native app — one tap from your home screen, no browser bar.</div>
       <button class="btn-gold" id="install-profile-btn" style="width:100%;font-size:16px;padding:11px;">Install App</button>
     </div>
     <div id="firebase-setup-card" style="display:none;"></div>
     <div class="card" id="change-password-card" style="margin-top:16px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Change Password</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;margin-bottom:16px;">Change Password</div>
       <div class="profile-form-field">
         <label class="field-label">New Password</label>
         <div style="position:relative;">
@@ -1617,10 +1617,10 @@
       <button class="btn-gold" onclick="changePassword()" style="width:100%;font-size:16px;padding:12px;">Update Password</button>
     </div>
     <div style="text-align:center;margin-top:20px;">
-      <button onclick="handleLogout()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:10px 24px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Sign Out</button>
+      <button onclick="handleLogout()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:10px 24px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Sign Out</button>
     </div>
     <div style="text-align:center;margin-top:16px;padding-bottom:8px;">
-      <button onclick="openBugReport()" style="background:none;border:none;border-bottom:1px solid var(--border);padding:0 0 2px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;">🐛 Report a Bug / Issue</button>
+      <button onclick="openBugReport()" style="background:none;border:none;border-bottom:1px solid var(--border);padding:0 0 2px;font-family:'Inter',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;">🐛 Report a Bug / Issue</button>
     </div>
   </div>
 
@@ -1629,13 +1629,13 @@
 <div id="admin-tracker-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:20px;">
   <div style="background:var(--surface);border-radius:12px;max-width:480px;margin:40px auto;padding:24px;border:1px solid var(--border);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;">✏️ Edit Tracker</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.04em;">✏️ Edit Tracker</div>
       <button onclick="closeTrackerModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);">✕</button>
     </div>
     <div id="admin-tracker-modal-name" style="font-weight:600;font-size:15px;margin-bottom:16px;color:var(--gold);"></div>
     <div id="admin-tracker-modal-body"></div>
     <div style="margin-top:20px;text-align:right;">
-      <button onclick="closeTrackerModal()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:9px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Done</button>
+      <button onclick="closeTrackerModal()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:9px 20px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Done</button>
     </div>
   </div>
 </div>
@@ -1688,7 +1688,7 @@
         <button onclick="closeThread()" style="background:none;border:none;cursor:pointer;color:var(--text);padding:4px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;">Thread</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;">Thread</div>
       </div>
       <div id="thread-original-msg" style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);"></div>
       <div id="thread-replies" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:4px;"></div>
@@ -1708,7 +1708,7 @@
 <div id="bug-report-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:20px;">
   <div style="background:var(--surface);border-radius:12px;max-width:480px;margin:40px auto;padding:24px;border:1px solid var(--border);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;">🐛 Report a Bug</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:26px;letter-spacing:0.04em;">🐛 Report a Bug</div>
       <button onclick="closeBugReport()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);">✕</button>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.5;">Something not working right? Let Nate know and it'll get fixed.</p>
@@ -1720,7 +1720,7 @@
 
     <div class="profile-form-field">
       <label class="field-label">Describe the Issue</label>
-      <textarea id="bug-desc" placeholder="What happened? What were you trying to do? What did you expect?" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);outline:none;resize:vertical;min-height:110px;line-height:1.6;transition:border-color .2s;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      <textarea id="bug-desc" placeholder="What happened? What were you trying to do? What did you expect?" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:14px;background:var(--bg);color:var(--text);outline:none;resize:vertical;min-height:110px;line-height:1.6;transition:border-color .2s;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
     </div>
 
     <div class="profile-form-field">
@@ -1840,7 +1840,7 @@
   <div class="member-modal" id="renew-modal-content" style="max-width:440px;">
     <button class="member-modal-close" onclick="closeRenewModalDirect()">✕</button>
     <div style="padding:4px 2px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;" id="renew-modal-heading">Registration Extended to June 6</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;" id="renew-modal-heading">Registration Extended to June 6</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;" id="renew-modal-subtext">You've built momentum. Keep it going — your spot in Round 3 is still available through June 6 at 11:59 PM ET.</div>
 
       <div style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
@@ -1858,12 +1858,12 @@
       <div class="spot-countdown" style="margin-bottom:12px;"></div>
       <div id="renew-countdown-wrap" style="background:#eef3f6;border:1.5px solid var(--gold);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:center;">
         <div style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:6px;">Registration closes in</div>
-        <div id="renew-countdown" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.03em;line-height:1;color:var(--text);">—</div>
+        <div id="renew-countdown" style="font-family:'Sora',sans-serif;font-weight:700;font-size:26px;letter-spacing:0.03em;line-height:1;color:var(--text);">—</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">June 6, 2026 · 11:59 PM ET</div>
       </div>
 
       <div style="background:#eef3f6;border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.04em;margin-bottom:4px;">★ Or upgrade to SMAC Pro</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.04em;margin-bottom:4px;">★ Or upgrade to SMAC Pro</div>
         <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">You've built the habit. Now make it count — higher weekly goals plus AI-powered tools for captions, hooks, action plans, and content analysis.</div>
       </div>
 
@@ -1879,7 +1879,7 @@
   <div class="member-modal" id="snap-modal-content" style="max-width:480px;">
     <button class="member-modal-close" onclick="closeSnapModalDirect()">✕</button>
     <div style="padding:4px 2px;">
-      <div id="snap-modal-heading" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Your Round 3 Growth</div>
+      <div id="snap-modal-heading" style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Your Round 3 Growth</div>
       <div id="snap-modal-sub" style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;">Upload a screenshot of your Instagram Insights for the last 90 days. We'll pull the key numbers and show you what changed during Round 3.</div>
 
       <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.65;color:var(--text-muted);">
@@ -2470,7 +2470,7 @@ window.togglePassVisibility=function(){
   if(input.type==="password"){input.type="text";eye.textContent="🙈";}
   else{input.type="password";eye.textContent="👁";}
 };
-function showToast(msg){const t=document.createElement("div");t.style.cssText="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;font-family:DM Sans,sans-serif;white-space:nowrap;max-width:90vw;text-align:center;";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+function showToast(msg){const t=document.createElement("div");t.style.cssText="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;font-family:'Inter',sans-serif;white-space:nowrap;max-width:90vw;text-align:center;";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
 
 // ─────────────────────────────────────────────
 //  AUTH
@@ -2634,7 +2634,7 @@ function bootApp(){
     const _backfillTool=document.getElementById("admin-backfill-pts");
     if(_backfillTool){_backfillTool.style.display="block";}
     showFirebaseSetupCard();
-    if(window._NO_ACTIVE_ROUND&&!document.getElementById("no-round-admin-banner")){const _b=document.createElement("div");_b.id="no-round-admin-banner";_b.style.cssText="position:fixed;top:60px;left:0;right:0;z-index:999;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;";_b.textContent="⚠️ No active round detected — add the next round config to ROUND_CONFIGS in the source file.";document.body.appendChild(_b);}
+    if(window._NO_ACTIVE_ROUND&&!document.getElementById("no-round-admin-banner")){const _b=document.createElement("div");_b.id="no-round-admin-banner";_b.style.cssText="position:fixed;top:60px;left:0;right:0;z-index:999;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;";_b.textContent="⚠️ No active round detected — add the next round config to ROUND_CONFIGS in the source file.";document.body.appendChild(_b);}
   } else {
     document.getElementById("admin-compose").style.display="none";
     document.getElementById("admin-res-compose").style.display="none";
@@ -2807,9 +2807,9 @@ window.navTo=function(page,el){
       const rNum=(window.CURRENT_ROUND||"R3").replace("R","");
       pageEl.innerHTML=`<div data-gated="1" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:40px 24px;">
         <div style="font-size:40px;margin-bottom:16px;">🔒</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:8px;">Round ${rNum} Access Required</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;margin-bottom:8px;">Round ${rNum} Access Required</div>
         <div style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:280px;margin-bottom:28px;">This section is only available to active Round ${rNum} members.</div>
-        <button onclick="openRenewModal()" style="background:var(--gold);color:#fff;border:none;border-radius:var(--radius);padding:14px 32px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;cursor:pointer;">Renew for Round ${rNum} →</button>
+        <button onclick="openRenewModal()" style="background:var(--gold);color:#fff;border:none;border-radius:var(--radius);padding:14px 32px;font-family:'Sora',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.06em;cursor:pointer;">Renew for Round ${rNum} →</button>
       </div>`;
       pageEl.classList.add("active");
     }
@@ -4025,7 +4025,7 @@ function _buildDeadlineBannerHTML(){
     <div style="background:linear-gradient(135deg,#1a1400,#2d2200);border:2px solid var(--gold);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#f5d27a,var(--gold));"></div>
       <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;">⏰ Deadline Extended</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:4px;">This week now closes ${esc(_fmtDeadline(o.newEnd))}</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:4px;">This week now closes ${esc(_fmtDeadline(o.newEnd))}</div>
       <div style="font-size:12px;color:rgba(255,255,255,0.72);line-height:1.5;">Posts submitted by then count as on time.${o.note?" "+esc(o.note):""}</div>
     </div>`;
 }
@@ -4571,7 +4571,7 @@ function renderAdminRegistry(registry, list){
   list.innerHTML=`
     <!-- INACTIVE MEMBER EXPORT TOOL -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:18px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;margin-bottom:10px;">📤 Inactive Member Export</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.06em;margin-bottom:10px;">📤 Inactive Member Export</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <select id="inactive-weeks-select" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;flex:1;min-width:160px;">
           <option value="1">Not logged in for 1 week</option>
@@ -4583,7 +4583,7 @@ function renderAdminRegistry(registry, list){
       </div>
       <div id="inactive-results" style="margin-top:12px;"></div>
     </div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;color:var(--text-muted);margin:16px 0 10px;text-transform:uppercase;">
+    <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.06em;color:var(--text-muted);margin:16px 0 10px;text-transform:uppercase;">
       Registry — ${registry.length} member${registry.length!==1?"s":""} · Round ${CURRENT_ROUND.replace("R","")} active
     </div>
     <div class="member-grid">${sorted.map((m,i)=>{
@@ -4781,7 +4781,7 @@ async function loadTrackerReport(){
     document.getElementById("tracker-report-body").innerHTML = `
       <div class="card" style="border-color:var(--gold);text-align:center;padding:40px 24px;">
         <div style="font-size:40px;margin-bottom:16px;">🔧</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:8px;">Firebase Required</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;margin-bottom:8px;">Firebase Required</div>
         <div style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:340px;margin:0 auto;">
           The Tracker Report pulls live data from all members across devices. It activates automatically once you connect Firebase.<br><br>
           Head to <strong>Profile → Firebase Setup</strong> for step-by-step instructions.
@@ -4895,7 +4895,7 @@ async function loadTrackerReport(){
     document.getElementById("tracker-report-body").innerHTML = `
       <div class="card" style="border-color:var(--gold);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;">⭐ All-Star Progress</div>
+          <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.04em;">⭐ All-Star Progress</div>
           ${currentUser.isAdmin ? '<span style="font-size:11px;color:var(--gold);font-weight:600;background:rgba(212,175,55,.12);padding:3px 8px;border-radius:4px;">Admin · Edit Mode</span>' : ''}
         </div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Live data from all members — Round ${String(CURRENT_ROUND).replace("R","")} posting progress by month</div>
@@ -5240,9 +5240,9 @@ function showProNotification(type, title, message){
   banner.innerHTML=`
     <div style="font-size:22px;flex-shrink:0;">⭐</div>
     <div style="flex:1;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);letter-spacing:0.04em;margin-bottom:3px;">${esc(title)}</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;color:var(--gold);letter-spacing:0.04em;margin-bottom:3px;">${esc(title)}</div>
       <div style="font-size:12px;color:rgba(255,255,255,.75);line-height:1.5;">${esc(message)}</div>
-      <button onclick="navTo('pro',document.getElementById('nav-pro'));this.closest('#pro-notif-banner').remove();document.getElementById('pro-notif-dot').style.display='none';" style="margin-top:8px;background:var(--gold);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-family:'Bebas Neue',sans-serif;font-size:14px;cursor:pointer;">Open PRO ↗</button>
+      <button onclick="navTo('pro',document.getElementById('nav-pro'));this.closest('#pro-notif-banner').remove();document.getElementById('pro-notif-dot').style.display='none';" style="margin-top:8px;background:var(--gold);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Open PRO ↗</button>
     </div>
     <button onclick="this.closest('#pro-notif-banner').remove();document.getElementById('pro-notif-dot').style.display='none';" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:18px;padding:0;flex-shrink:0;">✕</button>`;
   document.body.appendChild(banner);
@@ -5318,7 +5318,7 @@ window.renderProDashboard = async function(){
             onmouseenter="this.style.boxShadow='0 4px 18px rgba(212,175,55,0.18)';this.style.transform='translateY(-1px)'"
             onmouseleave="this.style.boxShadow='none';this.style.transform='none'">
             <div style="font-size:26px;line-height:1;">${t.icon}</div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:var(--text);line-height:1.2;">${t.name}</div>
+            <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em;color:var(--text);line-height:1.2;">${t.name}</div>
             <div style="font-size:12px;color:var(--text-muted);line-height:1.4;">${t.desc}</div>
             <div style="margin-top:auto;padding-top:8px;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.06em;">Open →</div>
           </div>`;
@@ -5326,7 +5326,7 @@ window.renderProDashboard = async function(){
         return `
           <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px 14px;display:flex;flex-direction:column;gap:8px;opacity:0.45;cursor:default;">
             <div style="font-size:26px;line-height:1;">${t.icon}</div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:var(--text);line-height:1.2;">${t.name}</div>
+            <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em;color:var(--text);line-height:1.2;">${t.name}</div>
             <div style="font-size:12px;color:var(--text-muted);line-height:1.4;">${t.desc}</div>
             <div style="margin-top:auto;padding-top:8px;"><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;background:var(--surface2);padding:3px 8px;border-radius:20px;">Coming Soon</span></div>
           </div>`;
@@ -5340,7 +5340,7 @@ window.renderProDashboard = async function(){
     return `
       ${trialHtml}
       <div style="margin-bottom:20px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:0.06em;line-height:1;color:var(--gold);">SMAC PRO</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:38px;letter-spacing:0.06em;line-height:1;color:var(--gold);">SMAC PRO</div>
         <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${weekLabel} &nbsp;·&nbsp; You've built the habit. Now make it count.</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
@@ -5351,7 +5351,7 @@ window.renderProDashboard = async function(){
         </div>
         <div class="dash-stat-card" style="border:1.5px solid var(--border);">
           <span class="dash-stat-icon">📅</span>
-          <div style="font-size:22px;font-weight:700;font-family:'Bebas Neue',sans-serif;letter-spacing:0.02em;line-height:1;">${postsThisWeek} <span style="font-size:14px;font-weight:400;color:var(--text-muted);">/ ${proTarget}</span></div>
+          <div style="font-size:22px;font-weight:700;font-family:'Sora',sans-serif;font-weight:700;letter-spacing:0.02em;line-height:1;">${postsThisWeek} <span style="font-size:14px;font-weight:400;color:var(--text-muted);">/ ${proTarget}</span></div>
           <div class="dash-stat-label">Posts This Week</div>
           <div style="display:flex;gap:5px;margin-top:8px;justify-content:center;">${pips}</div>
         </div>
@@ -5390,7 +5390,7 @@ window.renderProDashboard = async function(){
     // No cache — show a lightweight skeleton so the first load feels responsive.
     root.innerHTML = `
       <div style="margin-bottom:20px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:0.06em;line-height:1;color:var(--gold);">SMAC PRO</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:38px;letter-spacing:0.06em;line-height:1;color:var(--gold);">SMAC PRO</div>
         <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">Loading your dashboard...</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
@@ -5556,7 +5556,7 @@ function buildGraceCard(graceState, weekCounts){
   return `<div id="grace-card-mount">
     <div class="card" style="margin-top:20px;padding:16px;border:1.5px solid var(--gold);">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;color:var(--gold);line-height:1;">🛡️ Grace Tokens</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;color:var(--gold);line-height:1;">🛡️ Grace Tokens</div>
         <div style="display:flex;align-items:center;gap:6px;">${tokenPips}<span style="font-size:12px;font-weight:700;color:var(--text-muted);margin-left:4px;">${remaining} / ${monthAllowance}</span></div>
       </div>
       <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:12px;">
@@ -5622,7 +5622,7 @@ window.renderProTool = function(toolId){
               <option value="7">7 posts (every day)</option>
             </select>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What did you post about last week? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-            <textarea id="wap-last-week" placeholder="e.g. behind the scenes reel, a client win carousel, a tips post..." style="width:100%;min-height:60px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <textarea id="wap-last-week" placeholder="e.g. behind the scenes reel, a client win carousel, a tips post..." style="width:100%;min-height:60px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Current focus or priority <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
             <input id="wap-focus" type="text" placeholder="e.g. launching a new offer, growing reach, building trust..." class="form-input" style="margin-bottom:16px;padding:10px 12px;" />
             <button onclick="runActionPlan()" class="btn-gold" style="font-size:16px;padding:12px;">Build My Week</button>
@@ -5633,10 +5633,10 @@ window.renderProTool = function(toolId){
           </div>
           <div id="wap-result" style="display:none;margin-top:16px;"></div>
           <div id="wap-save-wrap" style="display:none;margin-top:10px;text-align:center;">
-            <button onclick="saveActionPlan()" id="wap-save-btn" style="background:none;border:1.5px solid var(--gold);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--gold);cursor:pointer;font-weight:600;">Save This Plan</button>
+            <button onclick="saveActionPlan()" id="wap-save-btn" style="background:none;border:1.5px solid var(--gold);border-radius:8px;padding:8px 20px;font-family:'Inter',sans-serif;font-size:13px;color:var(--gold);cursor:pointer;font-weight:600;">Save This Plan</button>
           </div>
           <div id="wap-reset-wrap" style="display:none;margin-top:8px;text-align:center;">
-            <button onclick="resetActionPlan()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Plan</button>
+            <button onclick="resetActionPlan()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Plan</button>
           </div>
           <div id="wap-history-wrap" style="margin-top:20px;display:none;">
             <div onclick="toggleWapHistory()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 0;border-top:1px solid var(--border);">
@@ -5655,7 +5655,7 @@ window.renderProTool = function(toolId){
           <div class="pro-feature-desc" style="margin-bottom:16px;">Drop in your post idea and get 3 ready-to-edit captions. Hook-first, human-sounding, optimized for saves and shares.</div>
           <div id="ca-form">
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's your post about?</div>
-            <textarea id="ca-idea" placeholder="e.g. I want to share a behind-the-scenes look at how I edit a client video from start to finish..." style="width:100%;min-height:80px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <textarea id="ca-idea" placeholder="e.g. I want to share a behind-the-scenes look at how I edit a client video from start to finish..." style="width:100%;min-height:80px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post Format</div>
             <select id="ca-format" class="form-input" style="margin-bottom:14px;padding:10px 12px;">
               <option value="">Select format...</option>
@@ -5689,7 +5689,7 @@ window.renderProTool = function(toolId){
           </div>
           <div id="ca-result" style="display:none;margin-top:16px;"></div>
           <div id="ca-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
-            <button onclick="resetCaptionAssist()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Captions</button>
+            <button onclick="resetCaptionAssist()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Captions</button>
           </div>
         </div>`
     },
@@ -5701,7 +5701,7 @@ window.renderProTool = function(toolId){
           <div class="pro-feature-desc" style="margin-bottom:16px;">Drop in a caption and your engagement numbers. Get back a clear breakdown of what's working, what's not, and what to do differently next week.</div>
           <div id="cpa-form">
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your Caption</div>
-            <textarea id="cpa-caption" placeholder="Paste the caption you posted..." style="width:100%;min-height:90px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <textarea id="cpa-caption" placeholder="Paste the caption you posted..." style="width:100%;min-height:90px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Engagement Stats</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
               <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Likes</div><input id="cpa-likes" type="number" min="0" placeholder="0" class="form-input" style="margin-bottom:0;padding:10px 12px;" /></div>
@@ -5748,7 +5748,7 @@ window.renderProTool = function(toolId){
               <div id="cpa-extract-detail" style="font-size:12px;line-height:1.55;color:var(--text);margin-bottom:8px;"></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;">
                 <button onclick="applyCpaExtracted(true)" class="btn-gold" style="font-size:11px;padding:7px 12px;">Use these</button>
-                <button onclick="applyCpaExtracted(false)" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;padding:7px 12px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;">Ignore</button>
+                <button onclick="applyCpaExtracted(false)" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;padding:7px 12px;color:var(--text);cursor:pointer;font-family:'Inter',sans-serif;">Ignore</button>
               </div>
             </div>
             <!-- Pre-flight loading state -->
@@ -5763,7 +5763,7 @@ window.renderProTool = function(toolId){
           </div>
           <div id="cpa-result" style="display:none;margin-top:16px;"></div>
           <div id="cpa-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
-            <button onclick="resetContentAnalysis()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Analyze Another Post</button>
+            <button onclick="resetContentAnalysis()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Analyze Another Post</button>
           </div>
         </div>`
     },
@@ -5775,7 +5775,7 @@ window.renderProTool = function(toolId){
           <div class="pro-feature-desc" style="margin-bottom:16px;">Drop in your topic and get 5 hooks across different styles that work in 2026. Pick one, edit it, done.</div>
           <div id="hg-form">
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's the post about?</div>
-            <textarea id="hg-topic" placeholder="e.g. how I doubled my Instagram reach by posting less, a client result, my morning routine..." style="width:100%;min-height:70px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <textarea id="hg-topic" placeholder="e.g. how I doubled my Instagram reach by posting less, a client result, my morning routine..." style="width:100%;min-height:70px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post format</div>
             <select id="hg-format" class="form-input" style="margin-bottom:14px;padding:10px 12px;">
               <option value="">Select format...</option>
@@ -5792,7 +5792,7 @@ window.renderProTool = function(toolId){
           </div>
           <div id="hg-result" style="display:none;margin-top:16px;"></div>
           <div id="hg-reset-wrap" style="display:none;margin-top:12px;text-align:center;">
-            <button onclick="resetHookGenerator()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Hooks</button>
+            <button onclick="resetHookGenerator()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;">Generate New Hooks</button>
           </div>
         </div>`
     },
@@ -5815,7 +5815,7 @@ window.renderProTool = function(toolId){
     <!-- Tool header -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
       <span style="font-size:28px;">${t.icon}</span>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;">${t.title}</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;">${t.title}</div>
     </div>
     ${t.html}
   `;
@@ -5881,8 +5881,8 @@ async function renderSmsCard(){
         <div><div style="font-size:13px;font-weight:700;color:#2e7d32;">SMS Reminders Active</div><div style="font-size:12px;color:#388e3c;margin-top:2px;">Sending to ${phone}</div></div>
       </div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">You'll get a heads-up on Day 4 of each week and a final call the night the week closes.</div>
-      <button onclick="showSmsEdit()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:9px 18px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;margin-right:10px;">Edit Number</button>
-      <button onclick="unsubscribeSms()" style="background:none;border:none;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;text-decoration:underline;">Unsubscribe</button>`;
+      <button onclick="showSmsEdit()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:9px 18px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;margin-right:10px;">Edit Number</button>
+      <button onclick="unsubscribeSms()" style="background:none;border:none;font-family:'Inter',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;text-decoration:underline;">Unsubscribe</button>`;
   } else if(smsOptIn===false){
     // State D: Opted out
     inner.innerHTML=`
@@ -5945,7 +5945,7 @@ window.showSmsEdit = function(){
     <div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:10px;">Update your phone number</div>
     <input id="sms-phone-input" type="tel" placeholder="(443) 555-0000" class="form-input" style="margin-bottom:12px;padding:10px 12px;" />
     <button onclick="updateSmsPhone()" class="btn-gold" style="font-size:15px;padding:11px;margin-bottom:10px;">Save Number</button>
-    <button onclick="renderSmsCard()" style="background:none;border:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;display:block;">Cancel</button>
+    <button onclick="renderSmsCard()" style="background:none;border:none;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;display:block;">Cancel</button>
     <div id="sms-status" style="font-size:13px;color:var(--text-muted);margin-top:8px;display:none;"></div>`;
 };
 
@@ -6903,7 +6903,7 @@ function renderCpaResult(d) {
   // Overall score hero
   const overallHtml = `
     <div style="background:#eef3f6;border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:12px;text-align:center;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:1;color:var(--text);">${d.overallScore != null ? d.overallScore : "—"}<span style="font-size:18px;color:var(--text-muted);">/10</span></div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:42px;line-height:1;color:var(--text);">${d.overallScore != null ? d.overallScore : "—"}<span style="font-size:18px;color:var(--text-muted);">/10</span></div>
       <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold-dark);margin-top:4px;">Overall Score</div>
       ${d.overallSummary ? `<div style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.5;">${esc(d.overallSummary)}</div>` : ""}
     </div>
@@ -6914,7 +6914,7 @@ function renderCpaResult(d) {
     <div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:10px;border-left:3px solid var(--gold-dark);">
       <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
         <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold-dark);">Visual / Caption Coherence</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--text);">${d.coherenceScore}<span style="font-size:12px;color:var(--text-muted);">/10</span></div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;line-height:1;color:var(--text);">${d.coherenceScore}<span style="font-size:12px;color:var(--text-muted);">/10</span></div>
       </div>
       ${d.coherenceNote ? `<div style="font-size:12px;line-height:1.55;color:var(--text);">${esc(d.coherenceNote)}</div>` : ""}
     </div>
@@ -7362,7 +7362,7 @@ function renderSnapshotResult(d) {
   const submissionCount = (d.smacSubmissionCount === null || d.smacSubmissionCount === undefined) ? null : d.smacSubmissionCount;
   const heroHtml = (submissionCount !== null) ? `
     <div style="background:#eef3f6;border:1.5px solid var(--gold);border-radius:12px;padding:18px 16px;margin-bottom:14px;text-align:center;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:0.02em;line-height:1;color:var(--text);">${submissionCount}</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:48px;letter-spacing:0.02em;line-height:1;color:var(--text);">${submissionCount}</div>
       <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold-dark);margin-top:4px;">Posts Submitted to SMAC</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5;">Over the last 90 days. That's the win — everything else is a bonus.</div>
     </div>
@@ -7384,7 +7384,7 @@ function renderSnapshotResult(d) {
   ];
   const igCardHtml = igCards.map(c => `
     <div style="background:var(--surface2);border-radius:10px;padding:10px 8px;text-align:center;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.03em;line-height:1;">${c.value}</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.03em;line-height:1;">${c.value}</div>
       <div style="font-size:9px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-top:4px;">${c.label}</div>
       ${deltaPill(c.pct)}
     </div>
@@ -7476,12 +7476,12 @@ async function drawSnapshotChart(latest) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position:"bottom", labels:{ boxWidth:12, font:{ size:11, family:"DM Sans" } } },
+        legend: { position:"bottom", labels:{ boxWidth:12, font:{ size:11, family:"Inter" } } },
         tooltip: { callbacks: { label: (ctx)=> `${ctx.dataset.label}: ${Number(ctx.parsed.y).toLocaleString()}` } }
       },
       scales: {
-        x: { grid:{ display:false }, ticks:{ font:{ size:11, family:"DM Sans" } } },
-        y: { beginAtZero:true, ticks:{ font:{ size:10, family:"DM Sans" }, callback:(v)=> v>=1000 ? (v/1000)+"K" : v } }
+        x: { grid:{ display:false }, ticks:{ font:{ size:11, family:"Inter" } } },
+        y: { beginAtZero:true, ticks:{ font:{ size:10, family:"Inter" }, callback:(v)=> v>=1000 ? (v/1000)+"K" : v } }
       }
     }
   });
@@ -8318,7 +8318,7 @@ async function loadMySubmissions(){
           <input class="form-input" id="sub-edit-url-${s.id}" type="url" placeholder="Update Instagram URL" value="${esc(s.url||"")}" style="margin-bottom:6px;" />
           <div style="margin-bottom:8px;">
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Post format</div>
-            <select class="field-select" id="sub-edit-fmt-${s.id}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);">
+            <select class="field-select" id="sub-edit-fmt-${s.id}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:14px;background:var(--bg);color:var(--text);">
               <option value="Static"${(s.format||"Static")==="Static"?" selected":""}>📷 Static</option>
               <option value="Reel"${s.format==="Reel"?" selected":""}>🎬 Reel (+2 pts)</option>
               <option value="Carousel"${s.format==="Carousel"?" selected":""}>🖼 Carousel (+2 pts)</option>
@@ -10728,7 +10728,7 @@ window.renderWeeklyChallenge = async function(){
         <div style="background:linear-gradient(135deg,#0d1f0d,#1a2e1a);border:2px solid #27ae60;border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;">
           <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#27ae60,#5ddb5d,#27ae60);"></div>
           <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#27ae60;margin-bottom:6px;">🎯 Weekly Challenge Modifier</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;">✓ ${esc(ch.title)} — Done!</div>
+          <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;">✓ ${esc(ch.title)} — Done!</div>
           <div style="font-size:12px;color:rgba(255,255,255,0.72);line-height:1.5;">You applied this modifier this week. Nice work!</div>
         </div>`;
     } else {
@@ -10736,7 +10736,7 @@ window.renderWeeklyChallenge = async function(){
         <div style="background:linear-gradient(135deg,#1a1400,#2d2200);border:2px solid var(--gold);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;">
           <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#f5d27a,var(--gold));"></div>
           <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;">🎯 Weekly Challenge Modifier</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;">${esc(ch.title)}</div>
+          <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;">${esc(ch.title)}</div>
           <div style="font-size:12px;color:rgba(255,255,255,0.72);line-height:1.5;margin-bottom:8px;">${esc(ch.desc)}</div>
           <div style="display:inline-block;background:rgba(212,175,55,0.2);color:var(--gold);font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">+5 pts — apply when submitting your post</div>
         </div>`;
@@ -10930,7 +10930,7 @@ function renderAdminTrackerModal(){
       const proReq=weekRequirementFor(WEEKS.indexOf(weeks[0]),true);
       monthReqLabel=`${proReq} post${proReq!==1?"s":""}/week`;
     }
-    html+=`<div style="margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;color:var(--gold);margin-bottom:8px;">${month} <span style="font-size:12px;font-weight:400;color:var(--text-muted);">${monthReqLabel}</span></div>`;
+    html+=`<div style="margin-bottom:16px;"><div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.06em;color:var(--gold);margin-bottom:8px;">${month} <span style="font-size:12px;font-weight:400;color:var(--text-muted);">${monthReqLabel}</span></div>`;
     weeks.forEach(w=>{
       const wi=WEEKS.indexOf(w);
       const required=weekRequirementFor(wi,isPro);
@@ -11524,11 +11524,11 @@ async function renderProfileHero(prof){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
       <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1;">${pts}</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;color:var(--gold);line-height:1;">${pts}</div>
         <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;">Points</div>
       </div>
       <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1;">${totalPosts}</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;color:var(--gold);line-height:1;">${totalPosts}</div>
         <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;">Posts</div>
       </div>
     </div>
@@ -11567,8 +11567,8 @@ function buildLifetimeCard(lifetimeTotal, currentPts, history){
   return `
   <div class="card" style="margin-top:16px;text-align:left;border:1.5px solid var(--gold);background:#eef3f6;padding:16px;">
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.04em;">🏅 Lifetime Points</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--gold);line-height:1;">${lifetimeTotal}</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.04em;">🏅 Lifetime Points</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:30px;color:var(--gold);line-height:1;">${lifetimeTotal}</div>
     </div>
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Your total SMAC points across every round.</div>
     <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:2px;">By Round</div>
@@ -11695,7 +11695,7 @@ function showFirebaseSetupCard(){
   const ok=_a!=="YOUR_API"&&_b!=="_KEY_PART2";
   card.style.display="block";
   card.innerHTML=`<div class="card" style="border-color:var(--gold);">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;margin-bottom:12px;">🔧 Firebase Setup ${ok?"✅":"(Not Connected)"}</div>
+    <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;margin-bottom:12px;">🔧 Firebase Setup ${ok?"✅":"(Not Connected)"}</div>
     ${ok?`<p style="font-size:14px;color:var(--text-muted);">Firebase is connected. All data syncs in real time.</p>`
     :`<div class="firebase-notice"><strong>Action needed: Connect Firebase for real-time sync</strong>Without this, data is only visible on your own device.</div>
     <div class="setup-steps">
