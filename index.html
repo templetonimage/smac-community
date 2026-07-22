@@ -5,63 +5,107 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>SMAC Community</title>
   <meta name="description" content="Social Media Accountability Challenge — Member Community" />
-  <meta name="theme-color" content="#c9a84c" />
+  <meta name="theme-color" content="#5B84A3" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="SMAC" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <!-- Chart.js for Analytics Snapshot feature -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
+    /* ==============================
+       CSS VARIABLES & RESET
+       ============================== */
     :root {
-      --bg:#faf9f7;--surface:#ffffff;--surface2:#f3f1ed;--text:#1a1a1a;--text-muted:#6b6b6b;
-      --gold:#c9a84c;--gold-light:#e8d28a;--gold-dark:#a07c28;--border:#e8e4de;
-      --radius:12px;--shadow:0 2px 16px rgba(0,0,0,0.07);--shadow-lg:0 8px 40px rgba(0,0,0,0.12);
+      --gold: #5B84A3;
+      --gold-light: #8CAEC4;
+      --gold-dark: #446A85;
+      --black: #0d0d0d;
+      --off-black: #141414;
+      --bg: #f7f3ea;
+      --surface: #fdfbf6;
+      --surface2: #f0ece0;
+      --border: #e8e2d4;
+      --text: #17140f;
+      --text-muted: #6b6558;
+      --radius: 12px;
+      --shadow: 0 4px 16px rgba(23,20,15,.05);
+      --shadow-lg: 0 8px 32px rgba(23,20,15,.10);
+      --danger: #c0392b;
+      --success: #27ae60;
+      --accent-bg: rgba(91,132,163,.08);
+      /* legacy aliases kept for any un-migrated references */
+      --surface2-old: #f3f1ed;
     }
-    *{box-sizing:border-box;margin:0;padding:0;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     html{height:100%;height:100dvh;}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100%;height:100dvh;-webkit-font-smoothing:antialiased;overflow:hidden;}
-    h1,h2,h3{font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em;}
+    body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;}
+    h1,h2,h3,h4{font-family:'Sora',sans-serif;font-weight:700;letter-spacing:-0.01em;}
+    a{color:var(--gold-dark);text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    button{cursor:pointer;font-family:'Inter',sans-serif;}
+    input,textarea,select{font-family:'Inter',sans-serif;font-size:15px;}
+    .mono,.label-mono{font-family:'Space Mono',monospace;letter-spacing:0.02em;}
 
-    /* AUTH */
-    #auth-screen{height:100%;display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
+    /* ==============================
+       AUTH SCREEN
+       ============================== */
+    #auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;padding:40px 24px;background:var(--bg);}
     #auth-screen.hidden{display:none!important;}
     #app.visible{display:block!important;} /* app-scroll handles positioning */
-    .auth-card{background:var(--surface);border-radius:20px;padding:48px 40px;width:100%;max-width:400px;box-shadow:var(--shadow-lg);border:1px solid var(--border);text-align:center;}
-    .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:72px;letter-spacing:0.08em;color:var(--gold);line-height:1;margin-bottom:4px;}
-    .auth-subtitle{font-size:13px;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:40px;}
-    .auth-label{display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);text-align:left;margin-bottom:8px;}
-    .auth-input{width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:15px;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s;margin-bottom:16px;}
-    .auth-input:focus{border-color:var(--gold);}
-    .btn-gold{width:100%;padding:15px;background:var(--gold);color:#fff;border:none;border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.08em;cursor:pointer;transition:background .2s,transform .1s;}
-    .btn-gold:hover{background:var(--gold-dark);}
+    .auth-card-wrap{background:#1a1a1a;border-radius:20px;padding:48px 32px 40px;width:100%;max-width:420px;box-shadow:0 4px 40px rgba(0,0,0,.4);border:1px solid #2e2e2e;text-align:center;}
+    .auth-logo{font-family:'Sora',sans-serif;font-weight:800;font-size:96px;color:var(--gold);letter-spacing:0.02em;line-height:1;margin-bottom:8px;text-align:center;}
+    .auth-subtitle{font-family:'Inter',sans-serif;font-weight:400;font-size:16px;color:rgba(255,255,255,.6);letter-spacing:0.06em;text-align:center;text-transform:uppercase;margin-bottom:24px;}
+    .auth-round-badge{display:inline-block;background:var(--gold);border:none;border-radius:24px;padding:8px 24px;font-family:'Sora',sans-serif;font-size:16px;letter-spacing:0.08em;color:#fff;margin-bottom:36px;text-align:center;}
+    .auth-form-area{width:100%;text-align:left;}
+    .auth-form-label{display:block;font-family:'Sora',sans-serif;font-size:14px;letter-spacing:0.08em;color:rgba(255,255,255,.75);margin-bottom:8px;}
+    .auth-form-group{margin-bottom:20px;}
+    .pass-wrap{position:relative;}
+    .pass-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:4px;color:rgba(255,255,255,.5);}
+    .auth-form-input{width:100%;padding:16px 18px;border:1px solid var(--border);border-radius:10px;background:#ffffff;font-size:16px;color:#17140f;outline:none;transition:border-color .2s;}
+    .auth-form-input::placeholder{color:#8a8577;}
+    .auth-form-input:focus{border-color:var(--gold);}
+    .form-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-family:'Inter',sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;margin-bottom:16px;}
+    .form-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--accent-bg);}
+    textarea.form-input{resize:vertical;min-height:80px;}
+    .auth-btn{width:100%;padding:16px;border-radius:10px;border:none;background:var(--gold);color:#fff;font-family:'Sora',sans-serif;font-size:20px;letter-spacing:0.08em;cursor:pointer;transition:background .15s;}
+    .auth-btn:hover{background:var(--gold-dark);}
+    .auth-error{display:none;color:#e74c3c;font-size:13px;margin-top:12px;text-align:center;}
+    .auth-forgot{text-align:center;margin-top:20px;font-size:14px;color:rgba(255,255,255,.45);}
+    .auth-forgot a{color:var(--gold);font-weight:600;cursor:pointer;}
+    /* Primary action button (app-wide): black default, blue earned on hover */
+    .btn-gold{display:inline-block;width:100%;padding:15px;background:var(--black);color:#fff;border:none;border-radius:var(--radius);font-family:'Sora',sans-serif;font-weight:600;font-size:16px;letter-spacing:0.02em;cursor:pointer;transition:background .2s,color .2s,transform .1s;text-align:center;}
+    .btn-gold:hover{background:var(--gold);color:var(--black);}
     .btn-gold:active{transform:scale(0.98);}
-    .auth-error{color:#c0392b;font-size:13px;margin-top:12px;display:none;}
-    .auth-round-badge{display:inline-block;background:var(--gold);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.1em;padding:4px 12px;border-radius:20px;margin-bottom:32px;}
 
     /* APP */
     #app{display:none;}
-    .topnav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:60px;}
-    .topnav-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);letter-spacing:0.06em;}
-    .topnav-right{display:flex;align-items:center;gap:12px;}
-    .topnav-user{font-size:13px;color:var(--text-muted);margin-left:8px;}
-    .topnav-user strong{color:var(--text);}
-    .btn-sm{padding:7px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text);transition:all .15s;}
+    /* ==============================
+       TOPNAV
+       ============================== */
+    .topnav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--black);border-bottom:1px solid var(--off-black);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:60px;}
+    .topnav-brand{font-family:'Sora',sans-serif;font-weight:800;font-size:22px;color:var(--gold);letter-spacing:0.02em;cursor:pointer;}
+    .topnav-user{font-size:13px;font-weight:600;color:#fff;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .topnav-avatar{width:34px;height:34px;border-radius:50%;background:var(--gold);color:var(--black);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.02em;cursor:pointer;border:2px solid var(--gold);flex-shrink:0;overflow:hidden;transition:opacity .15s,box-shadow .15s;}
+    .topnav-avatar:hover{opacity:.85;box-shadow:0 0 0 3px var(--accent-bg);}
+    .topnav-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+    .btn-sm{padding:7px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text);transition:all .15s;}
     .btn-sm:hover{border-color:var(--gold);color:var(--gold);}
 
-    /* BOTTOM NAV */
-    .bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;min-height:68px;height:calc(68px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);}
-    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;color:var(--text-muted);font-size:9px;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:0.03em;transition:color .2s,transform .15s;padding:8px 2px;position:relative;}
-    .nav-item::before{content:'';position:absolute;inset:6px 4px;border-radius:10px;background:rgba(201,168,76,0);transition:background .2s;}
-    .nav-item:hover{color:var(--gold);transform:translateY(-2px);}
-    .nav-item:hover::before{background:rgba(201,168,76,0.1);}
-    .nav-item:active{transform:translateY(0px);}
-    .nav-item svg{width:20px;height:20px;transition:transform .2s;}
-    .nav-item:hover svg{transform:scale(1.15);}
-    .nav-item.active{color:var(--gold);}
+    /* ==============================
+       BOTTOM NAV
+       ============================== */
+    .bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--black);border-top:1px solid var(--off-black);display:flex;align-items:stretch;min-height:68px;height:calc(68px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);}
+    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,0.85);font-size:9px;font-family:'Space Mono',monospace;font-weight:400;letter-spacing:0.02em;text-transform:uppercase;transition:color .15s;padding:8px 2px;position:relative;}
+    .nav-item svg{width:19px;height:19px;stroke-width:1.75;transition:color .15s,transform .15s;}
+    .nav-item.active svg{color:var(--gold);transform:translateY(-1px);}
+    .nav-item.active{color:var(--white,#f0ece0);}
+    .nav-item.active::after{content:'';position:absolute;top:2px;left:50%;width:3px;height:3px;border-radius:50%;background:var(--gold);transform:translateX(-50%);}
+    .nav-item:hover{color:var(--gold);}
+    .nav-badge{position:absolute;top:6px;right:calc(50% - 14px);width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid #1a1a1a;display:none;pointer-events:none;}
 
     /* SCROLL WRAPPER */
     #app-scroll{position:fixed;top:60px;bottom:calc(68px + env(safe-area-inset-bottom));left:0;right:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
@@ -475,7 +519,7 @@
     .setup-step::before{content:counter(steps);width:24px;height:24px;background:var(--gold);color:#fff;border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
     .setup-step-content{font-size:13px;line-height:1.5;}
     .setup-step-content code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px;}
-    @media(max-width:480px){.auth-card{padding:32px 24px;}.auth-logo{font-size:60px;}.page{padding:16px;}}
+    @media(max-width:480px){.auth-card-wrap{padding:32px 24px 28px;}.auth-logo{font-size:64px;}.page{padding:16px;}}
     @media(min-width:600px){#page-chat{padding:20px 32px !important;}#chat-container{max-width:100% !important;}}
     @media(min-width:900px){#page-chat{padding:24px 48px !important;}}
 
@@ -557,9 +601,9 @@
     .dash-cal-btn-icon{font-size:20px;flex-shrink:0;}
 
     /* ── SMAC PRO ── */
-    .pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:0.08em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;line-height:1.4;}
+    .pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;line-height:1.4;}
     /* ── FOUNDER ── */
-    .founder-badge{display:inline-flex;align-items:center;background:#1a1a1a;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:0.08em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;line-height:1.4;border:1px solid var(--gold);}
+    .founder-badge{display:inline-flex;align-items:center;background:var(--off-black);color:var(--gold);font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;line-height:1.4;border:1px solid var(--gold);}
     .lb-founder-badge{display:inline-flex;align-items:center;background:#1a1a1a;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;border:1px solid var(--gold);}
     .member-founder-badge{display:inline-flex;align-items:center;gap:3px;background:#1a1a1a;color:var(--gold);font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;border:1px solid var(--gold);}
     .pro-locked-card{background:var(--surface);border-radius:var(--radius);border:1.5px dashed var(--gold);padding:20px;margin-bottom:16px;position:relative;overflow:hidden;}
@@ -591,8 +635,8 @@
     input:checked+.toggle-slider{background:var(--gold);}
     input:checked+.toggle-slider:before{transform:translateX(20px);}
     /* In-app notification bell */
-    .pro-notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--surface);}
-    .nav-notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--surface);display:none;pointer-events:none;}
+    .pro-notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--off-black);}
+    .nav-notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:#e74c3c;border-radius:50%;border:2px solid var(--off-black);display:none;pointer-events:none;}
     /* leaderboard PRO pill */
     .lb-pro-badge{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;}
   </style>
@@ -601,33 +645,37 @@
 
 <!-- AUTH -->
 <div id="auth-screen">
-  <div class="auth-card">
+  <div class="auth-card-wrap">
     <div class="auth-logo">SMAC</div>
     <div class="auth-subtitle">Social Media Accountability Challenge</div>
     <div class="auth-round-badge">Round 3 · June–August 2026</div>
-    <label class="auth-label" for="name-input">Email Address</label>
-    <input class="auth-input" id="name-input" type="email" placeholder="e.g. jane@example.com" autocomplete="email" />
-    <label class="auth-label" for="pass-input">Password</label>
-    <div style="position:relative;margin-bottom:16px;">
-      <input class="auth-input" id="pass-input" type="password" placeholder="Enter your passcode" autocomplete="current-password" style="margin-bottom:0;padding-right:48px;" />
-      <button type="button" onclick="togglePassVisibility()" id="pass-eye" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;padding:0;line-height:1;">👁</button>
-    </div>
-    <button class="btn-gold" onclick="handleLogin()">Enter Community</button>
-    <div class="auth-error" id="auth-error"></div>
-    <div style="margin-top:16px;font-size:13px;color:var(--text-muted);">
-      Forgot your password? <a href="#" onclick="handleForgotPassword()" style="color:var(--gold);font-weight:600;text-decoration:none;">Reset it</a>
+    <div class="auth-form-area">
+      <div class="auth-form-group">
+        <label class="auth-form-label" for="name-input">EMAIL ADDRESS</label>
+        <input class="auth-form-input" id="name-input" type="email" placeholder="e.g. jane@example.com" autocomplete="email" />
+      </div>
+      <div class="auth-form-group">
+        <label class="auth-form-label" for="pass-input">PASSWORD</label>
+        <div class="pass-wrap">
+          <input class="auth-form-input" id="pass-input" type="password" placeholder="Enter your passcode" autocomplete="current-password" />
+          <button type="button" class="pass-toggle" onclick="togglePassVisibility()" id="pass-eye">👁</button>
+        </div>
+      </div>
+      <button class="auth-btn" onclick="handleLogin()">ENTER COMMUNITY</button>
+      <div class="auth-error" id="auth-error"></div>
+      <div class="auth-forgot">Forgot your password? <a onclick="handleForgotPassword()">Reset it</a></div>
     </div>
   </div>
 </div>
 
 <!-- FIXED NAV BARS — outside #app so display:none on #app doesn't affect them -->
 <nav class="topnav" id="topnav" style="display:none;">
-    <div class="topnav-logo" onclick="navTo('feed',document.getElementById('nav-feed'))" style="cursor:pointer;">SMAC</div>
-    <div class="topnav-right">
+    <div class="topnav-brand" onclick="navTo('feed',document.getElementById('nav-feed'))" style="cursor:pointer;">SMAC</div>
+    <div style="display:flex;align-items:center;gap:10px;">
       <span class="topnav-user" id="topnav-username"></span><span id="topnav-pro-badge" style="display:none;" class="pro-badge">PRO</span><span id="topnav-founder-badge" style="display:none;" class="founder-badge">FOUNDER</span>
-      <button class="btn-sm" onclick="handleLogout()">Sign Out</button>
-      <button id="topnav-profile-btn" onclick="navTo('profile',null)" style="background:none;border:none;cursor:pointer;padding:0;margin-left:4px;position:relative;display:none;" title="My Profile">
-        <div id="topnav-avatar" style="width:34px;height:34px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;border:2px solid var(--gold);overflow:hidden;"></div>
+      <button onclick="handleLogout()" onmouseover="this.style.background='var(--gold)';this.style.color='var(--black)';" onmouseout="this.style.background='transparent';this.style.color='var(--gold)';" style="padding:6px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid var(--gold);background:transparent;color:var(--gold);transition:all .15s;white-space:nowrap;">Sign Out</button>
+      <button id="topnav-profile-btn" onclick="navTo('profile',null)" style="background:none;border:none;cursor:pointer;padding:0;margin-left:4px;position:relative;display:none;flex-shrink:0;" title="My Profile">
+        <div id="topnav-avatar" class="topnav-avatar"></div>
       </button>
     </div>
   </nav>
@@ -772,7 +820,7 @@
         <span class="admin-banner-icon">🔐</span>
         <div><div class="admin-banner-title">Post Announcement</div><div class="admin-banner-sub">Visible to all members at the top of the feed</div></div>
       </div>
-      <input class="auth-input" id="ann-title" type="text" placeholder="Announcement title..." style="margin-bottom:10px;" />
+      <input class="form-input" id="ann-title" type="text" placeholder="Announcement title..." style="margin-bottom:10px;" />
       <textarea class="compose-textarea" id="ann-body" placeholder="Write your announcement..." rows="3"></textarea>
       <div class="compose-footer">
         <span class="compose-hint">Posted as Nate Templeton</span>
@@ -786,8 +834,8 @@
         <span class="admin-banner-icon">⭐</span>
         <div><div class="admin-banner-title">Post SMAC Spotlight</div><div class="admin-banner-sub">Featured at top of Feed with gold banner</div></div>
       </div>
-      <input class="auth-input" id="spotlight-member" type="text" placeholder="Member name..." style="margin-bottom:8px;" />
-      <input class="auth-input" id="spotlight-url" type="url" placeholder="Instagram post URL..." style="margin-bottom:8px;" />
+      <input class="form-input" id="spotlight-member" type="text" placeholder="Member name..." style="margin-bottom:8px;" />
+      <input class="form-input" id="spotlight-url" type="url" placeholder="Instagram post URL..." style="margin-bottom:8px;" />
       <textarea class="compose-textarea" id="spotlight-caption" placeholder="Caption (why you're spotlighting them)..." rows="2" style="margin-bottom:8px;"></textarea>
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--text-muted);">
         <span>🖼</span>
@@ -808,10 +856,10 @@
         <span class="admin-banner-icon">📊</span>
         <div><div class="admin-banner-title">Create a Poll</div><div class="admin-banner-sub">Members can vote — multiple choice</div></div>
       </div>
-      <input class="auth-input" id="poll-question" type="text" placeholder="Ask a question..." style="margin-bottom:10px;" />
+      <input class="form-input" id="poll-question" type="text" placeholder="Ask a question..." style="margin-bottom:10px;" />
       <div id="poll-options-list">
-        <div class="poll-option-input"><input class="auth-input" placeholder="Option 1" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
-        <div class="poll-option-input"><input class="auth-input" placeholder="Option 2" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
+        <div class="poll-option-input"><input class="form-input" placeholder="Option 1" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
+        <div class="poll-option-input"><input class="form-input" placeholder="Option 2" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
       </div>
       <button class="react-btn" style="margin:6px 0 10px;" onclick="addPollOption()">+ Add option</button>
       <div class="compose-footer">
@@ -823,7 +871,7 @@
     <div id="announcements-list" style="margin-bottom:8px;"></div>
     <div class="compose-box">
       <textarea class="compose-textarea" id="compose-text" placeholder="Share a post link, win, or update with the group..." rows="2"></textarea>
-      <input class="auth-input" id="compose-link" type="url" placeholder="Instagram post URL (optional — required to receive Props)" style="margin-top:10px;margin-bottom:0;" />
+      <input class="form-input" id="compose-link" type="url" placeholder="Instagram post URL (optional — required to receive Props)" style="margin-top:10px;margin-bottom:0;" />
       <div class="compose-footer">
         <span class="compose-hint">Posts with a link can receive 🙌 Props</span>
         <button class="btn-post" onclick="submitPost()">Post</button>
@@ -847,7 +895,7 @@
     <div class="card" style="margin-bottom:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">📸 Submit Your Post</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Paste your Instagram link <strong>or</strong> upload a screenshot — date &amp; time must be visible.</div>
-      <input class="auth-input" id="submit-ig-url" type="url" placeholder="Instagram post URL (optional if uploading screenshot)" style="margin-bottom:8px;" />
+      <input class="form-input" id="submit-ig-url" type="url" placeholder="Instagram post URL (optional if uploading screenshot)" style="margin-bottom:8px;" />
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:var(--text-muted);">
         <span style="font-size:22px;">🖼</span>
         <span id="screenshot-label-text">Upload screenshot (date/time stamp must be visible)</span>
@@ -950,15 +998,15 @@
         <span class="admin-banner-icon">🔐</span>
         <div><div class="admin-banner-title">Add Resource</div></div>
       </div>
-      <input class="auth-input" id="res-title" type="text" placeholder="Resource title..." style="margin-bottom:8px;" />
-      <input class="auth-input" id="res-desc" type="text" placeholder="Short description (shown on card)..." style="margin-bottom:8px;" />
+      <input class="form-input" id="res-title" type="text" placeholder="Resource title..." style="margin-bottom:8px;" />
+      <input class="form-input" id="res-desc" type="text" placeholder="Short description (shown on card)..." style="margin-bottom:8px;" />
       <textarea class="compose-textarea" id="res-body" placeholder="Full body content (shown inside the modal when they click — write as much as you want)..." rows="6" style="border:1.5px solid var(--border);border-radius:10px;padding:12px;background:var(--bg);margin-bottom:8px;"></textarea>
-      <input class="auth-input" id="res-url" type="url" placeholder="External link URL (optional)..." style="margin-bottom:8px;" />
-      <input class="auth-input" id="res-url-label" type="text" placeholder='Link button label (e.g. "Download Template")...' style="margin-bottom:8px;" />
-      <input class="auth-input" id="res-tags" type="text" placeholder="Tags, comma separated (e.g. Captions, Strategy)..." style="margin-bottom:8px;" />
-      <input class="auth-input" id="res-source" type="text" placeholder="Source name (e.g. Hootsuite Blog)..." style="margin-bottom:8px;" />
-      <input class="auth-input" id="res-source-url" type="url" placeholder="Source URL (optional)..." style="margin-bottom:8px;" />
-      <input class="auth-input" id="res-emoji" type="text" placeholder="Emoji icon (e.g. 📄)" maxlength="4" style="margin-bottom:8px;" />
+      <input class="form-input" id="res-url" type="url" placeholder="External link URL (optional)..." style="margin-bottom:8px;" />
+      <input class="form-input" id="res-url-label" type="text" placeholder='Link button label (e.g. "Download Template")...' style="margin-bottom:8px;" />
+      <input class="form-input" id="res-tags" type="text" placeholder="Tags, comma separated (e.g. Captions, Strategy)..." style="margin-bottom:8px;" />
+      <input class="form-input" id="res-source" type="text" placeholder="Source name (e.g. Hootsuite Blog)..." style="margin-bottom:8px;" />
+      <input class="form-input" id="res-source-url" type="url" placeholder="Source URL (optional)..." style="margin-bottom:8px;" />
+      <input class="form-input" id="res-emoji" type="text" placeholder="Emoji icon (e.g. 📄)" maxlength="4" style="margin-bottom:8px;" />
       <div class="compose-footer"><span></span><button class="btn-post" onclick="submitResource()">Add Resource</button></div>
     </div>
     <!-- Zoom Replay Banner -->
@@ -1010,11 +1058,11 @@
 
       <!-- Step 1: core info -->
       <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Step 1 — Member Info</div>
-      <input class="auth-input" id="dir-name" type="text" placeholder="Full name *" style="margin-bottom:8px;" />
-      <input class="auth-input" id="dir-email" type="email" placeholder="Email address * (used to log in)" style="margin-bottom:8px;" />
-      <input class="auth-input" id="dir-ig" type="text" placeholder="Instagram handle (e.g. @username)" style="margin-bottom:8px;" />
-      <input class="auth-input" id="dir-business" type="text" placeholder="Business / brand name" style="margin-bottom:8px;" />
-      <select class="auth-input" id="dir-type" style="margin-bottom:12px;">
+      <input class="form-input" id="dir-name" type="text" placeholder="Full name *" style="margin-bottom:8px;" />
+      <input class="form-input" id="dir-email" type="email" placeholder="Email address * (used to log in)" style="margin-bottom:8px;" />
+      <input class="form-input" id="dir-ig" type="text" placeholder="Instagram handle (e.g. @username)" style="margin-bottom:8px;" />
+      <input class="form-input" id="dir-business" type="text" placeholder="Business / brand name" style="margin-bottom:8px;" />
+      <select class="form-input" id="dir-type" style="margin-bottom:12px;">
         <option value="">Business type (optional)...</option>
         <option>Coaching / Consulting</option><option>Creative / Design</option>
         <option>E-Commerce / Products</option><option>Health &amp; Wellness</option>
@@ -1039,7 +1087,7 @@
       <!-- Step 3: password -->
       <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Step 3 — Login Password</div>
       <div style="display:flex;gap:8px;margin-bottom:4px;">
-        <input class="auth-input" id="dir-password" type="text" placeholder="Auto-generated password" style="margin-bottom:0;flex:1;font-family:monospace;" />
+        <input class="form-input" id="dir-password" type="text" placeholder="Auto-generated password" style="margin-bottom:0;flex:1;font-family:monospace;" />
         <button onclick="generatePassword()" style="padding:0 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:12px;cursor:pointer;white-space:nowrap;">🔀 New</button>
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">This is the password they'll use to log in. Copy it for the welcome email.</div>
@@ -1129,7 +1177,7 @@
 
         <div style="margin-bottom:14px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">New Deadline (your local time)</label>
-          <input type="datetime-local" id="deadline-new-input" class="auth-input" style="max-width:260px;" oninput="updateDeadlinePreview()" />
+          <input type="datetime-local" id="deadline-new-input" class="form-input" style="max-width:260px;" oninput="updateDeadlinePreview()" />
         </div>
 
         <div id="deadline-preview" style="margin-bottom:14px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px;line-height:1.7;color:var(--text-muted);"></div>
@@ -1350,7 +1398,7 @@
             <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Spots Remaining</label>
             <div style="display:flex;align-items:center;gap:8px;">
               <button onclick="adminSeatsDelta(-1)" style="width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:18px;font-weight:700;color:var(--text);cursor:pointer;line-height:1;">−</button>
-              <input id="seats-input" type="number" min="0" max="50" value="25" class="auth-input" style="width:70px;text-align:center;font-size:18px;font-weight:700;padding:6px 8px;" />
+              <input id="seats-input" type="number" min="0" max="50" value="25" class="form-input" style="width:70px;text-align:center;font-size:18px;font-weight:700;padding:6px 8px;" />
               <button onclick="adminSeatsDelta(1)" style="width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:18px;font-weight:700;color:var(--text);cursor:pointer;line-height:1;">+</button>
               <span style="font-size:13px;color:var(--text-muted);">of <strong>50</strong> total</span>
             </div>
@@ -1369,15 +1417,15 @@
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="margin-bottom:14px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Card Title</label>
-          <input id="zoom-editor-title" class="auth-input" type="text" placeholder="e.g. Join the Live Zoom on 6/10 @ 8pm ET" style="width:100%;box-sizing:border-box;" />
+          <input id="zoom-editor-title" class="form-input" type="text" placeholder="e.g. Join the Live Zoom on 6/10 @ 8pm ET" style="width:100%;box-sizing:border-box;" />
         </div>
         <div style="margin-bottom:14px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Subtext</label>
-          <input id="zoom-editor-subtext" class="auth-input" type="text" placeholder="e.g. Tap to save the Zoom event to your calendar" style="width:100%;box-sizing:border-box;" />
+          <input id="zoom-editor-subtext" class="form-input" type="text" placeholder="e.g. Tap to save the Zoom event to your calendar" style="width:100%;box-sizing:border-box;" />
         </div>
         <div style="margin-bottom:14px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Calendar / Zoom URL</label>
-          <input id="zoom-editor-url" class="auth-input" type="url" placeholder="https://calendar.app.google/..." style="width:100%;box-sizing:border-box;" />
+          <input id="zoom-editor-url" class="form-input" type="url" placeholder="https://calendar.app.google/..." style="width:100%;box-sizing:border-box;" />
         </div>
         <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;">
           <label style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -1404,11 +1452,11 @@
         <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Create New Session</div>
         <div style="margin-bottom:10px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Session Label</label>
-          <input id="cowork-new-label" class="auth-input" type="text" placeholder="e.g. June Coworking — Week 1" style="width:100%;box-sizing:border-box;" />
+          <input id="cowork-new-label" class="form-input" type="text" placeholder="e.g. June Coworking — Week 1" style="width:100%;box-sizing:border-box;" />
         </div>
         <div style="margin-bottom:14px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Google Calendar / Zoom URL <span style="font-weight:400;text-transform:none;">(optional)</span></label>
-          <input id="cowork-new-url" class="auth-input" type="url" placeholder="https://calendar.app.google/..." style="width:100%;box-sizing:border-box;" />
+          <input id="cowork-new-url" class="form-input" type="url" placeholder="https://calendar.app.google/..." style="width:100%;box-sizing:border-box;" />
         </div>
         <button class="btn-gold" onclick="adminCreateCoworkSession()" style="width:100%;">Create Session</button>
         <div id="cowork-create-status" style="font-size:12px;color:var(--text-muted);margin-top:8px;min-height:16px;"></div>
@@ -1446,11 +1494,11 @@
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="margin-bottom:10px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Member</label>
-          <select id="backfill-member-select" class="auth-input" style="width:100%;box-sizing:border-box;"><option value="">Select member...</option></select>
+          <select id="backfill-member-select" class="form-input" style="width:100%;box-sizing:border-box;"><option value="">Select member...</option></select>
         </div>
         <div style="margin-bottom:10px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Action</label>
-          <select id="backfill-action-select" class="auth-input" style="width:100%;box-sizing:border-box;" onchange="backfillAutoFillPts(this.value)">
+          <select id="backfill-action-select" class="form-input" style="width:100%;box-sizing:border-box;" onchange="backfillAutoFillPts(this.value)">
             <option value="">Select action...</option>
             <option value="Feed Post">Feed Post (+1)</option>
             <option value="Peer Review Request">Peer Review Request (+5)</option>
@@ -1464,7 +1512,7 @@
         </div>
         <div style="margin-bottom:14px;">
           <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Points</label>
-          <input id="backfill-pts-input" class="auth-input" type="number" min="1" placeholder="Auto-filled or enter manually" style="width:100%;box-sizing:border-box;" />
+          <input id="backfill-pts-input" class="form-input" type="number" min="1" placeholder="Auto-filled or enter manually" style="width:100%;box-sizing:border-box;" />
         </div>
         <button class="btn-gold" onclick="adminBackfillPts()" style="width:100%;">Award Points</button>
         <div id="backfill-status" style="font-size:12px;color:var(--text-muted);margin-top:8px;min-height:16px;"></div>
@@ -1608,10 +1656,10 @@
       <!-- Admin chat poll compose (hidden unless admin) -->
       <div id="chat-poll-compose" style="display:none;padding:12px 14px;border-top:1px solid var(--gold);background:#fffbf0;">
         <div style="font-weight:700;font-size:13px;margin-bottom:8px;">📊 New Poll</div>
-        <input class="auth-input" id="chat-poll-question" type="text" placeholder="Ask a question..." style="margin-bottom:8px;" />
+        <input class="form-input" id="chat-poll-question" type="text" placeholder="Ask a question..." style="margin-bottom:8px;" />
         <div id="chat-poll-options-list">
-          <div class="poll-option-input"><input class="auth-input" placeholder="Option 1" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
-          <div class="poll-option-input"><input class="auth-input" placeholder="Option 2" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
+          <div class="poll-option-input"><input class="form-input" placeholder="Option 1" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
+          <div class="poll-option-input"><input class="form-input" placeholder="Option 2" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:8px;">
           <button class="react-btn" onclick="addChatPollOption()">+ Option</button>
@@ -2429,7 +2477,7 @@ window.handleLogin=async function(){
   const emailRaw=document.getElementById("name-input").value.trim();
   const pass=document.getElementById("pass-input").value.trim();
   const err=document.getElementById("auth-error");
-  const btn=document.querySelector(".btn-gold");
+  const btn=document.querySelector(".auth-btn");
   if(!emailRaw){err.style.display="block";err.textContent="Please enter your email address.";return;}
   if(!pass){err.style.display="block";err.textContent="Please enter your password.";return;}
   err.style.display="none";
@@ -3189,7 +3237,7 @@ function renderFeed(posts){
         ${(isMine||currentUser.isAdmin)?`<button class="react-btn" onclick="deleteFeedPost('${p.id}',${p.uid===currentUser.uid})">🗑</button>`:""}
       </div>
       <div class="feed-edit-box" id="feed-edit-${p.id}" style="display:none;margin-top:10px;">
-        <textarea class="auth-input" id="feed-edit-text-${p.id}" style="min-height:70px;margin-bottom:8px;resize:vertical;">${esc(p.text||"")}</textarea>
+        <textarea class="form-input" id="feed-edit-text-${p.id}" style="min-height:70px;margin-bottom:8px;resize:vertical;">${esc(p.text||"")}</textarea>
         <div style="display:flex;gap:8px;">
           <button class="btn-sm" onclick="saveFeedEdit('${p.id}')" style="background:var(--gold);color:#000;border-color:var(--gold);">Save</button>
           <button class="btn-sm" onclick="cancelFeedEdit('${p.id}')">Cancel</button>
@@ -5562,9 +5610,9 @@ window.renderProTool = function(toolId){
           <div class="pro-feature-desc" style="margin-bottom:16px;">Get a personalized posting plan for the week — tailored to your niche, the current SMAC week, and your goals.</div>
           <div id="wap-form">
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your niche / business <span style="font-weight:400;text-transform:none;font-size:11px;">(pulled from your profile)</span></div>
-            <input id="wap-niche" type="text" placeholder="e.g. wedding photographer, business coach, fitness trainer..." class="auth-input" style="margin-bottom:14px;padding:10px 12px;" />
+            <input id="wap-niche" type="text" placeholder="e.g. wedding photographer, business coach, fitness trainer..." class="form-input" style="margin-bottom:14px;padding:10px 12px;" />
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">How many posts are you aiming for this week?</div>
-            <select id="wap-freq" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+            <select id="wap-freq" class="form-input" style="margin-bottom:14px;padding:10px 12px;">
               <option value="3">3 posts</option>
               <option value="4">4 posts</option>
               <option value="5" selected>5 posts (recommended)</option>
@@ -5574,7 +5622,7 @@ window.renderProTool = function(toolId){
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What did you post about last week? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
             <textarea id="wap-last-week" placeholder="e.g. behind the scenes reel, a client win carousel, a tips post..." style="width:100%;min-height:60px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Current focus or priority <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-            <input id="wap-focus" type="text" placeholder="e.g. launching a new offer, growing reach, building trust..." class="auth-input" style="margin-bottom:16px;padding:10px 12px;" />
+            <input id="wap-focus" type="text" placeholder="e.g. launching a new offer, growing reach, building trust..." class="form-input" style="margin-bottom:16px;padding:10px 12px;" />
             <button onclick="runActionPlan()" class="btn-gold" style="font-size:16px;padding:12px;">Build My Week</button>
           </div>
           <div id="wap-loading" style="display:none;text-align:center;padding:20px 0;">
@@ -5607,7 +5655,7 @@ window.renderProTool = function(toolId){
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's your post about?</div>
             <textarea id="ca-idea" placeholder="e.g. I want to share a behind-the-scenes look at how I edit a client video from start to finish..." style="width:100%;min-height:80px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post Format</div>
-            <select id="ca-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+            <select id="ca-format" class="form-input" style="margin-bottom:14px;padding:10px 12px;">
               <option value="">Select format...</option>
               <option value="Reel">Reel</option>
               <option value="Carousel">Carousel</option>
@@ -5615,7 +5663,7 @@ window.renderProTool = function(toolId){
               <option value="Story">Story</option>
             </select>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Goal for this post <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-            <select id="ca-goal" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+            <select id="ca-goal" class="form-input" style="margin-bottom:14px;padding:10px 12px;">
               <option value="">No specific goal</option>
               <option value="maximize saves">Maximize saves</option>
               <option value="drive comments">Drive comments</option>
@@ -5624,7 +5672,7 @@ window.renderProTool = function(toolId){
               <option value="drive profile visits or follows">Drive follows</option>
             </select>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Your tone <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-            <select id="ca-tone" class="auth-input" style="margin-bottom:16px;padding:10px 12px;">
+            <select id="ca-tone" class="form-input" style="margin-bottom:16px;padding:10px 12px;">
               <option value="authentic and conversational">Authentic &amp; conversational (default)</option>
               <option value="educational and informative">Educational</option>
               <option value="bold and direct">Bold &amp; direct</option>
@@ -5654,13 +5702,13 @@ window.renderProTool = function(toolId){
             <textarea id="cpa-caption" placeholder="Paste the caption you posted..." style="width:100%;min-height:90px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Engagement Stats</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Likes</div><input id="cpa-likes" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" /></div>
-              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Comments</div><input id="cpa-comments" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" /></div>
-              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Shares</div><input id="cpa-shares" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" /></div>
-              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Saves</div><input id="cpa-saves" type="number" min="0" placeholder="0" class="auth-input" style="margin-bottom:0;padding:10px 12px;" /></div>
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Likes</div><input id="cpa-likes" type="number" min="0" placeholder="0" class="form-input" style="margin-bottom:0;padding:10px 12px;" /></div>
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Comments</div><input id="cpa-comments" type="number" min="0" placeholder="0" class="form-input" style="margin-bottom:0;padding:10px 12px;" /></div>
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Shares</div><input id="cpa-shares" type="number" min="0" placeholder="0" class="form-input" style="margin-bottom:0;padding:10px 12px;" /></div>
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Saves</div><input id="cpa-saves" type="number" min="0" placeholder="0" class="form-input" style="margin-bottom:0;padding:10px 12px;" /></div>
             </div>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post Type <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-            <select id="cpa-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+            <select id="cpa-format" class="form-input" style="margin-bottom:14px;padding:10px 12px;">
               <option value="">Select format...</option>
               <option value="Reel">Reel</option>
               <option value="Carousel">Carousel</option>
@@ -5668,7 +5716,7 @@ window.renderProTool = function(toolId){
               <option value="Story">Story</option>
             </select>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What was this post about? <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></div>
-            <input id="cpa-topic" type="text" placeholder="e.g. behind the scenes, client transformation, tips..." class="auth-input" style="margin-bottom:16px;padding:10px 12px;" />
+            <input id="cpa-topic" type="text" placeholder="e.g. behind the scenes, client transformation, tips..." class="form-input" style="margin-bottom:16px;padding:10px 12px;" />
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Screenshots <span style="font-weight:400;text-transform:none;font-size:11px;">(both optional, AI will read what's there)</span></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
               <!-- Slot 0: Post screenshot -->
@@ -5727,7 +5775,7 @@ window.renderProTool = function(toolId){
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">What's the post about?</div>
             <textarea id="hg-topic" placeholder="e.g. how I doubled my Instagram reach by posting less, a client result, my morning routine..." style="width:100%;min-height:70px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);resize:vertical;outline:none;box-sizing:border-box;margin-bottom:14px;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
             <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Post format</div>
-            <select id="hg-format" class="auth-input" style="margin-bottom:14px;padding:10px 12px;">
+            <select id="hg-format" class="form-input" style="margin-bottom:14px;padding:10px 12px;">
               <option value="">Select format...</option>
               <option value="Reel (spoken hook — first 3 seconds on camera)">Reel (spoken / on-camera)</option>
               <option value="Reel (text overlay hook — appears on screen)">Reel (text overlay)</option>
@@ -5843,7 +5891,7 @@ async function renderSmsCard(){
     inner.innerHTML=`
       <div style="font-size:14px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">Get deadline reminders sent to your phone. You'll hear from us twice per week — a Day 4 check-in and a final call the night the week closes.</div>
       <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Mobile phone number</div>
-      <input id="sms-phone-input" type="tel" placeholder="(443) 555-0000" class="auth-input" style="margin-bottom:12px;padding:10px 12px;" />
+      <input id="sms-phone-input" type="tel" placeholder="(443) 555-0000" class="form-input" style="margin-bottom:12px;padding:10px 12px;" />
       <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;cursor:pointer;">
         <input type="checkbox" id="sms-consent" style="margin-top:3px;accent-color:var(--gold);flex-shrink:0;" />
         <span style="font-size:12px;color:var(--text-muted);line-height:1.5;">Yes, I would like to receive automated SMS deadline reminders from Accountability Challenge Co. (SMAC). Consent is not required to participate in the program.</span>
@@ -5893,7 +5941,7 @@ window.showSmsEdit = function(){
   if(!inner) return;
   inner.innerHTML=`
     <div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:10px;">Update your phone number</div>
-    <input id="sms-phone-input" type="tel" placeholder="(443) 555-0000" class="auth-input" style="margin-bottom:12px;padding:10px 12px;" />
+    <input id="sms-phone-input" type="tel" placeholder="(443) 555-0000" class="form-input" style="margin-bottom:12px;padding:10px 12px;" />
     <button onclick="updateSmsPhone()" class="btn-gold" style="font-size:15px;padding:11px;margin-bottom:10px;">Save Number</button>
     <button onclick="renderSmsCard()" style="background:none;border:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;display:block;">Cancel</button>
     <div id="sms-status" style="font-size:13px;color:var(--text-muted);margin-top:8px;display:none;"></div>`;
@@ -8265,7 +8313,7 @@ async function loadMySubmissions(){
           </div>
         </div>
         <div id="sub-edit-${s.id}" style="display:none;margin-top:8px;">
-          <input class="auth-input" id="sub-edit-url-${s.id}" type="url" placeholder="Update Instagram URL" value="${esc(s.url||"")}" style="margin-bottom:6px;" />
+          <input class="form-input" id="sub-edit-url-${s.id}" type="url" placeholder="Update Instagram URL" value="${esc(s.url||"")}" style="margin-bottom:6px;" />
           <div style="margin-bottom:8px;">
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Post format</div>
             <select class="field-select" id="sub-edit-fmt-${s.id}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);">
@@ -10134,7 +10182,7 @@ window.addPollOption = function(){
   const count = list.children.length + 1;
   const div = document.createElement("div");
   div.className = "poll-option-input";
-  div.innerHTML = `<input class="auth-input" placeholder="Option ${count}" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button>`;
+  div.innerHTML = `<input class="form-input" placeholder="Option ${count}" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button>`;
   list.appendChild(div);
 };
 
@@ -10144,7 +10192,7 @@ window.addChatPollOption = function(){
   const count = list.children.length + 1;
   const div = document.createElement("div");
   div.className = "poll-option-input";
-  div.innerHTML = `<input class="auth-input" placeholder="Option ${count}" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button>`;
+  div.innerHTML = `<input class="form-input" placeholder="Option ${count}" style="margin-bottom:0;" /><button class="poll-remove-opt" onclick="removePollOption(this)">✕</button>`;
   list.appendChild(div);
 };
 
