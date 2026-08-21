@@ -698,15 +698,15 @@
     </div>
     <div class="dash-status-strip dash-animate" id="dash-status-strip" style="animation-delay:0.15s;"></div>
 
-    <!-- ROUND 3 RENEWAL CARD -->
+    <!-- RENEWAL CARD (content driven by smac_config/renew_modal) -->
     <div class="dash-card dash-animate" id="dash-renew-card" style="display:none;animation-delay:0.17s;border:1.5px solid var(--gold);background:#eef3f6;margin-bottom:14px;">
       <div class="dash-card-title-row">
-        <div class="dash-card-title">🔁 Round 3 Starts June 1</div>
+        <div class="dash-card-title" id="dash-renew-card-title">🔁 Renew Your Spot</div>
       </div>
       <div class="spot-countdown"></div>
-      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Keep your momentum going. Renew your spot for the next 90-day round, or upgrade to SMAC Pro.</div>
-      <button class="dash-view-all-btn" onclick="openRenewModal()">
-        Renew for Round 3
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;" id="dash-renew-card-sub">Keep your momentum going. Renew your spot for the next 90-day round, or upgrade to SMAC Pro.</div>
+      <button class="dash-view-all-btn" onclick="openRenewModal()" id="dash-renew-card-btn">
+        Renew Now
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
@@ -1449,6 +1449,102 @@
       </div>
     </div>
 
+    <!-- ADMIN: Renewal Modal Editor -->
+    <div id="admin-renew-editor" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🔁 Renewal Modal Editor</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Controls the renewal modal + dashboard/profile cards. Saved to Firestore — persists across deploys and applies to every member on next page load.</div>
+      <div class="card" style="border:1.5px solid var(--border);">
+
+        <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+          <label style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input id="renew-editor-visible" type="checkbox" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;" />
+            Show renewal modal + cards
+          </label>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Target Round (members without this round see the renewal prompt)</label>
+          <select id="renew-editor-round" class="form-input" style="width:100%;box-sizing:border-box;"></select>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Modal Heading</label>
+          <input id="renew-editor-heading" class="form-input" type="text" placeholder="e.g. Round 4 Starts September 1" style="width:100%;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Modal Subtext</label>
+          <textarea id="renew-editor-subtext" class="form-input" rows="2" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">"Why Continue" Bullets (one per line)</label>
+          <textarea id="renew-editor-bullets" class="form-input" rows="5" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Deadline (your local time)</label>
+            <input type="datetime-local" id="renew-editor-deadline" class="form-input" style="width:100%;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Deadline Display Label</label>
+            <input id="renew-editor-deadline-label" class="form-input" type="text" placeholder="e.g. Aug 31, 2026 · 11:59 PM ET" style="width:100%;box-sizing:border-box;" />
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Auto-Extended Deadline</label>
+            <input type="datetime-local" id="renew-editor-deadline-ext" class="form-input" style="width:100%;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Extended Deadline Label</label>
+            <input id="renew-editor-deadline-ext-label" class="form-input" type="text" placeholder="e.g. Sep 7, 2026 · 11:59 PM ET" style="width:100%;box-sizing:border-box;" />
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin:-10px 0 18px;line-height:1.5;">Countdown shows the first deadline. Once it passes, the modal automatically rolls to the extended deadline — no action needed.</div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">SMAC Base Stripe URL</label>
+          <input id="renew-editor-base-url" class="form-input" type="url" placeholder="https://buy.stripe.com/..." style="width:100%;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Base Button Label</label>
+          <input id="renew-editor-base-label" class="form-input" type="text" style="width:100%;box-sizing:border-box;" />
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">SMAC Pro Stripe URL</label>
+          <input id="renew-editor-pro-url" class="form-input" type="url" placeholder="https://buy.stripe.com/..." style="width:100%;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Pro Box Heading</label>
+          <input id="renew-editor-pro-heading" class="form-input" type="text" style="width:100%;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Pro Box Subtext</label>
+          <textarea id="renew-editor-pro-subtext" class="form-input" rows="2" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+        </div>
+        <div style="margin-bottom:18px;">
+          <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Pro Button Label</label>
+          <input id="renew-editor-pro-label" class="form-input" type="text" style="width:100%;box-sizing:border-box;" />
+        </div>
+
+        <div style="margin-bottom:18px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Dashboard / Profile Card</div>
+          <div style="display:grid;gap:10px;">
+            <input id="renew-editor-card-title" class="form-input" type="text" placeholder="Card title, e.g. 🔁 Round 4 Starts Sept 1" style="width:100%;box-sizing:border-box;" />
+            <input id="renew-editor-card-sub" class="form-input" type="text" placeholder="Card subtext" style="width:100%;box-sizing:border-box;" />
+            <input id="renew-editor-card-btn" class="form-input" type="text" placeholder="Card button label, e.g. Renew Now" style="width:100%;box-sizing:border-box;" />
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button class="btn-sm" onclick="saveRenewModalConfig()" style="background:var(--gold);color:#fff;border-color:var(--gold);">Save Renewal Config</button>
+          <button class="btn-sm" onclick="previewRenewModal()">Preview Modal</button>
+          <div id="renew-editor-status" style="font-size:13px;color:var(--text-muted);"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ADMIN: Coworking Sessions Manager -->
     <div id="admin-cowork-tool" style="display:none;margin-bottom:28px;">
       <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:4px;">🤝 Coworking Sessions</div>
@@ -1532,11 +1628,11 @@
     <div class="page-header"><h1 class="page-title">Profile</h1></div>
     <div class="profile-hero" id="profile-hero"></div>
 
-    <!-- ROUND 3 RENEWAL — hidden for R3-enrolled members, shown only for R2-only -->
+    <!-- RENEWAL CARD — hidden for members enrolled in the target round, shown otherwise -->
     <div class="card" id="profile-renew-card" style="border:1.5px solid var(--gold);background:#eef3f6;display:none;">
-      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;margin-bottom:6px;">🔁 Round 3 — June 1</div>
-      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Renew your spot for the next 90-day round, or upgrade to SMAC Pro for higher goals and AI-powered tools.</div>
-      <button class="btn-post" style="width:100%;" onclick="openRenewModal()">Renew for Round 3</button>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;margin-bottom:6px;" id="profile-renew-card-title">🔁 Renew Your Spot</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;" id="profile-renew-card-sub">Renew your spot for the next 90-day round, or upgrade to SMAC Pro for higher goals and AI-powered tools.</div>
+      <button class="btn-post" style="width:100%;" onclick="openRenewModal()" id="profile-renew-card-btn">Renew Now</button>
     </div>
 
     <!-- GROWTH HISTORY (Analytics Snapshots) -->
@@ -1838,17 +1934,17 @@
   </div>
 </div>
 
-<!-- ROUND 3 RENEWAL MODAL -->
+<!-- RENEWAL MODAL (content driven by smac_config/renew_modal) -->
 <div class="member-modal-overlay" id="renew-modal-overlay" onclick="closeRenewModal(event)">
   <div class="member-modal" id="renew-modal-content" style="max-width:440px;">
     <button class="member-modal-close" onclick="closeRenewModalDirect()">✕</button>
     <div style="padding:4px 2px;">
-      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;" id="renew-modal-heading">Registration Extended to June 6</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;" id="renew-modal-subtext">You've built momentum. Keep it going — your spot in Round 3 is still available through June 6 at 11:59 PM ET.</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;" id="renew-modal-heading">Round 4 Starts September 1</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;" id="renew-modal-subtext">You've built momentum. Keep it going — renew your spot for the next 90-day round.</div>
 
       <div style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
         <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:8px;">Why continue</div>
-        <div style="font-size:13px;line-height:1.7;">
+        <div style="font-size:13px;line-height:1.7;" id="renew-modal-why-list">
           • Stay consistent with weekly accountability<br>
           • Keep your streak and All-Star progress alive<br>
           • Add to your lifetime SMAC points total<br>
@@ -1862,15 +1958,17 @@
       <div id="renew-countdown-wrap" style="background:#eef3f6;border:1.5px solid var(--gold);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:center;">
         <div style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:6px;">Registration closes in</div>
         <div id="renew-countdown" style="font-family:'Sora',sans-serif;font-weight:700;font-size:26px;letter-spacing:0.03em;line-height:1;color:var(--text);">—</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">June 6, 2026 · 11:59 PM ET</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:5px;" id="renew-countdown-label">Aug 31, 2026 · 11:59 PM ET</div>
       </div>
+
+      <a href="#" target="_blank" rel="noopener" class="btn-post" id="renew-base-cta" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px;">Renew SMAC Base →</a>
 
       <div style="background:#eef3f6;border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
-        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.04em;margin-bottom:4px;">★ Or upgrade to SMAC Pro</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">You've built the habit. Now make it count — higher weekly goals plus AI-powered tools for captions, hooks, action plans, and content analysis.</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.04em;margin-bottom:4px;" id="renew-pro-heading">★ Or upgrade to SMAC Pro</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6;" id="renew-pro-subtext">You've built the habit. Now make it count — higher weekly goals plus AI-powered tools for captions, hooks, action plans, and content analysis.</div>
       </div>
 
-      <a href="https://joinsmac.com/#pricing" target="_blank" rel="noopener" class="btn-post" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px;">See Plans &amp; Renew →</a>
+      <a href="#" target="_blank" rel="noopener" class="btn-post" id="renew-pro-cta" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px;background:var(--gold);border-color:var(--gold);">Upgrade to SMAC Pro →</a>
 
       <button onclick="dismissRenewModal()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:12px;padding:6px;cursor:pointer;text-decoration:underline;">I've already renewed — don't show this again</button>
     </div>
@@ -2626,6 +2724,9 @@ function bootApp(){
     // Zoom Card editor always visible to admin
     const _zoomEditor=document.getElementById("admin-zoom-card-editor");
     if(_zoomEditor){_zoomEditor.style.display="block";loadZoomEditor();}
+    // Renewal Modal editor always visible to admin
+    const _renewEditor=document.getElementById("admin-renew-editor");
+    if(_renewEditor){_renewEditor.style.display="block";loadRenewEditor();}
     // Seats editor always visible to admin
     const _seatsTool=document.getElementById("admin-seats-tool");
     if(_seatsTool){_seatsTool.style.display="block";loadSeatsEditor();}
@@ -2659,6 +2760,8 @@ function bootApp(){
     if(_proPanelMember)_proPanelMember.style.display="none";
     const _seatsToolMember=document.getElementById("admin-seats-tool");
     if(_seatsToolMember)_seatsToolMember.style.display="none";
+    const _renewEditorMember=document.getElementById("admin-renew-editor");
+    if(_renewEditorMember)_renewEditorMember.style.display="none";
     const _coworkToolMember=document.getElementById("admin-cowork-tool");
     if(_coworkToolMember)_coworkToolMember.style.display="none";
     const _commPtsLogMember=document.getElementById("admin-comm-pts-log");
@@ -2778,7 +2881,7 @@ function bootApp(){
   }, 4000); // fire after initial page loads settle
   // New features
   setTimeout(showWelcomeModal, 600);
-  // Renewal modal auto-pop removed — R3 registration closed June 7.
+  setTimeout(async()=>{ await loadRenewModalConfig(); maybeShowRenewModal(); }, 900);
   setTimeout(initPushNotifications, 1000);
   setTimeout(checkRoundEnd, 300);
   setTimeout(initRanksWatcher, 3000);
@@ -2873,11 +2976,11 @@ window.navTo=function(page,el){
 window.loadDashboard=async function(){
   if(!currentUser)return;
   loadZoomCard();
+  await loadRenewModalConfig();
 
-  // ── Show/hide R2-era cards based on R3 enrollment ──
-  const _isR3Dash = currentUser.isFounder || (currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3");
+  // ── Renewal card: shown when member hasn't renewed into the configured target round ──
   const _renewCard = document.getElementById("dash-renew-card");
-  if(_renewCard) _renewCard.style.display = _isR3Dash ? "none" : "";
+  if(_renewCard) _renewCard.style.display = memberNeedsRenewal(currentUser) ? "" : "none";
   const _feedbackCard = document.getElementById("dash-feedback-card");
   if(_feedbackCard) _feedbackCard.style.display = "none"; // R2 feedback always hidden now
   // Update Top 10 round label dynamically
@@ -4221,6 +4324,98 @@ window.saveZoomCard = async function() {
     // Refresh the live card on the dashboard if it's visible
     loadZoomCard();
   } catch(e) { status.textContent = "Error: " + e.message; status.style.color = "#e74c3c"; }
+};
+
+// ─────────────────────────────────────────────
+//  ADMIN: Renewal Modal Editor
+// ─────────────────────────────────────────────
+function _tsToLocalInputRenew(ts){
+  const d = new Date(ts - new Date(ts).getTimezoneOffset()*60000);
+  return d.toISOString().slice(0,16);
+}
+function _localInputToTsRenew(val){
+  if(!val) return null;
+  return new Date(val).getTime();
+}
+
+async function loadRenewEditor(){
+  // Populate round dropdown from ROUND_CONFIGS (current round through +1 future placeholder)
+  const roundSel = document.getElementById("renew-editor-round");
+  if(roundSel){
+    roundSel.innerHTML = Object.keys(ROUND_CONFIGS).map(k=>`<option value="${k}">${k}</option>`).join("");
+  }
+  await loadRenewModalConfig();
+  const cfg = window._renewModalConfig || RENEW_MODAL_DEFAULTS;
+  document.getElementById("renew-editor-visible").checked = !!cfg.visible;
+  if(roundSel) roundSel.value = cfg.target_round;
+  document.getElementById("renew-editor-heading").value = cfg.heading || "";
+  document.getElementById("renew-editor-subtext").value = cfg.subtext || "";
+  document.getElementById("renew-editor-bullets").value = (cfg.why_bullets||[]).join("\n");
+  document.getElementById("renew-editor-deadline").value = _tsToLocalInputRenew(cfg.deadline_ts);
+  document.getElementById("renew-editor-deadline-label").value = cfg.deadline_label || "";
+  document.getElementById("renew-editor-deadline-ext").value = _tsToLocalInputRenew(cfg.deadline_extended_ts);
+  document.getElementById("renew-editor-deadline-ext-label").value = cfg.deadline_extended_label || "";
+  document.getElementById("renew-editor-base-url").value = cfg.base_url || "";
+  document.getElementById("renew-editor-base-label").value = cfg.base_btn_label || "";
+  document.getElementById("renew-editor-pro-url").value = cfg.pro_url || "";
+  document.getElementById("renew-editor-pro-heading").value = cfg.pro_heading || "";
+  document.getElementById("renew-editor-pro-subtext").value = cfg.pro_subtext || "";
+  document.getElementById("renew-editor-pro-label").value = cfg.pro_btn_label || "";
+  document.getElementById("renew-editor-card-title").value = cfg.card_title || "";
+  document.getElementById("renew-editor-card-sub").value = cfg.card_sub || "";
+  document.getElementById("renew-editor-card-btn").value = cfg.card_btn || "";
+}
+
+function _readRenewEditorForm(){
+  return {
+    visible: document.getElementById("renew-editor-visible").checked,
+    target_round: document.getElementById("renew-editor-round").value,
+    heading: document.getElementById("renew-editor-heading").value.trim(),
+    subtext: document.getElementById("renew-editor-subtext").value.trim(),
+    why_bullets: document.getElementById("renew-editor-bullets").value.split("\n").map(s=>s.trim()).filter(Boolean),
+    deadline_ts: _localInputToTsRenew(document.getElementById("renew-editor-deadline").value),
+    deadline_label: document.getElementById("renew-editor-deadline-label").value.trim(),
+    deadline_extended_ts: _localInputToTsRenew(document.getElementById("renew-editor-deadline-ext").value),
+    deadline_extended_label: document.getElementById("renew-editor-deadline-ext-label").value.trim(),
+    base_url: document.getElementById("renew-editor-base-url").value.trim(),
+    base_btn_label: document.getElementById("renew-editor-base-label").value.trim(),
+    pro_url: document.getElementById("renew-editor-pro-url").value.trim(),
+    pro_heading: document.getElementById("renew-editor-pro-heading").value.trim(),
+    pro_subtext: document.getElementById("renew-editor-pro-subtext").value.trim(),
+    pro_btn_label: document.getElementById("renew-editor-pro-label").value.trim(),
+    card_title: document.getElementById("renew-editor-card-title").value.trim(),
+    card_sub: document.getElementById("renew-editor-card-sub").value.trim(),
+    card_btn: document.getElementById("renew-editor-card-btn").value.trim()
+  };
+}
+
+window.saveRenewModalConfig = async function(){
+  const status = document.getElementById("renew-editor-status");
+  const data = _readRenewEditorForm();
+  if(!data.target_round || !data.heading || !data.deadline_ts || !data.deadline_extended_ts){
+    status.textContent = "Target round, heading, and both deadlines are required.";
+    status.style.color = "#e74c3c";
+    return;
+  }
+  status.textContent = "Saving..."; status.style.color = "var(--text-muted)";
+  try{
+    await setDoc(doc(db, "smac_config", "renew_modal"), { ...data, updatedAt: Date.now() });
+    window._renewModalConfig = { ...RENEW_MODAL_DEFAULTS, ...data };
+    applyRenewModalContent();
+    // Re-evaluate card visibility immediately if on dashboard/profile
+    const _renewCard = document.getElementById("dash-renew-card");
+    if(_renewCard) _renewCard.style.display = memberNeedsRenewal(currentUser) ? "" : "none";
+    const _profRenewCard = document.getElementById("profile-renew-card");
+    if(_profRenewCard) _profRenewCard.style.display = memberNeedsRenewal(currentUser) ? "block" : "none";
+    status.textContent = "Saved! Live for all members on next page load."; status.style.color = "#27ae60";
+  }catch(e){ status.textContent = "Error: " + e.message; status.style.color = "#e74c3c"; }
+};
+
+window.previewRenewModal = function(){
+  const data = _readRenewEditorForm();
+  window._renewModalConfig = { ...RENEW_MODAL_DEFAULTS, ...window._renewModalConfig, ...data };
+  applyRenewModalContent();
+  window.openRenewModal();
 };
 
 // Wire up live preview on input changes — deferred until DOM ready
@@ -11446,11 +11641,11 @@ function loadProfile(){
   // Firebase setup card only for admin
   const setupCard=document.getElementById("firebase-setup-card");
   if(setupCard)setupCard.style.display=currentUser.isAdmin?"block":"none";
-  // Renewal card — only for members not yet enrolled in R3
+  // Renewal card — only for members who haven't renewed into the target round
   const profileRenewCard=document.getElementById("profile-renew-card");
   if(profileRenewCard){
-    const _isR3=currentUser.isFounder||(currentUser.rounds||[]).includes(window.CURRENT_ROUND||"R3");
-    profileRenewCard.style.display=_isR3?"none":"block";
+    profileRenewCard.style.display=memberNeedsRenewal(currentUser)?"block":"none";
+    loadRenewModalConfig().then(()=>{ if(profileRenewCard) profileRenewCard.style.display=memberNeedsRenewal(currentUser)?"block":"none"; });
   }
   const prof=lsGet(`smac_profile_${currentUser.uid}`)||{name:currentUser.name,business:"",type:"",ig:"",visible:"yes"};
   document.getElementById("profile-name").value=prof.name||currentUser.name;
@@ -11794,10 +11989,87 @@ window.closeWelcomeModal = function(){
 };
 
 // ─────────────────────────────────────────────
-//  ROUND 3 RENEWAL MODAL
-//  Member-dismissible. Dismissal stored per-user in localStorage.
+//  RENEWAL MODAL — content + eligibility driven by Firestore
+//  smac_config/renew_modal. Member-dismissible; dismissal stored
+//  per-user, per-target-round in localStorage so a new round's
+//  reopen isn't suppressed by a stale dismissal.
 // ─────────────────────────────────────────────
-function _renewDismissKey(){ return "smac_renew_r3_dismissed_" + (currentUser?.uid||""); }
+const RENEW_MODAL_DEFAULTS = {
+  visible: true,
+  target_round: "R4",
+  heading: "Round 4 Starts September 1",
+  subtext: "You've built momentum. Keep it going — renew your spot for the next 90-day round.",
+  why_bullets: [
+    "Stay consistent with weekly accountability",
+    "Keep your streak and All-Star progress alive",
+    "Add to your lifetime SMAC points total",
+    "Group feed, props, and the full member community",
+    "A fresh 90-day round to level up your Instagram presence"
+  ],
+  card_title: "🔁 Round 4 Starts Sept 1",
+  card_sub: "Keep your momentum going. Renew your spot for the next 90-day round, or upgrade to SMAC Pro.",
+  card_btn: "Renew Now",
+  deadline_ts: 1788235140000,           // Aug 31, 2026 · 11:59 PM ET
+  deadline_extended_ts: 1788839940000,  // Sep 7, 2026 · 11:59 PM ET (auto-applies once primary passes)
+  deadline_label: "Aug 31, 2026 · 11:59 PM ET",
+  deadline_extended_label: "Sep 7, 2026 · 11:59 PM ET",
+  base_url: "https://buy.stripe.com/00w14n2Lp4ITfye50Rbo40j",
+  pro_url: "https://buy.stripe.com/3cI6oHbhVgrB85MeBrbo40k",
+  base_btn_label: "Renew SMAC Base →",
+  pro_heading: "★ Or upgrade to SMAC Pro",
+  pro_subtext: "You've built the habit. Now make it count — higher weekly goals plus AI-powered tools for captions, hooks, action plans, and content analysis.",
+  pro_btn_label: "Upgrade to SMAC Pro →"
+};
+window._renewModalConfig = { ...RENEW_MODAL_DEFAULTS };
+
+function _renewDismissKey(){
+  const round = (window._renewModalConfig && window._renewModalConfig.target_round) || "R4";
+  return "smac_renew_" + round + "_dismissed_" + (currentUser?.uid||"");
+}
+
+// Loads smac_config/renew_modal from Firestore, merges over defaults, re-renders.
+async function loadRenewModalConfig(){
+  try{
+    const snap = await getDoc(doc(db, "smac_config", "renew_modal"));
+    if(snap.exists()) window._renewModalConfig = { ...RENEW_MODAL_DEFAULTS, ...snap.data() };
+  }catch(e){ /* fall back to JS defaults */ }
+  applyRenewModalContent();
+}
+
+// Pushes the current config into the modal + dashboard/profile card DOM.
+function applyRenewModalContent(){
+  const cfg = window._renewModalConfig || RENEW_MODAL_DEFAULTS;
+  const setText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  const setHref = (id, val) => { const el = document.getElementById(id); if(el) el.href = val; };
+
+  setText("renew-modal-heading", cfg.heading);
+  setText("renew-modal-subtext", cfg.subtext);
+  const whyEl = document.getElementById("renew-modal-why-list");
+  if(whyEl) whyEl.innerHTML = (cfg.why_bullets||[]).map(b => "• " + esc(b)).join("<br>\n          ");
+  setText("renew-countdown-label", cfg.deadline_label);
+  const baseBtn = document.getElementById("renew-base-cta");
+  if(baseBtn){ baseBtn.href = cfg.base_url; baseBtn.textContent = cfg.base_btn_label; }
+  setText("renew-pro-heading", cfg.pro_heading);
+  setText("renew-pro-subtext", cfg.pro_subtext);
+  const proBtn = document.getElementById("renew-pro-cta");
+  if(proBtn){ proBtn.href = cfg.pro_url; proBtn.textContent = cfg.pro_btn_label; }
+
+  setText("dash-renew-card-title", cfg.card_title);
+  setText("dash-renew-card-sub", cfg.card_sub);
+  const dashBtn = document.getElementById("dash-renew-card-btn");
+  if(dashBtn) dashBtn.childNodes[0].textContent = cfg.card_btn + " ";
+  setText("profile-renew-card-title", cfg.card_title);
+  setText("profile-renew-card-sub", cfg.card_sub);
+  setText("profile-renew-card-btn", cfg.card_btn);
+}
+
+// Does this member still need to renew into the modal's target round?
+function memberNeedsRenewal(member){
+  const cfg = window._renewModalConfig || RENEW_MODAL_DEFAULTS;
+  if(!cfg.visible) return false;
+  if(!member || member.isFounder) return false;
+  return !(member.rounds||[]).includes(cfg.target_round);
+}
 
 // ── SPOT COUNTDOWN — update SPOTS_LEFT as seats fill ──
 var SPOTS_LEFT  = 25;
@@ -11815,14 +12087,24 @@ function applySpotCountdowns() {
   });
 }
 
-// Registration deadline: June 6, 2026 11:59 PM ET (EDT = UTC-4) → 2026-06-07T03:59:00Z
-const RENEW_DEADLINE_TS = new Date("2026-06-07T03:59:00Z").getTime();
 let _renewCountdownTimer = null;
+
+// Primary deadline until it passes, then auto-rolls to the extended deadline —
+// no admin action needed when the grace window kicks in.
+function _activeRenewDeadline(){
+  const cfg = window._renewModalConfig || RENEW_MODAL_DEFAULTS;
+  const now = Date.now();
+  if(now < cfg.deadline_ts) return { ts: cfg.deadline_ts, label: cfg.deadline_label };
+  return { ts: cfg.deadline_extended_ts, label: cfg.deadline_extended_label };
+}
 
 function _renderRenewCountdown(){
   const el = document.getElementById("renew-countdown");
   if(!el) return;
-  const diff = RENEW_DEADLINE_TS - Date.now();
+  const active = _activeRenewDeadline();
+  const labelEl = document.getElementById("renew-countdown-label");
+  if(labelEl) labelEl.textContent = active.label;
+  const diff = active.ts - Date.now();
   if(diff <= 0){
     el.textContent = "Registration closed";
     if(_renewCountdownTimer){ clearInterval(_renewCountdownTimer); _renewCountdownTimer = null; }
@@ -11847,6 +12129,7 @@ function _stopRenewCountdown(){
 window.openRenewModal = function(){
   const ov=document.getElementById("renew-modal-overlay");
   if(ov) ov.classList.add("open");
+  applyRenewModalContent();
   applySpotCountdowns();
   _startRenewCountdown();
 };
@@ -11859,17 +12142,19 @@ window.closeRenewModal = function(e){
   if(e && e.target && e.target.id!=="renew-modal-overlay") return;
   closeRenewModalDirect();
 };
-// "I've already renewed" — stops the auto-pop permanently for this user.
+// "I've already renewed" — stops the auto-pop permanently for this user (per target round).
 window.dismissRenewModal = function(){
   try{ localStorage.setItem(_renewDismissKey(),"1"); }catch(_){}
   closeRenewModalDirect();
   if(typeof showToast==="function") showToast("Got it — we won't show this again.");
 };
-// Auto-pop once per login if not dismissed. Skips admins and active R3 members.
-// Always shows for R2-only members who haven't enrolled in R3 yet.
+// Auto-pop once per login if not dismissed. Skips admins, founders, and members
+// already enrolled in the config's target round.
 function maybeShowRenewModal(){
-  // R3 registration closed June 7 — modal never auto-fires. openRenewModal() still available manually.
-  return;
+  if(!currentUser || currentUser.isAdmin) return;
+  if(!memberNeedsRenewal(currentUser)) return;
+  try{ if(localStorage.getItem(_renewDismissKey())==="1") return; }catch(_){}
+  window.openRenewModal();
 }
 
 // ─────────────────────────────────────────────
