@@ -2978,9 +2978,16 @@ window.loadDashboard=async function(){
   loadZoomCard();
   await loadRenewModalConfig();
 
-  // ── Renewal card: shown when member hasn't renewed into the configured target round ──
+  // ── Renewal card: full card+button for members who need to renew;
+  //     info-only (no button) for founders, since they're auto-enrolled ──
   const _renewCard = document.getElementById("dash-renew-card");
-  if(_renewCard) _renewCard.style.display = memberNeedsRenewal(currentUser) ? "" : "none";
+  const _renewBtn = document.getElementById("dash-renew-card-btn");
+  if(_renewCard){
+    const _needsRenewal = memberNeedsRenewal(currentUser);
+    const _founderInfoCard = currentUser.isFounder && (window._renewModalConfig||RENEW_MODAL_DEFAULTS).visible;
+    _renewCard.style.display = (_needsRenewal || _founderInfoCard) ? "" : "none";
+    if(_renewBtn) _renewBtn.style.display = _needsRenewal ? "" : "none";
+  }
   const _feedbackCard = document.getElementById("dash-feedback-card");
   if(_feedbackCard) _feedbackCard.style.display = "none"; // R2 feedback always hidden now
   // Update Top 10 round label dynamically
@@ -4404,7 +4411,13 @@ window.saveRenewModalConfig = async function(){
     applyRenewModalContent();
     // Re-evaluate card visibility immediately if on dashboard/profile
     const _renewCard = document.getElementById("dash-renew-card");
-    if(_renewCard) _renewCard.style.display = memberNeedsRenewal(currentUser) ? "" : "none";
+    const _renewBtn = document.getElementById("dash-renew-card-btn");
+    if(_renewCard){
+      const _needsRenewal = memberNeedsRenewal(currentUser);
+      const _founderInfoCard = currentUser.isFounder && window._renewModalConfig.visible;
+      _renewCard.style.display = (_needsRenewal || _founderInfoCard) ? "" : "none";
+      if(_renewBtn) _renewBtn.style.display = _needsRenewal ? "" : "none";
+    }
     const _profRenewCard = document.getElementById("profile-renew-card");
     if(_profRenewCard) _profRenewCard.style.display = memberNeedsRenewal(currentUser) ? "block" : "none";
     status.textContent = "Saved! Live for all members on next page load."; status.style.color = "#27ae60";
