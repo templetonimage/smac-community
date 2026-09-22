@@ -694,6 +694,7 @@
     <div class="dash-welcome dash-animate" style="animation-delay:0.05s;">
       <div class="dash-welcome-sub">Round 3 · <span id="dash-week-label">Week —</span></div>
       <div class="dash-welcome-name">Welcome back,<br><span id="dash-name">—</span></div>
+      <div id="dash-ambassador-badge-wrap" style="display:none;margin-top:4px;"><span class="founder-badge" style="background:var(--gold);color:#fff;">🎖 AMBASSADOR</span></div>
       <div class="dash-welcome-meta" id="dash-date-meta"></div>
     </div>
     <div class="dash-status-strip dash-animate" id="dash-status-strip" style="animation-delay:0.15s;"></div>
@@ -707,6 +708,18 @@
       <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;" id="dash-renew-card-sub">Keep your momentum going. Renew your spot for the next 90-day round, or upgrade to SMAC Pro.</div>
       <button class="dash-view-all-btn" onclick="openRenewModal()" id="dash-renew-card-btn">
         Renew Now
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <!-- RESTART AMBASSADOR PROMPT — shown to restarted members with no proof yet, until PROOF_CLOSE_UTC -->
+    <div class="dash-card dash-animate" id="dash-ambassador-card" style="display:none;animation-delay:0.175s;border:1.5px solid var(--gold);background:#eef3f6;margin-bottom:14px;">
+      <div class="dash-card-title-row">
+        <div class="dash-card-title">📣 Add Your Ambassador Post</div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Post about SMAC and upload a screenshot for +25 pts and an Ambassador badge.</div>
+      <button class="dash-view-all-btn" onclick="openAmbassadorModal()" id="dash-ambassador-card-btn">
+        Add Proof
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
@@ -1252,6 +1265,41 @@
           🏁 Confirm Archive for <span id="archive-round-run-label">this round</span>
         </button>
         <div id="archive-round-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN: Restart Pack (Oct 1 restart pack — restarts + Ambassador proofs) -->
+    <div id="restart-pack-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🔄 Restart Pack</div>
+      <div class="card" style="border:1.5px solid var(--border);">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">
+          Members who restarted for October 1 and who submitted Ambassador proof. Revoke removes the +25 pts and the badge — this is final, it will not re-award on resubmit.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+          <button class="btn-sm" id="restart-pack-run-btn" onclick="loadRestartPackPanel()" style="background:var(--gold);color:#fff;border-color:var(--gold);">Load Restart Pack</button>
+          <select class="sub-filter-select" id="restart-pack-filter" onchange="renderRestartPackTable()" style="max-width:220px;">
+            <option value="all">All restarted</option>
+            <option value="proof">Proof submitted</option>
+            <option value="noproof">No proof yet</option>
+          </select>
+        </div>
+        <div id="restart-pack-status" style="font-size:13px;color:var(--text-muted);display:none;margin-bottom:12px;"></div>
+        <div id="restart-pack-results" style="display:none;">
+          <div id="restart-pack-summary" style="font-size:13px;font-weight:600;margin-bottom:12px;"></div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:600;">Member</th>
+                  <th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:600;">Restarted</th>
+                  <th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:600;">Proof</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text-muted);font-weight:600;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="restart-pack-table-body"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1975,6 +2023,51 @@
   </div>
 </div>
 
+<!-- RESTART MODAL (Oct 1 restart pack — window RESTART_OPEN_UTC to RESTART_CLOSE_UTC) -->
+<div class="member-modal-overlay" id="restart-modal-overlay" onclick="closeRestartModal(event)">
+  <div class="member-modal" id="restart-modal-content" style="max-width:440px;">
+    <button class="member-modal-close" onclick="closeRestartModalDirect()">✕</button>
+    <div style="padding:4px 2px;">
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">I'm back, and your access is on me</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;">One tap gets you back in — complimentary access through December 31, no charge.</div>
+      <div style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:18px;">
+        <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:8px;">What you get</div>
+        <div style="font-size:13px;line-height:1.7;">
+          • Full access through Dec 31, no charge<br>
+          • +10 points, credited instantly<br>
+          • Optional: post about SMAC for +25 pts and an Ambassador badge
+        </div>
+      </div>
+      <button onclick="handleRestart(false)" id="restart-btn-primary" class="btn-gold" style="width:100%;font-size:16px;padding:14px;margin-bottom:10px;">Restart →</button>
+      <button onclick="handleRestart(true)" id="restart-btn-proof" class="btn-post" style="width:100%;font-size:14px;padding:12px;margin-bottom:10px;">Restart + add proof for +25 pts</button>
+      <button onclick="closeRestartModalDirect()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:12px;padding:6px;cursor:pointer;text-decoration:underline;">Not right now</button>
+    </div>
+  </div>
+</div>
+
+<!-- AMBASSADOR PROOF MODAL (Phase 2 — proof_type "restart_ambassador", open RESTART_OPEN_UTC to PROOF_CLOSE_UTC) -->
+<div class="member-modal-overlay" id="ambassador-modal-overlay" onclick="closeAmbassadorModal(event)">
+  <div class="member-modal" id="ambassador-modal-content" style="max-width:440px;">
+    <button class="member-modal-close" onclick="closeAmbassadorModalDirect()">✕</button>
+    <div style="padding:4px 2px;">
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:26px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Add Your Ambassador Post</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.55;">Earn +25 bonus points and the Ambassador badge.</div>
+      <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.65;color:var(--text-muted);">
+        Make a Feed post about SMAC linking joinsmac.com (or share the graphic), tag @jointheacc, then upload a screenshot with the post visible below. Keep it live through 10/1, then delete or archive it if you like.
+      </div>
+      <div id="ambassador-upload-slot" onclick="document.getElementById('ambassador-file-input').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:18px 8px;text-align:center;cursor:pointer;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:14px;">
+        <div id="ambassador-upload-label" style="font-size:12px;color:var(--text-muted);line-height:1.4;">📸<br>Tap to upload your screenshot</div>
+        <div id="ambassador-preview-wrap" style="display:none;width:100%;">
+          <img id="ambassador-preview-img" style="max-width:100%;max-height:140px;border-radius:6px;object-fit:contain;" />
+        </div>
+      </div>
+      <input id="ambassador-file-input" type="file" accept="image/*" style="display:none;" onchange="handleAmbassadorScreenshot(this)" />
+      <button id="ambassador-submit-btn" onclick="submitAmbassadorProof()" class="btn-gold" style="width:100%;font-size:15px;padding:13px;margin-bottom:10px;" disabled>Submit Proof</button>
+      <button onclick="closeAmbassadorModalDirect()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:12px;padding:6px;cursor:pointer;text-decoration:underline;">I'll do this later</button>
+    </div>
+  </div>
+</div>
+
 <!-- ANALYTICS SNAPSHOT MODAL -->
 <div class="member-modal-overlay" id="snap-modal-overlay" onclick="closeSnapModal(event)">
   <div class="member-modal" id="snap-modal-content" style="max-width:480px;">
@@ -2631,7 +2724,7 @@ window.handleLogin=async function(){
         }
         // else: fall through to bootApp() — prior-round member allowed in
       }
-      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null,hasSMS:member.hasSMS||false,rounds:Array.isArray(member.rounds)?member.rounds:[]};
+      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null,hasSMS:member.hasSMS||false,rounds:Array.isArray(member.rounds)?member.rounds:[],qaTester:member.qaTester||false,restartedAt:member.restartedAt||null,restartPts:member.restartPts||0,complimentaryUntil:member.complimentaryUntil||null,ambassadorAwarded:member.ambassadorAwarded||false,ambassadorRevoked:member.ambassadorRevoked||false};
       // Write uid to registry doc if missing — self-healing, runs once per member
       if(!member.uid&&member.id&&!useLocalFallback&&db){
         import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:_dc})=>{
@@ -2708,6 +2801,7 @@ function bootApp(){
     initArchiveRoundSelect();
     document.getElementById("deadline-extend-tool").style.display="block";
     loadDeadlineEditor();
+    document.getElementById("restart-pack-tool").style.display="block";
     document.getElementById("points-sweep-tool").style.display="block";
     document.getElementById("point-audit-tool").style.display="block";
     document.getElementById("eng-viewer").style.display="block";
@@ -2881,7 +2975,7 @@ function bootApp(){
   }, 4000); // fire after initial page loads settle
   // New features
   setTimeout(showWelcomeModal, 600);
-  setTimeout(async()=>{ await loadRenewModalConfig(); maybeShowRenewModal(); }, 900);
+  setTimeout(async()=>{ await loadRenewModalConfig(); if(!maybeShowRestartModal()) maybeShowRenewModal(); }, 900);
   setTimeout(initPushNotifications, 1000);
   setTimeout(checkRoundEnd, 300);
   setTimeout(initRanksWatcher, 3000);
@@ -2911,11 +3005,15 @@ window.navTo=function(page,el){
     const pageEl=document.getElementById("page-"+page);
     if(pageEl){
       const rNum=(window.CURRENT_ROUND||"R3").replace("R","");
+      const _canRestart=typeof isRestartWindowOpen==="function"&&typeof memberIsRestartEligible==="function"&&isRestartWindowOpen()&&memberIsRestartEligible(currentUser);
+      const _gateBtn=_canRestart
+        ?`<button onclick="openRestartModal()" style="background:var(--gold);color:#fff;border:none;border-radius:var(--radius);padding:14px 32px;font-family:'Sora',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.06em;cursor:pointer;">Restart →</button>`
+        :`<button onclick="openRenewModal()" style="background:var(--gold);color:#fff;border:none;border-radius:var(--radius);padding:14px 32px;font-family:'Sora',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.06em;cursor:pointer;">Renew for Round ${rNum} →</button>`;
       pageEl.innerHTML=`<div data-gated="1" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:40px 24px;">
         <div style="font-size:40px;margin-bottom:16px;">🔒</div>
         <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;margin-bottom:8px;">Round ${rNum} Access Required</div>
         <div style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:280px;margin-bottom:28px;">This section is only available to active Round ${rNum} members.</div>
-        <button onclick="openRenewModal()" style="background:var(--gold);color:#fff;border:none;border-radius:var(--radius);padding:14px 32px;font-family:'Sora',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.06em;cursor:pointer;">Renew for Round ${rNum} →</button>
+        ${_gateBtn}
       </div>`;
       pageEl.classList.add("active");
     }
@@ -2988,6 +3086,14 @@ window.loadDashboard=async function(){
     _renewCard.style.display = (_needsRenewal || _founderInfoCard) ? "" : "none";
     if(_renewBtn) _renewBtn.style.display = _needsRenewal ? "" : "none";
   }
+  // ── Ambassador prompt: restarted this cycle, no proof yet, proof window still open ──
+  const _ambCard = document.getElementById("dash-ambassador-card");
+  if(_ambCard){
+    const _showAmb = !!currentUser.restartedAt && !currentUser.ambassadorAwarded && typeof isProofWindowOpen==="function" && isProofWindowOpen();
+    _ambCard.style.display = _showAmb ? "" : "none";
+  }
+  const _ambBadgeWrap = document.getElementById("dash-ambassador-badge-wrap");
+  if(_ambBadgeWrap) _ambBadgeWrap.style.display = currentUser.ambassadorAwarded ? "block" : "none";
   const _feedbackCard = document.getElementById("dash-feedback-card");
   if(_feedbackCard) _feedbackCard.style.display = "none"; // R2 feedback always hidden now
   // Update Top 10 round label dynamically
@@ -9587,7 +9693,7 @@ window.runPointsSweep = async function(){
       const data=d.data();
       const uid=data.uid||"";
       const registryPts=data.points||0;
-      const computed=(subByUid[uid]||0)+(engByUid[uid]||0);
+      const computed=(subByUid[uid]||0)+(engByUid[uid]||0)+(data.restartPts||0);
       const delta=computed-registryPts;
       return { id:d.id, uid, name:data.name||"(unnamed)", registryPts, computed, delta };
     });
@@ -9826,7 +9932,7 @@ window.runPointsAudit = async function(){
       </tr>`;
     });
 
-    const computedTotal = grandTotalEarned;
+    const computedTotal = grandTotalEarned + (regDocSnap?.exists?.() ? (regDocSnap.data().restartPts||0) : 0);
     const delta = computedTotal - (typeof registryPts==="number" ? registryPts : computedTotal);
     html += `<tr style="border-top:2px solid var(--border);font-weight:700;">
       <td colspan="5" style="padding:8px 8px;">Computed Total</td>
@@ -10129,7 +10235,7 @@ window.voidOverCapPosts = async function(uid, regId, weekIdx){
       subSum += voidedIds.includes(dd.id) ? 0 : (data.pts||0);
     });
     const engSum = engSnap.docs.reduce((s,dd)=>s+(dd.data().pts||0),0);
-    const newRegistryPts = subSum + engSum;
+    const newRegistryPts = subSum + engSum + (regData.restartPts||0);
 
     // 3. Write registry: recompute points, decrement lifetime totalPosts
     await updateDoc(dcRef(db,"smac_registry",regId), {
@@ -10273,6 +10379,7 @@ window.runPointsAuditAll = async function(){
         if(syfCount  > 1) flags.push(`${syfCount}× SYF in ${wLabel}`);
       });
 
+      computedPts += (reg.restartPts||0);
       const ptsDelta = computedPts - regPts;
       if(Math.abs(ptsDelta) > 0) flags.push(`Registry drift: Δ${ptsDelta>0?"+":""}${ptsDelta}`);
 
@@ -11732,6 +11839,7 @@ async function renderProfileHero(prof){
       ${currentUser.isAdmin?`<span class="badge" style="background:#1a1a1a;color:#fff;">Admin</span>`:""}
       ${currentUser.isPro&&!currentUser.isAdmin?`<span class="pro-badge" style="margin-left:0;margin-top:2px;">PRO</span>`:""}
       ${currentUser.isFounder&&!currentUser.isAdmin?`<span class="founder-badge" style="margin-left:0;margin-top:2px;">FOUNDER</span>`:""}
+      ${currentUser.ambassadorAwarded?`<span class="founder-badge" style="margin-left:0;margin-top:2px;background:var(--gold);color:#fff;">🎖 AMBASSADOR</span>`:""}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
       <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;">
@@ -12081,6 +12189,9 @@ function memberNeedsRenewal(member){
   const cfg = window._renewModalConfig || RENEW_MODAL_DEFAULTS;
   if(!cfg.visible) return false;
   if(!member || member.isFounder) return false;
+  // During the restart window, a lapsed/paused member sees Restart, not Renew —
+  // two competing CTAs would confuse the one-click "it's free" offer.
+  if(typeof isRestartWindowOpen==="function" && typeof memberIsRestartEligible==="function" && isRestartWindowOpen() && memberIsRestartEligible(member)) return false;
   return !(member.rounds||[]).includes(cfg.target_round);
 }
 
@@ -12169,6 +12280,291 @@ function maybeShowRenewModal(){
   try{ if(localStorage.getItem(_renewDismissKey())==="1") return; }catch(_){}
   window.openRenewModal();
 }
+
+// ─────────────────────────────────────────────
+//  RESTART PACK — Oct 1 restart flow (TAC Co. Restart Pack, R4)
+//  Locked decisions: one-click restart = complimentary access through
+//  12/31/2026 no charge, +10 pts once per account; optional proof
+//  upload (Phase 2, ships 9/25) adds +25 pts + Ambassador badge.
+//  Window: RESTART_OPEN_UTC through RESTART_CLOSE_UTC; proof closes
+//  at PROOF_CLOSE_UTC. All three are UTC epoch ms, same pattern as
+//  RENEW_MODAL_DEFAULTS.deadline_ts.
+// ─────────────────────────────────────────────
+const RESTART_OPEN_UTC   = Date.UTC(2026,8,23,4,0,0);   // 2026-09-23T04:00:00Z = 9/23 12:00 AM ET
+const PROOF_CLOSE_UTC    = Date.UTC(2026,9,1,3,59,0);   // 2026-10-01T03:59:00Z = 9/30 11:59 PM ET
+const RESTART_CLOSE_UTC  = Date.UTC(2026,9,2,3,59,0);   // 2026-10-02T03:59:00Z = 10/1 11:59 PM ET
+const RESTART_COMPLIMENTARY_UNTIL_UTC = Date.UTC(2027,0,1,4,59,59); // 12/31/2026 11:59:59 PM ET
+const RESTART_PTS = 10;
+window.RESTART_OPEN_UTC=RESTART_OPEN_UTC; window.PROOF_CLOSE_UTC=PROOF_CLOSE_UTC; window.RESTART_CLOSE_UTC=RESTART_CLOSE_UTC;
+
+// ?testRestart=1 QA bypass, matching the ?testRenewal=1 pattern: opens the
+// window regardless of date, but only for admins or accounts flagged
+// qaTester:true in the registry — everyone else still sees the real window.
+function isRestartWindowOpen(){
+  const now = Date.now();
+  if(now >= RESTART_OPEN_UTC && now <= RESTART_CLOSE_UTC) return true;
+  try{
+    if(new URLSearchParams(location.search).get("testRestart")==="1" && currentUser && (currentUser.isAdmin||currentUser.qaTester)) return true;
+  }catch(_){}
+  return false;
+}
+function isProofWindowOpen(){
+  return Date.now() >= RESTART_OPEN_UTC && Date.now() <= PROOF_CLOSE_UTC;
+}
+// Lapsed = has at least one prior round, not enrolled in CURRENT_ROUND, not founder/admin.
+// Paused has no distinct marker in this platform — treated as lapsed per the same rule.
+function memberIsRestartEligible(member){
+  if(!member || member.isAdmin || member.isFounder) return false;
+  if(member.restartedAt) return false; // already restarted this cycle
+  const rounds = member.rounds||[];
+  return rounds.length>0 && !rounds.includes(window.CURRENT_ROUND||"R4");
+}
+
+window.openRestartModal=function(){
+  const ov=document.getElementById("restart-modal-overlay");
+  if(ov) ov.classList.add("open");
+};
+window.closeRestartModalDirect=function(){
+  const ov=document.getElementById("restart-modal-overlay");
+  if(ov) ov.classList.remove("open");
+};
+window.closeRestartModal=function(e){
+  if(e && e.target && e.target.id!=="restart-modal-overlay") return;
+  closeRestartModalDirect();
+};
+// Shown every login during the window while still eligible — no permanent dismissal,
+// per the locked spec ("modal reappears on next login").
+function maybeShowRestartModal(){
+  if(!currentUser || currentUser.isAdmin) return false;
+  if(!isRestartWindowOpen()) return false;
+  if(!memberIsRestartEligible(currentUser)) return false;
+  window.openRestartModal();
+  return true;
+}
+
+// One-click restart. withProof just flags the follow-up nudge; Phase 2 (ships 9/25)
+// wires up the actual proof-upload flow and the +25/badge award.
+window.handleRestart=async function(withProof){
+  if(!currentUser||!currentUser.registryId){closeRestartModalDirect();return;}
+  const btnA=document.getElementById("restart-btn-primary"), btnB=document.getElementById("restart-btn-proof");
+  if(btnA)btnA.disabled=true; if(btnB)btnB.disabled=true;
+  try{
+    const {runTransaction,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const ref=docRef(db,"smac_registry",currentUser.registryId);
+    const round=window.CURRENT_ROUND||"R4";
+    let awarded=false;
+    await runTransaction(db, async (tx)=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists()) throw new Error("Registry record not found.");
+      const m=snap.data();
+      if(m.restartedAt){ // already restarted — idempotent no-op, just ensure enrolled
+        if(!(m.rounds||[]).includes(round)){
+          tx.update(ref,{rounds:[...(m.rounds||[]),round]});
+        }
+        return;
+      }
+      const newRounds=(m.rounds||[]).includes(round)?(m.rounds||[]):[...(m.rounds||[]),round];
+      tx.update(ref,{
+        rounds:newRounds,
+        points:(m.points||0)+RESTART_PTS,
+        restartPts:(m.restartPts||0)+RESTART_PTS,
+        restartedAt:Date.now(),
+        complimentaryUntil:RESTART_COMPLIMENTARY_UNTIL_UTC
+      });
+      awarded=true;
+    });
+    if(awarded) await logCommunityPts(currentUser.uid,currentUser.name,"restart",RESTART_PTS);
+    // Reflect in the local session immediately; a full reload re-hydrates
+    // everything else off the updated registry doc via restoreSession().
+    currentUser.rounds=(currentUser.rounds||[]).includes(round)?currentUser.rounds:[...(currentUser.rounds||[]),round];
+    currentUser.restartedAt=Date.now();
+    currentUser.complimentaryUntil=RESTART_COMPLIMENTARY_UNTIL_UTC;
+    lsSet("smac_session",currentUser);
+    closeRestartModalDirect();
+    showToast(awarded?`Welcome back! +${RESTART_PTS} pts credited.`:"You're already restarted — welcome back!");
+    if(withProof && isProofWindowOpen()){
+      // Stay on the live page and go straight into the proof upload —
+      // the reload happens after that modal closes (submit or skip).
+      window._ambassadorFromRestartFlow=true;
+      openAmbassadorModal();
+    } else {
+      setTimeout(()=>location.reload(), 900);
+    }
+  }catch(e){
+    console.error("handleRestart error:",e);
+    showToast("Restart failed — please try again.");
+    if(btnA)btnA.disabled=false; if(btnB)btnB.disabled=false;
+  }
+};
+
+// ─────────────────────────────────────────────
+//  AMBASSADOR PROOF UPLOAD (Phase 2, ships 9/25)
+//  proof_type "restart_ambassador" — reuses compressImage(). Award is
+//  +25 pts once per account, folded into the same restartPts field so
+//  the Phase 1 sweep/audit/void recompute patches already cover it.
+//  Resubmits update the screenshot but never re-award; a revoke sets
+//  ambassadorRevoked, which blocks any future re-award for good.
+// ─────────────────────────────────────────────
+const AMBASSADOR_PTS = 25;
+let _pendingAmbassadorProof = null;
+
+window.openAmbassadorModal=function(){
+  if(!isProofWindowOpen()){ showToast("Proof uploads closed 9/30 at 11:59 PM ET."); return; }
+  if(currentUser && currentUser.ambassadorAwarded){ showToast("You've already earned your Ambassador badge!"); return; }
+  const ov=document.getElementById("ambassador-modal-overlay");
+  if(ov) ov.classList.add("open");
+};
+window.closeAmbassadorModalDirect=function(){
+  const ov=document.getElementById("ambassador-modal-overlay");
+  if(ov) ov.classList.remove("open");
+  // If we got here straight off a fresh restart (no reload yet), catch up now.
+  if(window._ambassadorFromRestartFlow && !window._ambassadorJustSubmitted) location.reload();
+};
+window.closeAmbassadorModal=function(e){
+  if(e && e.target && e.target.id!=="ambassador-modal-overlay") return;
+  closeAmbassadorModalDirect();
+};
+
+window.handleAmbassadorScreenshot=async function(input){
+  const file=input.files[0];
+  if(!file) return;
+  try{
+    _pendingAmbassadorProof=await compressImage(file);
+    const preview=document.getElementById("ambassador-preview-img");
+    const wrap=document.getElementById("ambassador-preview-wrap");
+    const label=document.getElementById("ambassador-upload-label");
+    if(preview) preview.src=_pendingAmbassadorProof;
+    if(wrap) wrap.style.display="block";
+    if(label) label.style.display="none";
+    const btn=document.getElementById("ambassador-submit-btn");
+    if(btn) btn.disabled=false;
+  }catch(e){ console.error(e); showToast("Couldn't read that image — try another."); }
+};
+
+window.submitAmbassadorProof=async function(){
+  if(!currentUser||!currentUser.registryId){closeAmbassadorModalDirect();return;}
+  if(!_pendingAmbassadorProof){ showToast("Upload a screenshot first."); return; }
+  if(!isProofWindowOpen()){ showToast("Proof uploads closed 9/30 at 11:59 PM ET."); closeAmbassadorModalDirect(); return; }
+  const btn=document.getElementById("ambassador-submit-btn");
+  if(btn){btn.disabled=true;btn.textContent="Submitting...";}
+  try{
+    const {runTransaction,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const ref=docRef(db,"smac_registry",currentUser.registryId);
+    let awarded=false;
+    await runTransaction(db, async (tx)=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists()) throw new Error("Registry record not found.");
+      const m=snap.data();
+      if(m.ambassadorAwarded || m.ambassadorRevoked){
+        // Already awarded (or a revoke made this final) — resubmit just refreshes the screenshot, no re-award.
+        tx.update(ref,{ambassadorProofUrl:_pendingAmbassadorProof,ambassadorProofAt:Date.now()});
+        return;
+      }
+      tx.update(ref,{
+        ambassadorAwarded:true,
+        ambassadorProofUrl:_pendingAmbassadorProof,
+        ambassadorProofAt:Date.now(),
+        points:(m.points||0)+AMBASSADOR_PTS,
+        restartPts:(m.restartPts||0)+AMBASSADOR_PTS
+      });
+      awarded=true;
+    });
+    if(awarded) await logCommunityPts(currentUser.uid,currentUser.name,"restart_ambassador",AMBASSADOR_PTS);
+    currentUser.ambassadorAwarded=true;
+    lsSet("smac_session",currentUser);
+    window._ambassadorJustSubmitted=true;
+    closeAmbassadorModalDirect();
+    showToast(awarded?`+${AMBASSADOR_PTS} pts! Ambassador badge earned 🎖`:"Screenshot updated — you've already got the badge.");
+    setTimeout(()=>location.reload(), 900);
+  }catch(e){
+    console.error("submitAmbassadorProof error:",e);
+    showToast("Upload failed — please try again.");
+    if(btn){btn.disabled=false;btn.textContent="Submit Proof";}
+  }
+};
+
+// ── ADMIN: Restart Pack panel — counts + proof filter + revoke ──────────────
+let _restartPackData = [];
+window.loadRestartPackPanel = async function(){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const statusEl=document.getElementById("restart-pack-status");
+  const resultsEl=document.getElementById("restart-pack-results");
+  statusEl.style.display="block"; statusEl.textContent="Loading...";
+  resultsEl.style.display="none";
+  try{
+    const {getDocs,collection:col}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap=await getDocs(col(db,"smac_registry"));
+    _restartPackData = snap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .filter(m=>!!m.restartedAt)
+      .sort((a,b)=>(b.restartedAt||0)-(a.restartedAt||0));
+    statusEl.style.display="none";
+    resultsEl.style.display="block";
+    renderRestartPackTable();
+  }catch(e){
+    console.error("loadRestartPackPanel error:",e);
+    statusEl.textContent="Error: "+e.message;
+  }
+};
+window.renderRestartPackTable = function(){
+  const filter = document.getElementById("restart-pack-filter")?.value || "all";
+  const rows = _restartPackData.filter(m=>{
+    if(filter==="proof") return !!m.ambassadorAwarded;
+    if(filter==="noproof") return !m.ambassadorAwarded;
+    return true;
+  });
+  const totalRestarted = _restartPackData.length;
+  const totalProof = _restartPackData.filter(m=>m.ambassadorAwarded).length;
+  const summaryEl = document.getElementById("restart-pack-summary");
+  if(summaryEl) summaryEl.innerHTML =
+    `<span style="color:var(--text-muted);">${totalRestarted} restarted</span> &nbsp;·&nbsp; <span style="color:#27ae60;">${totalProof} proof submitted</span>`;
+  const body = document.getElementById("restart-pack-table-body");
+  if(!body) return;
+  body.innerHTML = rows.map(m=>{
+    const restartedStr = m.restartedAt ? new Date(m.restartedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "—";
+    let proofCell = "—";
+    if(m.ambassadorRevoked) proofCell = `<span style="color:#e74c3c;">Revoked</span>`;
+    else if(m.ambassadorAwarded) proofCell = m.ambassadorProofUrl
+      ? `<a href="${esc(m.ambassadorProofUrl)}" target="_blank" rel="noopener" style="color:var(--gold-dark);">View ✓</a>`
+      : `<span style="color:#27ae60;">✓ Submitted</span>`;
+    const actionCell = (m.ambassadorAwarded && !m.ambassadorRevoked)
+      ? `<button onclick="revokeAmbassador('${esc(m.id)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;">Revoke</button>`
+      : "";
+    return `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:7px 8px;">${esc(m.name||"(unnamed)")}</td>
+      <td style="padding:7px 8px;">${restartedStr}</td>
+      <td style="padding:7px 8px;">${proofCell}</td>
+      <td style="text-align:right;padding:7px 8px;">${actionCell}</td>
+    </tr>`;
+  }).join("");
+};
+window.revokeAmbassador = async function(regId){
+  if(!currentUser||!currentUser.isAdmin) return;
+  if(!confirm("Revoke this member's Ambassador award?\n\nThis removes the +25 pts and the badge, and is final — resubmitting proof will not re-award it.")) return;
+  try{
+    const {runTransaction,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const ref=docRef(db,"smac_registry",regId);
+    await runTransaction(db, async (tx)=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists()) throw new Error("Registry record not found.");
+      const m=snap.data();
+      if(!m.ambassadorAwarded || m.ambassadorRevoked) return; // nothing to revoke
+      tx.update(ref,{
+        points:Math.max(0,(m.points||0)-AMBASSADOR_PTS),
+        restartPts:Math.max(0,(m.restartPts||0)-AMBASSADOR_PTS),
+        ambassadorAwarded:false,
+        ambassadorRevoked:true,
+        ambassadorRevokedAt:Date.now(),
+        ambassadorRevokedBy:currentUser.uid
+      });
+    });
+    showToast("Ambassador award revoked.");
+    await loadRestartPackPanel();
+  }catch(e){
+    console.error("revokeAmbassador error:",e);
+    showToast("Error: "+e.message);
+  }
+};
 
 // ─────────────────────────────────────────────
 //  PUSH NOTIFICATIONS
