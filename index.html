@@ -699,6 +699,18 @@
     </div>
     <div class="dash-status-strip dash-animate" id="dash-status-strip" style="animation-delay:0.15s;"></div>
 
+    <!-- RESTART OFFER CARD — shown after the restart modal is snoozed, until restart or RESTART_CLOSE_UTC -->
+    <div class="dash-card dash-animate" id="dash-restart-card" style="display:none;animation-delay:0.165s;border:1.5px solid var(--gold);background:#eef3f6;margin-bottom:14px;">
+      <div class="dash-card-title-row">
+        <div class="dash-card-title">🔁 Restart SMAC on us</div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">Free access through December 31 plus 10 bonus points. Offer ends Oct 1.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="dash-view-all-btn" onclick="handleRestart(false)" id="dash-restart-card-btn">Restart (+10 pts)</button>
+        <button class="dash-view-all-btn" onclick="openRestartModal()" id="dash-restart-card-details-btn">See Details</button>
+      </div>
+    </div>
+
     <!-- RENEWAL CARD (content driven by smac_config/renew_modal) -->
     <div class="dash-card dash-animate" id="dash-renew-card" style="display:none;animation-delay:0.17s;border:1.5px solid var(--gold);background:#eef3f6;margin-bottom:14px;">
       <div class="dash-card-title-row">
@@ -2026,10 +2038,11 @@
 <!-- RESTART MODAL (Oct 1 restart pack — window RESTART_OPEN_UTC to RESTART_CLOSE_UTC) -->
 <div class="member-modal-overlay" id="restart-modal-overlay" onclick="closeRestartModal(event)">
   <div class="member-modal" id="restart-modal-content" style="max-width:440px;">
-    <button class="member-modal-close" onclick="closeRestartModalDirect()">✕</button>
+    <button class="member-modal-close" onclick="snoozeRestartModal()">✕</button>
     <div style="padding:4px 2px;">
-      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">I'm back, and your access is on me</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;">One tap gets you back in — complimentary access through December 31, no charge.</div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:6px;">Restart Offer</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Restart SMAC on us</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55;">Every member gets complimentary access through December 31, plus 10 bonus points. One click and you're in.</div>
       <div style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:18px;">
         <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:8px;">What you get</div>
         <div style="font-size:13px;line-height:1.7;">
@@ -2040,7 +2053,7 @@
       </div>
       <button onclick="handleRestart(false)" id="restart-btn-primary" class="btn-gold" style="width:100%;font-size:16px;padding:14px;margin-bottom:10px;">Restart →</button>
       <button onclick="handleRestart(true)" id="restart-btn-proof" class="btn-post" style="width:100%;font-size:14px;padding:12px;margin-bottom:10px;">Restart + add proof for +25 pts</button>
-      <button onclick="closeRestartModalDirect()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:12px;padding:6px;cursor:pointer;text-decoration:underline;">Not right now</button>
+      <button onclick="snoozeRestartModal()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:12px;padding:6px;margin-top:10px;cursor:pointer;text-decoration:underline;">Not Now</button>
     </div>
   </div>
 </div>
@@ -2724,7 +2737,7 @@ window.handleLogin=async function(){
         }
         // else: fall through to bootApp() — prior-round member allowed in
       }
-      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null,hasSMS:member.hasSMS||false,rounds:Array.isArray(member.rounds)?member.rounds:[],qaTester:member.qaTester||false,restartedAt:member.restartedAt||null,restartPts:member.restartPts||0,complimentaryUntil:member.complimentaryUntil||null,ambassadorAwarded:member.ambassadorAwarded||false,ambassadorRevoked:member.ambassadorRevoked||false};
+      currentUser={name:member.name,email:member.email,isAdmin:false,uid:firebaseUid,registryId:member.id,isFounder:member.isFounder||false,isVIP:member.isVIP||false,isAllStar:member.isAllStar||false,isPro:member.isPro||false,proSince:member.proSince||null,proExpiry:member.proExpiry||null,trialUntil:member.trialUntil||null,hasSMS:member.hasSMS||false,rounds:Array.isArray(member.rounds)?member.rounds:[],qaTester:member.qaTester||false,restartedAt:member.restartedAt||null,restartSnoozedUntil:member.restartSnoozedUntil||null,restartPts:member.restartPts||0,complimentaryUntil:member.complimentaryUntil||null,ambassadorAwarded:member.ambassadorAwarded||false,ambassadorRevoked:member.ambassadorRevoked||false};
       // Write uid to registry doc if missing — self-healing, runs once per member
       if(!member.uid&&member.id&&!useLocalFallback&&db){
         import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:_dc})=>{
@@ -2975,7 +2988,7 @@ function bootApp(){
   }, 4000); // fire after initial page loads settle
   // New features
   setTimeout(showWelcomeModal, 600);
-  setTimeout(async()=>{ await loadRenewModalConfig(); if(!maybeShowRestartModal()) maybeShowRenewModal(); }, 900);
+  setTimeout(async()=>{ await loadRenewModalConfig(); if(!(await maybeShowRestartModal())) maybeShowRenewModal(); }, 900);
   setTimeout(initPushNotifications, 1000);
   setTimeout(checkRoundEnd, 300);
   setTimeout(initRanksWatcher, 3000);
@@ -3086,12 +3099,9 @@ window.loadDashboard=async function(){
     _renewCard.style.display = (_needsRenewal || _founderInfoCard) ? "" : "none";
     if(_renewBtn) _renewBtn.style.display = _needsRenewal ? "" : "none";
   }
-  // ── Ambassador prompt: restarted this cycle, no proof yet, proof window still open ──
-  const _ambCard = document.getElementById("dash-ambassador-card");
-  if(_ambCard){
-    const _showAmb = !!currentUser.restartedAt && !currentUser.ambassadorAwarded && typeof isProofWindowOpen==="function" && isProofWindowOpen();
-    _ambCard.style.display = _showAmb ? "" : "none";
-  }
+  // ── Restart offer card (after snooze) + Ambassador prompt (after restart) ──
+  if(typeof renderRestartOfferCard==="function") renderRestartOfferCard();
+  if(typeof renderRestartProofCard==="function") renderRestartProofCard();
   const _ambBadgeWrap = document.getElementById("dash-ambassador-badge-wrap");
   if(_ambBadgeWrap) _ambBadgeWrap.style.display = currentUser.ambassadorAwarded ? "block" : "none";
   const _feedbackCard = document.getElementById("dash-feedback-card");
@@ -12328,16 +12338,79 @@ window.closeRestartModalDirect=function(){
   const ov=document.getElementById("restart-modal-overlay");
   if(ov) ov.classList.remove("open");
 };
+// Backdrop click: snooze only when the overlay itself is clicked, not the modal box.
 window.closeRestartModal=function(e){
   if(e && e.target && e.target.id!=="restart-modal-overlay") return;
-  closeRestartModalDirect();
+  snoozeRestartModal();
 };
-// Shown every login during the window while still eligible — no permanent dismissal,
-// per the locked spec ("modal reappears on next login").
-function maybeShowRestartModal(){
-  if(!currentUser || currentUser.isAdmin) return false;
+
+// ── 48-hour snooze. Not Now, ✕ and backdrop all route here.
+//    closeRestartModalDirect() stays the plain close used by handleRestart(). ──
+const RESTART_SNOOZE_MS = 48*60*60*1000;
+window.snoozeRestartModal=async function(){
+  closeRestartModalDirect();
+  if(!currentUser) return;
+  currentUser.restartSnoozedUntil=Date.now()+RESTART_SNOOZE_MS;
+  lsSet("smac_session",currentUser);
+  renderRestartOfferCard();
+  try{
+    if(currentUser.registryId) await updateDoc(doc(db,"smac_registry",currentUser.registryId),{restartSnoozedUntil:currentUser.restartSnoozedUntil});
+  }catch(e){ console.error("snoozeRestartModal write failed:",e); }
+};
+
+// Founders stay excluded (auto-enrolled). Active and lapsed members both qualify.
+function _restartOfferEligible(){
+  return !!currentUser && !currentUser.isAdmin && !currentUser.isFounder && !currentUser.restartedAt && isRestartWindowOpen();
+}
+
+// Dashboard card: only after the member has snoozed the modal at least once.
+function renderRestartOfferCard(){
+  const card=document.getElementById("dash-restart-card");
+  if(!card) return;
+  card.style.display=(_restartOfferEligible() && !!currentUser.restartSnoozedUntil) ? "" : "none";
+}
+window.renderRestartOfferCard=renderRestartOfferCard;
+
+// Ambassador prompt: restarted this cycle, no proof yet, proof window still open.
+function renderRestartProofCard(){
+  const card=document.getElementById("dash-ambassador-card");
+  if(!card) return;
+  const show=!!currentUser && !!currentUser.restartedAt && !currentUser.ambassadorAwarded && isProofWindowOpen();
+  card.style.display=show ? "" : "none";
+}
+window.renderRestartProofCard=renderRestartProofCard;
+
+// Shown to every active or lapsed member during the window, unless restarted
+// or snoozed. Live registry read so a restart or snooze on another device counts.
+async function maybeShowRestartModal(){
+  if(!currentUser || currentUser.isAdmin || currentUser.isFounder) return false;
   if(!isRestartWindowOpen()) return false;
-  if(!memberIsRestartEligible(currentUser)) return false;
+  if(currentUser.restartedAt) return false;
+  let testMode=false;
+  try{ testMode=new URLSearchParams(location.search).get("testRestart")==="1"; }catch(_){}
+  if(currentUser.registryId){
+    try{
+      const snap=await getDoc(doc(db,"smac_registry",currentUser.registryId));
+      if(snap.exists()){
+        const m=snap.data();
+        if(m.restartedAt){ // never skipped, even in test mode
+          currentUser.restartedAt=m.restartedAt;
+          currentUser.complimentaryUntil=m.complimentaryUntil||currentUser.complimentaryUntil||null;
+          lsSet("smac_session",currentUser);
+          renderRestartOfferCard(); renderRestartProofCard();
+          return false;
+        }
+        if(m.restartSnoozedUntil){
+          currentUser.restartSnoozedUntil=m.restartSnoozedUntil;
+          if(m.restartSnoozedUntil>Date.now() && !testMode){
+            lsSet("smac_session",currentUser);
+            renderRestartOfferCard();
+            return false;
+          }
+        }
+      }
+    }catch(e){ console.error("maybeShowRestartModal registry read failed:",e); } // fall through: handleRestart re-checks
+  }
   window.openRestartModal();
   return true;
 }
@@ -12346,8 +12419,8 @@ function maybeShowRestartModal(){
 // wires up the actual proof-upload flow and the +25/badge award.
 window.handleRestart=async function(withProof){
   if(!currentUser||!currentUser.registryId){closeRestartModalDirect();return;}
-  const btnA=document.getElementById("restart-btn-primary"), btnB=document.getElementById("restart-btn-proof");
-  if(btnA)btnA.disabled=true; if(btnB)btnB.disabled=true;
+  const btnA=document.getElementById("restart-btn-primary"), btnB=document.getElementById("restart-btn-proof"), btnC=document.getElementById("dash-restart-card-btn");
+  if(btnA)btnA.disabled=true; if(btnB)btnB.disabled=true; if(btnC)btnC.disabled=true;
   try{
     const {runTransaction,doc:docRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const ref=docRef(db,"smac_registry",currentUser.registryId);
@@ -12381,7 +12454,8 @@ window.handleRestart=async function(withProof){
     currentUser.complimentaryUntil=RESTART_COMPLIMENTARY_UNTIL_UTC;
     lsSet("smac_session",currentUser);
     closeRestartModalDirect();
-    showToast(awarded?`Welcome back! +${RESTART_PTS} pts credited.`:"You're already restarted — welcome back!");
+    renderRestartOfferCard(); renderRestartProofCard(); // covers both new and already-restarted branches
+    showToast(awarded?`Welcome back, you're restarted! +${RESTART_PTS} pts added to your Round ${(window.CURRENT_ROUND||"R4").replace("R","")} total.`:"You're already restarted — welcome back!");
     if(withProof && isProofWindowOpen()){
       // Stay on the live page and go straight into the proof upload —
       // the reload happens after that modal closes (submit or skip).
@@ -12393,7 +12467,7 @@ window.handleRestart=async function(withProof){
   }catch(e){
     console.error("handleRestart error:",e);
     showToast("Restart failed — please try again.");
-    if(btnA)btnA.disabled=false; if(btnB)btnB.disabled=false;
+    if(btnA)btnA.disabled=false; if(btnB)btnB.disabled=false; if(btnC)btnC.disabled=false;
   }
 };
 
