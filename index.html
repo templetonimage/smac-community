@@ -12358,9 +12358,9 @@ window.snoozeRestartModal=async function(){
   }catch(e){ console.error("snoozeRestartModal write failed:",e); }
 };
 
-// Founders stay excluded (auto-enrolled). Active and lapsed members both qualify.
+// Every member qualifies (active, lapsed and founders). Only admin is excluded.
 function _restartOfferEligible(){
-  return !!currentUser && !currentUser.isAdmin && !currentUser.isFounder && !currentUser.restartedAt && isRestartWindowOpen();
+  return !!currentUser && !currentUser.isAdmin && !currentUser.restartedAt && isRestartWindowOpen();
 }
 
 // Dashboard card: only after the member has snoozed the modal at least once.
@@ -12383,33 +12383,36 @@ window.renderRestartProofCard=renderRestartProofCard;
 // Shown to every active or lapsed member during the window, unless restarted
 // or snoozed. Live registry read so a restart or snooze on another device counts.
 async function maybeShowRestartModal(){
-  if(!currentUser || currentUser.isAdmin || currentUser.isFounder) return false;
-  if(!isRestartWindowOpen()) return false;
-  if(currentUser.restartedAt) return false;
   let testMode=false;
   try{ testMode=new URLSearchParams(location.search).get("testRestart")==="1"; }catch(_){}
+  // With ?testRestart=1, say why the modal is hidden instead of failing silently.
+  const skip=(why)=>{ console.info("[restart] modal hidden:",why); if(testMode) showToast("Restart modal hidden: "+why); return false; };
+  if(!currentUser) return false;
+  if(currentUser.isAdmin) return skip("admin account");
+  if(!isRestartWindowOpen()) return skip("offer window closed");
   if(currentUser.registryId){
     try{
       const snap=await getDoc(doc(db,"smac_registry",currentUser.registryId));
       if(snap.exists()){
         const m=snap.data();
+        // Live doc wins over the saved session (so an admin reset takes effect on next login).
+        currentUser.restartedAt=m.restartedAt||null;
+        currentUser.complimentaryUntil=m.complimentaryUntil||null;
+        currentUser.restartSnoozedUntil=m.restartSnoozedUntil||null;
+        currentUser.ambassadorAwarded=m.ambassadorAwarded||false;
+        lsSet("smac_session",currentUser);
         if(m.restartedAt){ // never skipped, even in test mode
-          currentUser.restartedAt=m.restartedAt;
-          currentUser.complimentaryUntil=m.complimentaryUntil||currentUser.complimentaryUntil||null;
-          lsSet("smac_session",currentUser);
           renderRestartOfferCard(); renderRestartProofCard();
-          return false;
+          return skip("already restarted "+new Date(m.restartedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}));
         }
-        if(m.restartSnoozedUntil){
-          currentUser.restartSnoozedUntil=m.restartSnoozedUntil;
-          if(m.restartSnoozedUntil>Date.now() && !testMode){
-            lsSet("smac_session",currentUser);
-            renderRestartOfferCard();
-            return false;
-          }
+        if(m.restartSnoozedUntil && m.restartSnoozedUntil>Date.now() && !testMode){
+          renderRestartOfferCard();
+          return skip("snoozed");
         }
       }
     }catch(e){ console.error("maybeShowRestartModal registry read failed:",e); } // fall through: handleRestart re-checks
+  } else if(currentUser.restartedAt){
+    return skip("already restarted");
   }
   window.openRestartModal();
   return true;
@@ -12570,8 +12573,8 @@ window.loadRestartPackPanel = async function(){
     const snap=await getDocs(col(db,"smac_registry"));
     _restartPackData = snap.docs
       .map(d=>({id:d.id,...d.data()}))
-      .filter(m=>!!m.restartedAt)
-      .sort((a,b)=>(b.restartedAt||0)-(a.restartedAt||0));
+      .filter(m=>!!m.restartedAt||!!m.restartSnoozedUntil)
+      .sort((a,b)=>(b.restartedAt||b.restartSnoozedUntil||0)-(a.restartedAt||a.restartSnoozedUntil||0));
     statusEl.style.display="none";
     resultsEl.style.display="block";
     renderRestartPackTable();
@@ -12587,7 +12590,7 @@ window.renderRestartPackTable = function(){
     if(filter==="noproof") return !m.ambassadorAwarded;
     return true;
   });
-  const totalRestarted = _restartPackData.length;
+  const totalRestarted = _restartPackData.filter(m=>m.restartedAt).length;
   const totalProof = _restartPackData.filter(m=>m.ambassadorAwarded).length;
   const summaryEl = document.getElementById("restart-pack-summary");
   if(summaryEl) summaryEl.innerHTML =
@@ -12595,7 +12598,7 @@ window.renderRestartPackTable = function(){
   const body = document.getElementById("restart-pack-table-body");
   if(!body) return;
   body.innerHTML = rows.map(m=>{
-    const restartedStr = m.restartedAt ? new Date(m.restartedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "—";
+    const restartedStr = m.restartedAt ? new Date(m.restartedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : `<span style="color:var(--text-muted);">Snoozed</span>`;
     let proofCell = "—";
     if(m.ambassadorRevoked) proofCell = `<span style="color:#e74c3c;">Revoked</span>`;
     else if(m.ambassadorAwarded) proofCell = m.ambassadorProofUrl
@@ -12604,14 +12607,50 @@ window.renderRestartPackTable = function(){
     const actionCell = (m.ambassadorAwarded && !m.ambassadorRevoked)
       ? `<button onclick="revokeAmbassador('${esc(m.id)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;">Revoke</button>`
       : "";
+    const resetBtn = `<button onclick="resetRestartForMember('${esc(m.id)}')" style="font-size:11px;padding:3px 8px;border:1px solid var(--border);color:var(--text-muted);background:transparent;border-radius:5px;cursor:pointer;margin-left:6px;">Reset</button>`;
     return `<tr style="border-bottom:1px solid var(--border);">
       <td style="padding:7px 8px;">${esc(m.name||"(unnamed)")}</td>
       <td style="padding:7px 8px;">${restartedStr}</td>
       <td style="padding:7px 8px;">${proofCell}</td>
-      <td style="text-align:right;padding:7px 8px;">${actionCell}</td>
+      <td style="text-align:right;padding:7px 8px;white-space:nowrap;">${actionCell}${resetBtn}</td>
     </tr>`;
   }).join("");
 };
+// Admin reset (for test accounts): undoes restart, snooze and Ambassador so the
+// modal shows again on next login. Removes the restart/Ambassador points it added.
+window.resetRestartForMember = async function(regId){
+  if(!currentUser||!currentUser.isAdmin) return;
+  if(!confirm("Reset the restart offer for this member?\n\nThis removes their restart and Ambassador points, clears the badge and snooze, and shows the Restart modal again on their next login.")) return;
+  try{
+    const {runTransaction,doc:docRef,deleteField}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const ref=docRef(db,"smac_registry",regId);
+    let removed=0, uid=null, name=null;
+    await runTransaction(db, async (tx)=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists()) throw new Error("Registry record not found.");
+      const m=snap.data();
+      removed=m.restartPts||0; uid=m.uid||null; name=m.name||null;
+      tx.update(ref,{
+        points:Math.max(0,(m.points||0)-removed),
+        restartPts:0,
+        restartedAt:deleteField(),
+        complimentaryUntil:deleteField(),
+        restartSnoozedUntil:deleteField(),
+        ambassadorAwarded:deleteField(),
+        ambassadorRevoked:deleteField(),
+        ambassadorProofUrl:deleteField(),
+        ambassadorProofAt:deleteField()
+      });
+    });
+    if(removed && uid) await logCommunityPts(uid,name,"restart_reset",-removed);
+    showToast(`Reset done${removed?` (−${removed} pts)`:""}. Modal shows on their next login.`);
+    loadRestartPackPanel();
+  }catch(e){
+    console.error("resetRestartForMember error:",e);
+    showToast("Reset failed — "+e.message);
+  }
+};
+
 window.revokeAmbassador = async function(regId){
   if(!currentUser||!currentUser.isAdmin) return;
   if(!confirm("Revoke this member's Ambassador award?\n\nThis removes the +25 pts and the badge, and is final — resubmitting proof will not re-award it.")) return;
