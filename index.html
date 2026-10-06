@@ -712,7 +712,7 @@
       </button>
     </div>
 
-    <!-- RESTART AMBASSADOR PROMPT — shown to restarted members with no proof yet, until PROOF_CLOSE_UTC -->
+    <!-- AMBASSADOR PROMPT — shown to every enrolled member with no proof yet, until PROOF_CLOSE_UTC (round end) -->
     <div class="dash-card dash-animate" id="dash-ambassador-card" style="display:none;animation-delay:0.175s;border:1.5px solid var(--gold);background:#eef3f6;margin-bottom:14px;">
       <div class="dash-card-title-row">
         <div class="dash-card-title">📣 Add Your Ambassador Post</div>
@@ -1268,12 +1268,34 @@
       </div>
     </div>
 
+    <!-- ADMIN: Round Reset Tool (v59 — R4 redefined to Oct 1–Dec 31) -->
+    <div id="round-reset-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">♻️ Round Reset — Oct 1 Restart</div>
+      <div class="card" style="border:1.5px solid var(--gold);">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+          Moves Round 4 data onto the new <strong>Oct 1 – Dec 31</strong> schedule. September posts and engagements are retagged <code>R4-SEP</code> (kept, not deleted). Oct 1+ activity becomes <strong>Week 1</strong>. Points are rebuilt from Oct 1+ activity plus Restart / Ambassador bonuses, and September points roll into <strong>lifetimePoints</strong>.
+          <br><br>
+          Preview changes nothing. Safe to run again later — members already reset are skipped.
+        </div>
+
+        <button class="btn-sm" id="round-reset-preview-btn" onclick="previewRoundReset()">Preview Reset</button>
+
+        <div id="round-reset-preview" style="display:none;margin-top:16px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px;line-height:1.7;">
+          <div style="font-weight:700;margin-bottom:8px;">Reset preview:</div>
+          <div id="round-reset-preview-body"></div>
+        </div>
+
+        <button class="btn-sm" id="round-reset-run-btn" onclick="runRoundReset()" style="display:none;margin-top:14px;background:var(--gold);color:#000;border-color:var(--gold);">♻️ Confirm Round Reset</button>
+        <div id="round-reset-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;"></div>
+      </div>
+    </div>
+
     <!-- ADMIN: Restart Pack (Oct 1 restart pack — restarts + Ambassador proofs) -->
     <div id="restart-pack-tool" style="display:none;margin-bottom:28px;">
       <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🔄 Restart Pack</div>
       <div class="card" style="border:1.5px solid var(--border);">
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">
-          Members who restarted for October 1 and who submitted Ambassador proof. Revoke removes the +25 pts and the badge — this is final, it will not re-award on resubmit.
+          Members who restarted for October 1, members auto-credited the restart bonus, and anyone who submitted Ambassador proof. Revoke removes the +25 pts and the badge — this is final, it will not re-award on resubmit.
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
           <button class="btn-sm" id="restart-pack-run-btn" onclick="loadRestartPackPanel()" style="background:var(--gold);color:#fff;border-color:var(--gold);">Load Restart Pack</button>
@@ -1389,7 +1411,7 @@
           <select class="field-select" id="eng-modal-round">
             <option value="R2">R2 · Mar–May 2026</option>
             <option value="R3">R3 · Jun–Aug 2026</option>
-            <option value="R4">R4 · Sep–Nov 2026</option>
+            <option value="R4">R4 · Oct–Dec 2026</option>
           </select>
         </div>
         <div class="profile-form-field">
@@ -2053,7 +2075,7 @@
       <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:26px;letter-spacing:0.04em;line-height:1.1;margin-bottom:4px;">Add Your Ambassador Post</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.55;">Earn +25 bonus points and the Ambassador badge.</div>
       <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.65;color:var(--text-muted);">
-        Make a Feed post about SMAC linking joinsmac.com (or share the graphic), tag @jointheacc, then upload a screenshot with the post visible below. Keep it live through 10/1, then delete or archive it if you like.
+        Make a Feed post about SMAC linking joinsmac.com (or share the graphic), tag @jointheacc, then upload a screenshot with the post visible below. You can do this any time this round.
       </div>
       <div id="ambassador-upload-slot" onclick="document.getElementById('ambassador-file-input').click()" style="border:1.5px dashed var(--border);border-radius:var(--radius);padding:18px 8px;text-align:center;cursor:pointer;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:14px;">
         <div id="ambassador-upload-label" style="font-size:12px;color:var(--text-muted);line-height:1.4;">📸<br>Tap to upload your screenshot</div>
@@ -2278,51 +2300,51 @@ const ROUND_CONFIGS = window.ROUND_CONFIGS = {
     monthReqs: {"June":"1 post/week","July":"2 posts/week","August":"3 posts/week"},
   },
   // ── ADD FUTURE ROUNDS BELOW ──
-  // After R4 ends Nov 30, the platform resets Dec 1 for SMAC 2027 R1.
-  // Add R1_2027 (or whatever key convention you choose) following the same pattern.
+  // R4 was restarted Oct 1, 2026 (v59): originally Sep 1–Nov 30, now Oct 1–Dec 31.
+  // SMAC, WAC, and AAC move to one shared calendar Jan 1, 2027 — add that round below.
   R4: {
     weeks: [
-      // Week 1: Sep 1–7 (EDT UTC-4)
-      [Date.UTC(2026,8,1,4,0,0),  Date.UTC(2026,8,8,3,59,59,999)],
-      // Week 2: Sep 8–14
-      [Date.UTC(2026,8,8,4,0,0),  Date.UTC(2026,8,15,3,59,59,999)],
-      // Week 3: Sep 15–21
-      [Date.UTC(2026,8,15,4,0,0), Date.UTC(2026,8,22,3,59,59,999)],
-      // Week 4: Sep 22–30
-      [Date.UTC(2026,8,22,4,0,0), Date.UTC(2026,9,1,3,59,59,999)],
-      // Week 5: Oct 1–7 (EDT UTC-4)
-      [Date.UTC(2026,9,1,4,0,0),  Date.UTC(2026,9,8,3,59,59,999)],
-      // Week 6: Oct 8–14
-      [Date.UTC(2026,9,8,4,0,0),  Date.UTC(2026,9,15,3,59,59,999)],
-      // Week 7: Oct 15–21
-      [Date.UTC(2026,9,15,4,0,0), Date.UTC(2026,9,22,3,59,59,999)],
-      // Week 8: Oct 22–31
-      [Date.UTC(2026,9,22,4,0,0), Date.UTC(2026,10,1,3,59,59,999)],
-      // Week 9: Nov 1–7 (DST ends Nov 1 2am: start EDT UTC-4, end EST UTC-5)
-      [Date.UTC(2026,10,1,4,0,0), Date.UTC(2026,10,8,4,59,59,999)],
-      // Week 10: Nov 8–14 (EST UTC-5)
-      [Date.UTC(2026,10,8,5,0,0), Date.UTC(2026,10,15,4,59,59,999)],
-      // Week 11: Nov 15–21 (EST UTC-5)
-      [Date.UTC(2026,10,15,5,0,0),Date.UTC(2026,10,22,4,59,59,999)],
-      // Week 12: Nov 22–30 (EST UTC-5)
-      [Date.UTC(2026,10,22,5,0,0),Date.UTC(2026,11,1,4,59,59,999)],
+      // Week 1: Oct 1–7 (EDT UTC-4)
+      [Date.UTC(2026,9,1,4,0,0),   Date.UTC(2026,9,8,3,59,59,999)],
+      // Week 2: Oct 8–14
+      [Date.UTC(2026,9,8,4,0,0),   Date.UTC(2026,9,15,3,59,59,999)],
+      // Week 3: Oct 15–21
+      [Date.UTC(2026,9,15,4,0,0),  Date.UTC(2026,9,22,3,59,59,999)],
+      // Week 4: Oct 22–31
+      [Date.UTC(2026,9,22,4,0,0),  Date.UTC(2026,10,1,3,59,59,999)],
+      // Week 5: Nov 1–7 (DST ends Nov 1 2am: start EDT UTC-4, end EST UTC-5)
+      [Date.UTC(2026,10,1,4,0,0),  Date.UTC(2026,10,8,4,59,59,999)],
+      // Week 6: Nov 8–14 (EST UTC-5)
+      [Date.UTC(2026,10,8,5,0,0),  Date.UTC(2026,10,15,4,59,59,999)],
+      // Week 7: Nov 15–21
+      [Date.UTC(2026,10,15,5,0,0), Date.UTC(2026,10,22,4,59,59,999)],
+      // Week 8: Nov 22–30
+      [Date.UTC(2026,10,22,5,0,0), Date.UTC(2026,11,1,4,59,59,999)],
+      // Week 9: Dec 1–7 (EST UTC-5)
+      [Date.UTC(2026,11,1,5,0,0),  Date.UTC(2026,11,8,4,59,59,999)],
+      // Week 10: Dec 8–14
+      [Date.UTC(2026,11,8,5,0,0),  Date.UTC(2026,11,15,4,59,59,999)],
+      // Week 11: Dec 15–21
+      [Date.UTC(2026,11,15,5,0,0), Date.UTC(2026,11,22,4,59,59,999)],
+      // Week 12: Dec 22–31
+      [Date.UTC(2026,11,22,5,0,0), Date.UTC(2027,0,1,4,59,59,999)],
     ],
     weekDefs: [
-      {id:"w1", label:"Week 1",  dates:"Sep 1–7",   month:"September", required:1},
-      {id:"w2", label:"Week 2",  dates:"Sep 8–14",  month:"September", required:1},
-      {id:"w3", label:"Week 3",  dates:"Sep 15–21", month:"September", required:1},
-      {id:"w4", label:"Week 4",  dates:"Sep 22–30", month:"September", required:1},
-      {id:"w5", label:"Week 1",  dates:"Oct 1–7",   month:"October",   required:2},
-      {id:"w6", label:"Week 2",  dates:"Oct 8–14",  month:"October",   required:2},
-      {id:"w7", label:"Week 3",  dates:"Oct 15–21", month:"October",   required:2},
-      {id:"w8", label:"Week 4",  dates:"Oct 22–31", month:"October",   required:2},
-      {id:"w9", label:"Week 1",  dates:"Nov 1–7",   month:"November",  required:3},
-      {id:"w10",label:"Week 2",  dates:"Nov 8–14",  month:"November",  required:3},
-      {id:"w11",label:"Week 3",  dates:"Nov 15–21", month:"November",  required:3},
-      {id:"w12",label:"Week 4",  dates:"Nov 22–30", month:"November",  required:3},
+      {id:"w1", label:"Week 1",  dates:"Oct 1–7",   month:"October",  required:1},
+      {id:"w2", label:"Week 2",  dates:"Oct 8–14",  month:"October",  required:1},
+      {id:"w3", label:"Week 3",  dates:"Oct 15–21", month:"October",  required:1},
+      {id:"w4", label:"Week 4",  dates:"Oct 22–31", month:"October",  required:1},
+      {id:"w5", label:"Week 1",  dates:"Nov 1–7",   month:"November", required:2},
+      {id:"w6", label:"Week 2",  dates:"Nov 8–14",  month:"November", required:2},
+      {id:"w7", label:"Week 3",  dates:"Nov 15–21", month:"November", required:2},
+      {id:"w8", label:"Week 4",  dates:"Nov 22–30", month:"November", required:2},
+      {id:"w9", label:"Week 1",  dates:"Dec 1–7",   month:"December", required:3},
+      {id:"w10",label:"Week 2",  dates:"Dec 8–14",  month:"December", required:3},
+      {id:"w11",label:"Week 3",  dates:"Dec 15–21", month:"December", required:3},
+      {id:"w12",label:"Week 4",  dates:"Dec 22–31", month:"December", required:3},
     ],
-    months: ["September","October","November"],
-    monthReqs: {"September":"1 post/week","October":"2 posts/week","November":"3 posts/week"},
+    months: ["October","November","December"],
+    monthReqs: {"October":"1 post/week","November":"2 posts/week","December":"3 posts/week"},
   },
   // R1_2027: { weeks: [...], weekDefs: [...], months: [...], monthReqs: {...} },
 };
@@ -2360,6 +2382,73 @@ const ROUND_CONFIGS = window.ROUND_CONFIGS = {
   window.MONTHS          = cfg.months;
   window.MONTH_REQS      = cfg.monthReqs;
 })();
+
+// ─────────────────────────────────────────────
+//  R4 OCT 1 RESTART — schedule reset (v59)
+//  R4 was redefined in place from Sep 1–Nov 30 to Oct 1–Dec 31.
+//  Old R4 Week 5 (Oct 1–7) is the new Week 1, so pre-reset records
+//  carry a week index that is 4 too high. Everything below keys off
+//  these constants: the per-device tracker migration that runs at
+//  boot, and the admin "Round Reset" tool on the Reports page.
+// ─────────────────────────────────────────────
+const R4_RESET_EPOCH       = "R4-2026-10";
+const R4_RESET_ARCHIVE_KEY = "R4-SEP";                       // round tag for archived September records
+const R4_RESET_OLD_OFFSET  = 4;                              // old weekIdx 4 → new weekIdx 0
+const R4_RESET_START       = ROUND_CONFIGS.R4.weeks[0][0];   // Oct 1, 12:00 AM ET
+const R4_RESET_W1_END      = ROUND_CONFIGS.R4.weeks[0][1];   // Oct 7, 11:59:59 PM ET
+window.R4_RESET_EPOCH = R4_RESET_EPOCH;
+
+// Week index for a timestamp against the PRISTINE R4 config (ignores any
+// active deadline extension, which patches window.WEEK_SCHEDULE).
+function _resetWeekIdxForTs(ts){
+  return ROUND_CONFIGS.R4.weeks.findIndex(([s,e])=>ts>=s&&ts<=e);
+}
+
+// Carry a pre-reset tracker map into the new schedule. Only old w5
+// (Oct 1–7) can hold real data for the new round — it becomes w1,
+// trimmed to the new Week 1 requirement. Everything else is dropped.
+function shiftTrackedForReset(tracked, week1Required){
+  const out = {};
+  const src = tracked && tracked["w"+(R4_RESET_OLD_OFFSET+1)];
+  if(Array.isArray(src)){
+    const n = Math.min(src.filter(Boolean).length, Math.max(0, week1Required||0));
+    if(n>0) out.w1 = Array.from({length:week1Required},(_,i)=>i<n);
+  }
+  return out;
+}
+
+// Keep only checks for weeks that have already started.
+function _stripFutureWeekChecks(tracked, now){
+  const out={};
+  ROUND_CONFIGS.R4.weekDefs.forEach((w,i)=>{
+    const c=tracked&&tracked[w.id];
+    if(Array.isArray(c)&&c.some(Boolean)&&ROUND_CONFIGS.R4.weeks[i][0]<=now) out[w.id]=c.slice();
+  });
+  return out;
+}
+
+// Runs once per device at boot, before the tracker renders. The tracker
+// lives in localStorage first and Firestore second, so each device has to
+// drop its own September checks — the admin reset alone can't reach them.
+// It waits for the admin Round Reset marker (smac_config/round_reset), then
+// adopts the rebuilt Firestore tracker in place of the stale local copy.
+async function migrateTrackerEpoch(){
+  try{
+    if(!currentUser||!currentUser.uid||useLocalFallback||!db) return;
+    if((window.CURRENT_ROUND||"")!=="R4") return;
+    const uid=currentUser.uid;
+    const eKey=`smac_tracker_epoch_${uid}`, tKey=`smac_tracker_${uid}`;
+    if(lsGet(eKey)===R4_RESET_EPOCH) return;
+    const snap=await getDoc(doc(db,"smac_config","round_reset"));
+    if(!snap.exists()||snap.data().epoch!==R4_RESET_EPOCH) return; // admin reset hasn't run yet
+    const remote=_trackerCache[uid]||null;
+    const tracked=(remote&&remote.trackerEpoch===R4_RESET_EPOCH)
+      ? _stripFutureWeekChecks(remote.tracked||{}, Date.now())
+      : {};
+    lsSet(tKey,tracked);
+    lsSet(eKey,R4_RESET_EPOCH);
+  }catch(e){ console.warn("Tracker epoch migration failed:",e); }
+}
 
 // ─────────────────────────────────────────────
 //  POINTS CONFIG
@@ -2798,6 +2887,7 @@ function bootApp(){
     document.getElementById("admin-sub-viewer").style.display="block";
     document.getElementById("member-reset-tool").style.display="block";
     document.getElementById("archive-round-tool").style.display="block";
+    document.getElementById("round-reset-tool").style.display="block";
     initArchiveRoundSelect();
     document.getElementById("deadline-extend-tool").style.display="block";
     loadDeadlineEditor();
@@ -2841,6 +2931,7 @@ function bootApp(){
     document.getElementById("admin-sub-viewer").style.display="none";
     document.getElementById("member-reset-tool").style.display="none";
     document.getElementById("archive-round-tool").style.display="none";
+    document.getElementById("round-reset-tool").style.display="none";
     document.getElementById("points-sweep-tool").style.display="none";
     document.getElementById("point-audit-tool").style.display="none";
     document.getElementById("eng-viewer").style.display="none";
@@ -2953,6 +3044,7 @@ function bootApp(){
         if(_photo){_tpAv.innerHTML='<img src="'+esc(_photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent=\''+_initials+'\'" />';}
         else{_tpAv.textContent=_initials;}
       })();
+      await migrateTrackerEpoch(); // v59: swap in the rebuilt tracker once the admin Round Reset has run
       loadFeed();loadAnnouncements();loadSpotlights();loadResources();buildTracker();loadProfile();loadDirectory();loadMySubmissions();updatePtsPreview();renderWeeklyChallenge();renderSYFModifier();loadDashboard();
     });
   } else {
@@ -3089,7 +3181,8 @@ window.loadDashboard=async function(){
   // ── Ambassador prompt: restarted this cycle, no proof yet, proof window still open ──
   const _ambCard = document.getElementById("dash-ambassador-card");
   if(_ambCard){
-    const _showAmb = !!currentUser.restartedAt && !currentUser.ambassadorAwarded && typeof isProofWindowOpen==="function" && isProofWindowOpen();
+    // v59: open to every enrolled member all round, not just those who clicked Restart.
+    const _showAmb = !currentUser.isAdmin && !isUnenrolledMember() && !currentUser.ambassadorAwarded && !currentUser.ambassadorRevoked && typeof isProofWindowOpen==="function" && isProofWindowOpen();
     _ambCard.style.display = _showAmb ? "" : "none";
   }
   const _ambBadgeWrap = document.getElementById("dash-ambassador-badge-wrap");
@@ -9405,6 +9498,324 @@ window.runMemberReset = async function(){
 };
 
 // ─────────────────────────────────────────────
+//  ROUND RESET — R4 Oct 1 restart (v59)
+//  One-time data move onto the Oct 1–Dec 31 schedule. Preview is
+//  read-only; Confirm rebuilds the plan from live data and applies it.
+//  Idempotent: records and members already reset are skipped.
+//    • submissions / engagements before Oct 1  → round "R4-SEP" (kept)
+//    • Oct 1+ records                          → weekIdx − 4 (old W5 → W1)
+//    • trackers                                → rebuilt, old w5 → w1
+//    • registry.points                         → Oct posts + Oct engagements
+//                                                + restartPts + Oct community pts
+//    • Restart +10                             → auto-credited once to every current
+//                                                member who never clicked Restart
+//                                                (restartBonusAuto; restartedAt is NOT set,
+//                                                so the Stripe-pause function never fires)
+//    • September points                        → lifetimePoints + roundHistory
+// ─────────────────────────────────────────────
+
+// Pure: turns raw collection data into the full list of writes. No Firestore.
+function _computeRoundResetPlan({registry, subs, engs, trackers, commLog, override, now, grantBonus}){
+  const plan = {
+    archiveSubs:[], archiveEngs:[], reindexSubs:[], reindexEngs:[],
+    trackerWrites:[], members:[], override:null,
+    counts:{keptSubs:0,keptEngs:0,overridesCleared:0,graceCleared:0,futureChecksCleared:0,bonusGranted:0}
+  };
+  const subPts={}, engPts={}, commPts={}, week1Posts={};
+
+  // Classify one submission/engagement doc → "archive" | "keep" (+ newIdx when re-indexing)
+  const classify = (d)=>{
+    const ts = typeof d.ts==="number" ? d.ts : 0;
+    if(ts < R4_RESET_START) return {kind:"archive"};
+    // Grace Token placeholders written before the new Week 1 closed can only cover September weeks.
+    if(d.status==="grace" && ts <= R4_RESET_W1_END) return {kind:"archive"};
+    const tsIdx = _resetWeekIdxForTs(ts);
+    const wi = typeof d.weekIdx==="number" ? d.weekIdx : tsIdx;
+    // Old-schedule records sit 4 weeks ahead of where their timestamp lands.
+    const newIdx = (tsIdx>=0 && wi >= tsIdx+R4_RESET_OLD_OFFSET-1) ? wi-R4_RESET_OLD_OFFSET : wi;
+    if(newIdx < 0) return {kind:"archive"}; // late post for a September week (deadline extension)
+    return {kind:"keep", newIdx, changed:newIdx!==d.weekIdx};
+  };
+
+  subs.forEach(d=>{
+    const c=classify(d);
+    if(c.kind==="archive"){ plan.archiveSubs.push({id:d.id,uid:d.uid||"",pts:d.pts||0}); return; }
+    plan.counts.keptSubs++;
+    if(c.changed) plan.reindexSubs.push({id:d.id,from:d.weekIdx,to:c.newIdx});
+    if(!d.uid) return;
+    subPts[d.uid]=(subPts[d.uid]||0)+(d.pts||0);
+    if(c.newIdx===0 && d.status!=="grace") week1Posts[d.uid]=(week1Posts[d.uid]||0)+1;
+  });
+  engs.forEach(d=>{
+    const c=classify(d);
+    if(c.kind==="archive"){ plan.archiveEngs.push({id:d.id,uid:d.uid||"",pts:d.pts||0}); return; }
+    plan.counts.keptEngs++;
+    if(c.changed) plan.reindexEngs.push({id:d.id,from:d.weekIdx,to:c.newIdx});
+    if(!d.uid) return;
+    engPts[d.uid]=(engPts[d.uid]||0)+(d.pts||0);
+  });
+  // Community points since Oct 1. Restart + Ambassador awards are logged here too,
+  // but they already live in restartPts — skip them so they aren't counted twice.
+  (commLog||[]).forEach(l=>{
+    if(!l.uid || typeof l.pts!=="number") return;
+    if((l.ts||0) < R4_RESET_START) return;
+    if(l.action==="restart" || l.action==="restart_ambassador") return;
+    commPts[l.uid]=(commPts[l.uid]||0)+l.pts;
+  });
+
+  const proByUid={};
+  registry.forEach(m=>{
+    const uid=m.uid||m.id;
+    proByUid[uid]=m.isPro===true;
+    const current=typeof m.points==="number"?m.points:0;
+    // Restart +10 for every current member (R4-enrolled or Founder) who never
+    // clicked Restart. Granted once, on the first run that carries grantBonus.
+    const isCurrent=(m.isFounder===true||(Array.isArray(m.rounds)&&m.rounds.includes("R4")))&&!m.isAdmin&&(m.email||"").toLowerCase()!==ADMIN_EMAIL.toLowerCase();
+    const grant=(grantBonus&&isCurrent&&!m.restartedAt&&m.restartBonusAuto!==true)?RESTART_PTS:0;
+    if(grant) plan.counts.bonusGranted++;
+    const bonus=(m.restartPts||0)+grant;
+    const sp=subPts[uid]||0, ep=engPts[uid]||0, cp=commPts[uid]||0;
+    const newPts=sp+ep+bonus+cp;
+    const alreadyReset=m.roundResetEpoch===R4_RESET_EPOCH;
+    if(m.graceTokens && !alreadyReset) plan.counts.graceCleared++;
+    plan.members.push({
+      id:m.id, uid, name:m.name||"(unnamed)", current, subPts:sp, engPts:ep, bonus, commPts:cp,
+      newPts: alreadyReset?current+grant:newPts,
+      toLifetime: alreadyReset?0:Math.max(0,current-(newPts-grant)), // the new bonus must not shrink the September rollup
+      grant,
+      clearGrace: !!m.graceTokens && !alreadyReset,
+      alreadyReset
+    });
+  });
+
+  trackers.forEach(t=>{
+    const uid=t.uid||t.id;
+    const tracked=t.tracked||{};
+    if(t.trackerEpoch===R4_RESET_EPOCH){
+      // Already rebuilt — only tidy checks sitting in weeks that haven't started.
+      const kept=_stripFutureWeekChecks(tracked, now);
+      const had=Object.keys(tracked).filter(k=>Array.isArray(tracked[k])&&tracked[k].some(Boolean)).length;
+      if(Object.keys(kept).length!==had){
+        plan.counts.futureChecksCleared++;
+        plan.trackerWrites.push({id:t.id,data:{name:t.name||"",uid,tracked:kept,trackerEpoch:R4_RESET_EPOCH,updatedAt:now}});
+      }
+      return;
+    }
+    const required=weekRequirementFor(0, proByUid[uid]===true);
+    const carried=shiftTrackedForReset(tracked, required);
+    const manual=(carried.w1||[]).filter(Boolean).length;
+    const n=Math.min(required, Math.max(manual, week1Posts[uid]||0));
+    const next=n>0 ? {w1:Array.from({length:required},(_,i)=>i<n)} : {};
+    if(t.overrides && Object.keys(t.overrides).length) plan.counts.overridesCleared++;
+    plan.trackerWrites.push({id:t.id,data:{name:t.name||"",uid,tracked:next,trackerEpoch:R4_RESET_EPOCH,updatedAt:now}});
+  });
+
+  // Active deadline extension saved against the old week numbering.
+  if(override && override.active && override.round==="R4" && override.resetEpoch!==R4_RESET_EPOCH && typeof override.weekIdx==="number"){
+    plan.override = override.weekIdx>=R4_RESET_OLD_OFFSET
+      ? {action:"shift", from:override.weekIdx, to:override.weekIdx-R4_RESET_OLD_OFFSET}
+      : {action:"clear", from:override.weekIdx};
+  }
+  return plan;
+}
+
+async function _loadRoundResetPlan(){
+  const {getDocs,getDoc,collection:col,query:q,where,doc:dcRef} =
+    await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const [regSnap,subSnap,engSnap,trkSnap,logSnap,ovSnap,markSnap] = await Promise.all([
+    getDocs(col(db,"smac_registry")),
+    getDocs(q(col(db,"submissions"),where("round","==","R4"))),
+    getDocs(q(col(db,"engagements"),where("round","==","R4"))),
+    getDocs(col(db,"trackers")),
+    getDocs(q(col(db,"smac_community_pts"),where("ts",">=",R4_RESET_START))),
+    getDoc(dcRef(db,"smac_config","deadline_override")),
+    getDoc(dcRef(db,"smac_config","round_reset"))
+  ]);
+  const rows=snap=>snap.docs.map(d=>({...d.data(),id:d.id}));
+  const priorRun = markSnap.exists() ? markSnap.data() : null;
+  const plan=_computeRoundResetPlan({
+    registry:rows(regSnap), subs:rows(subSnap), engs:rows(engSnap), trackers:rows(trkSnap),
+    commLog:rows(logSnap), override:ovSnap.exists()?ovSnap.data():null, now:Date.now(),
+    grantBonus: !(priorRun && priorRun.bonusGranted===true) // one-time: members who join later don't get it
+  });
+  plan.priorRun = priorRun;
+  return plan;
+}
+
+window.previewRoundReset = async function(){
+  if(!currentUser||!currentUser.isAdmin) return;
+  const previewEl=document.getElementById("round-reset-preview");
+  const body=document.getElementById("round-reset-preview-body");
+  const runBtn=document.getElementById("round-reset-run-btn");
+  const statusEl=document.getElementById("round-reset-status");
+  statusEl.style.display="none";
+  runBtn.style.display="none";
+  previewEl.style.display="block";
+  if(useLocalFallback||!db){ body.textContent="Firestore not available — cannot reset."; return; }
+  if((window.CURRENT_ROUND||"")!=="R4"){ body.textContent="Active round is "+(window.CURRENT_ROUND||"unknown")+", not R4 — reset is only for Round 4."; return; }
+  body.textContent="Reading Firestore...";
+  try{
+    const plan=await _loadRoundResetPlan();
+    const todo=plan.members.filter(m=>!m.alreadyReset||m.grant>0);
+    const sum=(arr,k)=>arr.reduce((s,x)=>s+(x[k]||0),0);
+    const row=(label,val,strong,rule)=>`<tr${rule?' style="border-top:1px solid var(--border);"':""}><td style="padding:4px 0;color:var(--text-muted);">${label}</td><td style="text-align:right;${strong?"font-weight:700;":""}">${val}</td></tr>`;
+    const ovLine = !plan.override ? "None active"
+      : plan.override.action==="shift" ? `Moved from Week ${plan.override.from+1} to Week ${plan.override.to+1}`
+      : `Cleared (was set on old Week ${plan.override.from+1})`;
+    const changed=todo.filter(m=>m.current!==m.newPts||m.toLifetime>0).sort((a,b)=>b.newPts-a.newPts||a.name.localeCompare(b.name));
+    const prior = plan.priorRun ? `<div style="margin:0 0 10px;padding:8px;background:rgba(39,174,96,.1);border-radius:6px;color:#1e8449;">Reset already ran ${new Date(plan.priorRun.ranAt||0).toLocaleString()}. Running again only picks up anything new.</div>` : "";
+    body.innerHTML = prior + `
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        ${row("September posts archived (R4-SEP)",plan.archiveSubs.length)}
+        ${row("September engagements archived (R4-SEP)",plan.archiveEngs.length)}
+        ${row("Oct 1+ posts kept",plan.counts.keptSubs+" ("+plan.reindexSubs.length+" re-indexed)")}
+        ${row("Oct 1+ engagements kept",plan.counts.keptEngs+" ("+plan.reindexEngs.length+" re-indexed)")}
+        ${row("Trackers rebuilt",plan.trackerWrites.length-plan.counts.futureChecksCleared)}
+        ${row("Tracker month overrides cleared",plan.counts.overridesCleared)}
+        ${row("Grace Token balances refreshed",plan.counts.graceCleared)}
+        ${row("Deadline extension",ovLine)}
+        ${row("Restart +"+RESTART_PTS+" auto-credited (never clicked Restart)",plan.counts.bonusGranted+" member(s)")}
+        ${row("Members to update",todo.length+" of "+plan.members.length)}
+        ${row("Points on leaderboard now → after",sum(todo,"current")+" → "+sum(todo,"newPts"),true,true)}
+        ${row("Rolled into lifetimePoints",sum(todo,"toLifetime"),true)}
+      </table>
+      ${changed.length?`<div style="margin-top:12px;font-weight:700;">Members whose points change (${changed.length}):</div>
+      <div style="overflow-x:auto;max-height:320px;overflow-y:auto;margin-top:6px;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="border-bottom:1px solid var(--border);color:var(--text-muted);">
+            <th style="text-align:left;padding:5px 6px;">Member</th>
+            <th style="text-align:right;padding:5px 6px;">Now</th>
+            <th style="text-align:right;padding:5px 6px;">Posts</th>
+            <th style="text-align:right;padding:5px 6px;">Eng</th>
+            <th style="text-align:right;padding:5px 6px;">Bonus</th>
+            <th style="text-align:right;padding:5px 6px;">Comm</th>
+            <th style="text-align:right;padding:5px 6px;">After</th>
+            <th style="text-align:right;padding:5px 6px;">To lifetime</th>
+          </tr></thead>
+          <tbody>${changed.map(m=>`<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 6px;">${esc(m.name)}</td>
+            <td style="text-align:right;padding:5px 6px;">${m.current}</td>
+            <td style="text-align:right;padding:5px 6px;">${m.subPts}</td>
+            <td style="text-align:right;padding:5px 6px;">${m.engPts}</td>
+            <td style="text-align:right;padding:5px 6px;">${m.bonus}</td>
+            <td style="text-align:right;padding:5px 6px;">${m.commPts}</td>
+            <td style="text-align:right;padding:5px 6px;font-weight:700;">${m.newPts}</td>
+            <td style="text-align:right;padding:5px 6px;">${m.toLifetime}</td>
+          </tr>`).join("")}</tbody>
+        </table>
+      </div>`:""}`;
+    const nothing = !todo.length && !plan.archiveSubs.length && !plan.archiveEngs.length && !plan.reindexSubs.length
+      && !plan.reindexEngs.length && !plan.trackerWrites.length && !plan.override;
+    if(nothing){
+      body.innerHTML += `<div style="margin-top:10px;font-style:italic;color:var(--text-muted);">Nothing left to reset.</div>`;
+    } else {
+      runBtn.style.display="block";
+    }
+  }catch(e){
+    body.textContent="Preview failed: "+e.message;
+  }
+};
+
+window.runRoundReset = async function(){
+  if(!currentUser||!currentUser.isAdmin) return;
+  if(useLocalFallback||!db) return;
+  if(!confirm("Run the Round Reset?\n\nThis will:\n- Archive September R4 posts and engagements as R4-SEP\n- Move Oct 1+ activity to Week 1\n- Rebuild every tracker\n- Reset points and roll September points into lifetime\n\nNothing is deleted. Continue?")) return;
+
+  const runBtn=document.getElementById("round-reset-run-btn");
+  const statusEl=document.getElementById("round-reset-status");
+  runBtn.disabled=true; runBtn.textContent="Working...";
+  statusEl.style.display="block";
+  const step=t=>{ statusEl.textContent=t; };
+
+  try{
+    const {writeBatch,updateDoc,setDoc,doc:dcRef,increment,arrayUnion} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    step("Step 1/6 — Reading live data...");
+    const plan=await _loadRoundResetPlan(); // rebuilt fresh so a stale preview is never applied
+    const ranAt=Date.now();
+
+    // Batched updates, 400 per commit (Firestore limit is 500)
+    const batched=async(items,collName,toUpdate)=>{
+      for(let i=0;i<items.length;i+=400){
+        const b=writeBatch(db);
+        items.slice(i,i+400).forEach(it=>b.update(dcRef(db,collName,it.id),toUpdate(it)));
+        await b.commit();
+      }
+    };
+    const archiveFields=()=>({round:R4_RESET_ARCHIVE_KEY,_origRound:"R4",_resetEpoch:R4_RESET_EPOCH});
+    const reindexFields=it=>({weekIdx:it.to,_origWeekIdx:it.from,_resetEpoch:R4_RESET_EPOCH});
+
+    step(`Step 2/6 — Archiving ${plan.archiveSubs.length} September posts and ${plan.archiveEngs.length} engagements...`);
+    await batched(plan.archiveSubs,"submissions",archiveFields);
+    await batched(plan.archiveEngs,"engagements",archiveFields);
+
+    step(`Step 3/6 — Moving ${plan.reindexSubs.length} posts and ${plan.reindexEngs.length} engagements to the new weeks...`);
+    await batched(plan.reindexSubs,"submissions",reindexFields);
+    await batched(plan.reindexEngs,"engagements",reindexFields);
+
+    step(`Step 4/6 — Rebuilding ${plan.trackerWrites.length} trackers...`);
+    for(let i=0;i<plan.trackerWrites.length;i+=400){
+      const b=writeBatch(db);
+      plan.trackerWrites.slice(i,i+400).forEach(t=>b.set(dcRef(db,"trackers",t.id),t.data)); // full replace
+      await b.commit();
+    }
+
+    const todo=plan.members.filter(m=>!m.alreadyReset||m.grant>0);
+    let done=0, failed=0;
+    for(const m of todo){
+      try{
+        if(m.alreadyReset){
+          // Reset already applied on an earlier run — only the one-time restart bonus is outstanding.
+          await updateDoc(dcRef(db,"smac_registry",m.id),{points:increment(m.grant),restartPts:increment(m.grant),restartBonusAuto:true,restartBonusAt:ranAt});
+          done++;
+          step(`Step 5/6 — Resetting points... ${done+failed}/${todo.length}`);
+          continue;
+        }
+        const upd={points:m.newPts, roundResetEpoch:R4_RESET_EPOCH};
+        if(m.grant>0){ upd.restartPts=m.bonus; upd.restartBonusAuto=true; upd.restartBonusAt=ranAt; }
+        if(m.toLifetime>0){
+          upd.lifetimePoints=increment(m.toLifetime);
+          upd.roundHistory=arrayUnion({round:R4_RESET_ARCHIVE_KEY,points:m.toLifetime,endedAt:ranAt});
+        }
+        if(m.clearGrace) upd.graceTokens=null;
+        await updateDoc(dcRef(db,"smac_registry",m.id),upd);
+        done++;
+      }catch(err){ failed++; console.error("Round reset — member failed:",m.name,err); }
+      step(`Step 5/6 — Resetting points... ${done+failed}/${todo.length}`);
+    }
+
+    step("Step 6/6 — Finishing up...");
+    if(plan.override){
+      const ovRef=dcRef(db,"smac_config","deadline_override");
+      if(plan.override.action==="shift") await updateDoc(ovRef,{weekIdx:plan.override.to,resetEpoch:R4_RESET_EPOCH,updatedAt:ranAt});
+      else await updateDoc(ovRef,{active:false,resetEpoch:R4_RESET_EPOCH,updatedAt:ranAt});
+    }
+    // Marker members' devices wait for before swapping in the rebuilt tracker.
+    if(!failed){
+      await setDoc(dcRef(db,"smac_config","round_reset"),{
+        epoch:R4_RESET_EPOCH, ranAt, ranBy:currentUser.email||"",
+        archivedSubs:plan.archiveSubs.length, archivedEngs:plan.archiveEngs.length,
+        reindexedSubs:plan.reindexSubs.length, reindexedEngs:plan.reindexEngs.length,
+        trackers:plan.trackerWrites.length, members:done,
+        bonusGranted:true
+      },{merge:true});
+    }
+
+    if(window._lbSubCache) window._lbSubCache.ts=0;
+    statusEl.innerHTML = failed
+      ? `<span style="color:#e74c3c;font-weight:700;">Finished with ${failed} member error(s).</span> ${done} reset. Run Preview again and confirm to retry the rest.`
+      : `<span style="color:#27ae60;font-weight:700;">Done.</span> ${done} member(s) updated (${plan.counts.bonusGranted} auto-credited +${RESTART_PTS}), ${plan.archiveSubs.length+plan.archiveEngs.length} September records archived, ${plan.reindexSubs.length+plan.reindexEngs.length} moved to the new weeks, ${plan.trackerWrites.length} trackers rebuilt. Reload to see the new leaderboard.`;
+    runBtn.style.display="none";
+    document.getElementById("round-reset-preview").style.display="none";
+    showToast(failed?"Round reset finished with errors":"Round reset complete");
+  }catch(e){
+    statusEl.innerHTML=`<span style="color:#e74c3c;">Error: ${esc(e.message)}</span> — safe to run again; finished steps are skipped.`;
+  }finally{
+    runBtn.disabled=false; runBtn.textContent="♻️ Confirm Round Reset";
+  }
+};
+
+// ─────────────────────────────────────────────
 //  ARCHIVE ROUND — end-of-round lifetime points rollup
 //  For each member: lifetimePoints += points,
 //  push {round, points, endedAt} to roundHistory, set points = 0.
@@ -10938,21 +11349,23 @@ function buildMilestoneBar(tracked){
 // ─────────────────────────────────────────────
 // 12 challenges — one per week. Edit the text here to customise.
 const WEEKLY_CHALLENGES = [
-  // Month 1 (June) — Orient & Observe
-  {title:"Your Baseline",      desc:"Post any content this week, then in your caption (or comments) note one thing you want to test or improve over this round."},
-  {title:"What's Already Working", desc:"Look at your last 10 posts. Pick the format or topic that got the most engagement and post a new version of it."},
-  {title:"Gut Check",          desc:"Post something you've been hesitant to try. Note in the caption what made you second-guess it."},
-  {title:"Audience Signal",    desc:"Post based on a question, comment, or DM you've received. Let your audience tell you what to make."},
-  // Month 2 (July) — Test & Compare
+  // Order reshuffled for the Oct 1 restart (v59). Week 1 stays Format Flip —
+  // it was already live Oct 1–7 under the old schedule.
+  // Month 1 (October) — Test & Set Your Baseline
   {title:"Format Flip",        desc:"Identify your least-used format (Static, Reel, or Carousel). Post in that format this week and compare the response to your usual."},
+  {title:"Your Baseline",      desc:"Post any content this week, then in your caption (or comments) note one thing you want to test or improve over this round."},
   {title:"Hook Test",          desc:"Post with a hook you haven't tried before — a question, a bold claim, or a pattern interrupt. Note in your caption or comments what you tested."},
   {title:"Timing Experiment",  desc:"Post at a time you don't normally post. Check your reach vs. your usual and share what you found."},
+  // Month 2 (November) — Listen & Compare
+  {title:"Audience Signal",    desc:"Post based on a question, comment, or DM you've received. Let your audience tell you what to make."},
   {title:"Double Down",        desc:"Check your IG Insights for your top post this month. Post a follow-up, part 2, or related piece based on what performed."},
-  // Month 3 (August) — Reflect & Refine
-  {title:"Pattern Finder",     desc:"Review your last 30 days of posts. Identify one pattern in what got saves, shares, or comments — then post something that deliberately uses it."},
+  {title:"Gut Check",          desc:"Post something you've been hesitant to try. Note in the caption what made you second-guess it."},
+  {title:"What's Already Working", desc:"Look at your last 10 posts. Pick the format or topic that got the most engagement and post a new version of it."},
+  // Month 3 (December) — Reflect & Refine
   {title:"Kill One Thing",     desc:"Identify a content type or format that consistently underperforms for you. Post something different in its place and explain the swap."},
+  {title:"Pattern Finder",     desc:"Review your last 30 days of posts. Identify one pattern in what got saves, shares, or comments — then post something that deliberately uses it."},
   {title:"Steal From Yourself",desc:"Find your single best post from this round. Recreate the core idea in a new format or angle."},
-  {title:"Round Wrap",         desc:"Post a reflection on one strategy insight you're taking into Round 4. What did the data (or gut) teach you?"},
+  {title:"Round Wrap",         desc:"Post a reflection on one strategy insight you're taking into the next round. What did the data (or gut) teach you?"},
 ];
 
 // _challengeModifierActive: true when member has toggled the modifier on
@@ -12291,7 +12704,7 @@ function maybeShowRenewModal(){
 //  RENEW_MODAL_DEFAULTS.deadline_ts.
 // ─────────────────────────────────────────────
 const RESTART_OPEN_UTC   = Date.UTC(2026,8,23,4,0,0);   // 2026-09-23T04:00:00Z = 9/23 12:00 AM ET
-const PROOF_CLOSE_UTC    = Date.UTC(2026,9,7,3,59,59); // 2026-10-07T03:59:59Z = 10/6 11:59:59 PM ET (quiet extension — not publicly announced until the 10/1–10/2 email)
+const PROOF_CLOSE_UTC    = Date.UTC(2027,0,1,4,59,59); // 12/31/2026 11:59:59 PM ET — v59: Ambassador proof is a standing feature for the whole round
 const RESTART_CLOSE_UTC  = Date.UTC(2026,9,7,3,59,59); // 2026-10-07T03:59:59Z = 10/6 11:59:59 PM ET (quiet extension — not publicly announced until the 10/1–10/2 email)
 const RESTART_COMPLIMENTARY_UNTIL_UTC = Date.UTC(2027,0,1,4,59,59); // 12/31/2026 11:59:59 PM ET
 const RESTART_PTS = 10;
@@ -12363,14 +12776,17 @@ window.handleRestart=async function(withProof){
         return;
       }
       const newRounds=(m.rounds||[]).includes(round)?(m.rounds||[]):[...(m.rounds||[]),round];
+      // v59: the Round Reset auto-credits the +10 to every current member
+      // (restartBonusAuto). A later Restart click still enrolls, but never pays twice.
+      const give=m.restartBonusAuto?0:RESTART_PTS;
       tx.update(ref,{
         rounds:newRounds,
-        points:(m.points||0)+RESTART_PTS,
-        restartPts:(m.restartPts||0)+RESTART_PTS,
+        points:(m.points||0)+give,
+        restartPts:(m.restartPts||0)+give,
         restartedAt:Date.now(),
         complimentaryUntil:RESTART_COMPLIMENTARY_UNTIL_UTC
       });
-      awarded=true;
+      awarded=give>0;
     });
     if(awarded) await logCommunityPts(currentUser.uid,currentUser.name,"restart",RESTART_PTS);
     // Reflect in the local session immediately; a full reload re-hydrates
@@ -12408,7 +12824,7 @@ const AMBASSADOR_PTS = 25;
 let _pendingAmbassadorProof = null;
 
 window.openAmbassadorModal=function(){
-  if(!isProofWindowOpen()){ showToast("Proof uploads closed 9/30 at 11:59 PM ET."); return; }
+  if(!isProofWindowOpen()){ showToast("Ambassador proof uploads are closed for this round."); return; }
   if(currentUser && currentUser.ambassadorAwarded){ showToast("You've already earned your Ambassador badge!"); return; }
   const ov=document.getElementById("ambassador-modal-overlay");
   if(ov) ov.classList.add("open");
@@ -12443,7 +12859,7 @@ window.handleAmbassadorScreenshot=async function(input){
 window.submitAmbassadorProof=async function(){
   if(!currentUser||!currentUser.registryId){closeAmbassadorModalDirect();return;}
   if(!_pendingAmbassadorProof){ showToast("Upload a screenshot first."); return; }
-  if(!isProofWindowOpen()){ showToast("Proof uploads closed 9/30 at 11:59 PM ET."); closeAmbassadorModalDirect(); return; }
+  if(!isProofWindowOpen()){ showToast("Ambassador proof uploads are closed for this round."); closeAmbassadorModalDirect(); return; }
   const btn=document.getElementById("ambassador-submit-btn");
   if(btn){btn.disabled=true;btn.textContent="Submitting...";}
   try{
@@ -12495,8 +12911,8 @@ window.loadRestartPackPanel = async function(){
     const snap=await getDocs(col(db,"smac_registry"));
     _restartPackData = snap.docs
       .map(d=>({id:d.id,...d.data()}))
-      .filter(m=>!!m.restartedAt)
-      .sort((a,b)=>(b.restartedAt||0)-(a.restartedAt||0));
+      .filter(m=>!!m.restartedAt||m.restartBonusAuto===true||!!m.ambassadorAwarded||!!m.ambassadorRevoked)
+      .sort((a,b)=>(b.restartedAt||0)-(a.restartedAt||0)||(a.name||"").localeCompare(b.name||""));
     statusEl.style.display="none";
     resultsEl.style.display="block";
     renderRestartPackTable();
@@ -12512,15 +12928,16 @@ window.renderRestartPackTable = function(){
     if(filter==="noproof") return !m.ambassadorAwarded;
     return true;
   });
-  const totalRestarted = _restartPackData.length;
+  const totalRestarted = _restartPackData.filter(m=>!!m.restartedAt).length;
+  const totalAuto = _restartPackData.filter(m=>!m.restartedAt&&m.restartBonusAuto===true).length;
   const totalProof = _restartPackData.filter(m=>m.ambassadorAwarded).length;
   const summaryEl = document.getElementById("restart-pack-summary");
   if(summaryEl) summaryEl.innerHTML =
-    `<span style="color:var(--text-muted);">${totalRestarted} restarted</span> &nbsp;·&nbsp; <span style="color:#27ae60;">${totalProof} proof submitted</span>`;
+    `<span style="color:var(--text-muted);">${totalRestarted} restarted</span> &nbsp;·&nbsp; <span style="color:var(--text-muted);">${totalAuto} auto +${RESTART_PTS}</span> &nbsp;·&nbsp; <span style="color:#27ae60;">${totalProof} proof submitted</span>`;
   const body = document.getElementById("restart-pack-table-body");
   if(!body) return;
   body.innerHTML = rows.map(m=>{
-    const restartedStr = m.restartedAt ? new Date(m.restartedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "—";
+    const restartedStr = m.restartedAt ? new Date(m.restartedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : (m.restartBonusAuto===true ? "Auto +"+RESTART_PTS : "—");
     let proofCell = "—";
     if(m.ambassadorRevoked) proofCell = `<span style="color:#e74c3c;">Revoked</span>`;
     else if(m.ambassadorAwarded) proofCell = m.ambassadorProofUrl
