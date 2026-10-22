@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// SMAC Firestore rules — Security Stage 2 (Oct 2026)
+// SMAC Firestore rules — Security Stage 2 + 2b (Oct 2026)
 // - No catch-all: any collection not listed here is denied.
 // - Admin = nate@templetonimage.com. Cloud Functions use the Admin SDK and skip these rules.
 // - Assumes public sign-up stays OFF (Authentication > Settings > User actions),
@@ -36,7 +36,7 @@ service cloud.firestore {
             && resource.data.get('email', '').lower() == myEmail());
     }
     function memberRegistryUpdateOk() {
-      return onlyChanges(['points', 'totalPosts', 'lastLogin', 'uid', 'email', 'phone', 'smsOptIn',
+      return onlyChanges(['points', 'totalPosts', 'lastLogin', 'uid', 'email', 'smsOptIn',
                           'graceTokens', 'isAllStar', 'ig', 'photoURL',
                           'ambassadorAwarded', 'ambassadorProofUrl', 'ambassadorProofAt', 'restartPts'])
         && (!changed().hasAny(['uid'])   || request.resource.data.uid == me())
@@ -50,6 +50,15 @@ service cloud.firestore {
       allow read: if signedIn();
       allow update: if isAdmin() || (signedIn() && isOwnRegistry(regId) && memberRegistryUpdateOk());
       allow create, delete: if isAdmin();
+    }
+
+    // ── Private contact info (Stage 2b) ───────────────────────
+    // Phone numbers live here, keyed by Auth UID: only that member and the admin can read them.
+    match /smac_private/{uid} {
+      allow read: if isAdmin() || (signedIn() && uid == me());
+      allow create, update: if isAdmin()
+        || (signedIn() && uid == me() && request.resource.data.keys().hasOnly(['phone', 'registryId', 'updatedAt']));
+      allow delete: if isAdmin();
     }
 
     // ── Feed ──────────────────────────────────────────────────

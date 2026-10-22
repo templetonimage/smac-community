@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import {
   doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, collection, getDocs, query, where,
-  increment, arrayUnion, arrayRemove, serverTimestamp,
+  increment, arrayUnion, arrayRemove, serverTimestamp, deleteField,
 } from "firebase/firestore";
 
 let env;
@@ -65,7 +65,24 @@ test("ALLOW submit post: points +10 and totalPosts +1", () =>
   assertSucceeds(updateDoc(doc(db(ALICE), "smac_registry/regAlice"), { points: increment(10), totalPosts: increment(1) })));
 test("ALLOW delete own submission: points -17", () =>
   assertSucceeds(updateDoc(doc(db(ALICE), "smac_registry/regAlice"), { points: increment(-17), totalPosts: increment(-1) })));
-test("ALLOW SMS opt-in", () => assertSucceeds(updateDoc(doc(db(ALICE), "smac_registry/regAlice"), { phone: "+15555550111", smsOptIn: true })));
+test("ALLOW SMS opt-in flag on registry", () => assertSucceeds(updateDoc(doc(db(ALICE), "smac_registry/regAlice"), { smsOptIn: true })));
+test("ALLOW SMS unsubscribe", () => assertSucceeds(updateDoc(doc(db(ALICE), "smac_registry/regAlice"), { smsOptIn: false })));
+test("DENY member writes phone onto registry (public)", () => assertFails(updateDoc(doc(db(ALICE), "smac_registry/regAlice"), { phone: "+15555550111" })));
+test("ALLOW member saves own private phone", () => assertSucceeds(setDoc(doc(db(ALICE), "smac_private/alice"), { phone: "+15555550111", registryId: "regAlice", updatedAt: 1 }, { merge: true })));
+test("ALLOW member updates own private phone", async () => {
+  await setDoc(doc(db(ALICE), "smac_private/alice"), { phone: "+1", registryId: "regAlice", updatedAt: 1 });
+  await assertSucceeds(setDoc(doc(db(ALICE), "smac_private/alice"), { phone: "+2", registryId: "regAlice", updatedAt: 2 }, { merge: true }));
+});
+test("ALLOW member reads own private phone", () => assertSucceeds(getDoc(doc(db(ALICE), "smac_private/alice"))));
+test("DENY member reads another's private phone", () => assertFails(getDoc(doc(db(ALICE), "smac_private/bob"))));
+test("DENY member lists private phones", () => assertFails(getDocs(collection(db(ALICE), "smac_private"))));
+test("DENY member writes another's private phone", () => assertFails(setDoc(doc(db(ALICE), "smac_private/bob"), { phone: "+1" })));
+test("DENY extra fields in private doc", () => assertFails(setDoc(doc(db(ALICE), "smac_private/alice"), { phone: "+1", isPro: true })));
+test("ALLOW admin reads all private phones", () => assertSucceeds(getDocs(collection(db(ADMIN), "smac_private"))));
+test("ALLOW admin migration: copy phone + remove from registry", async () => {
+  await assertSucceeds(setDoc(doc(db(ADMIN), "smac_private/bob"), { phone: "+15555550100", registryId: "bob", updatedAt: 1 }, { merge: true }));
+  await assertSucceeds(updateDoc(doc(db(ADMIN), "smac_registry/bob"), { phone: deleteField() }));
+});
 test("ALLOW profile save: ig + photoURL", () => assertSucceeds(updateDoc(doc(db(ALICE), "smac_registry/regAlice"), { ig: "alice", photoURL: "https://firebasestorage.googleapis.com/x" })));
 test("ALLOW grace token spend", () => assertSucceeds(updateDoc(doc(db(ALICE), "smac_registry/regAlice"), { graceTokens: 1, points: increment(10) })));
 test("ALLOW All-Star flag set true", () => assertSucceeds(updateDoc(doc(db(ALICE), "smac_registry/regAlice"), { isAllStar: true })));
