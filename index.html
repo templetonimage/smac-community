@@ -2673,6 +2673,12 @@ const safeHref=(u,allowImg)=>{
   else if(!/^[a-z][a-z0-9+.-]*:/i.test(v))v="https://"+v;
   try{const x=new URL(v);return(x.protocol==="https:"||x.protocol==="http:")&&x.hostname.includes(".")?x.href:"";}catch(e){return"";}
 };
+// Security: AI proxy calls carry the member's Firebase ID token; the Cloudflare Worker verifies it.
+async function _aiHeaders(){
+  const h={"Content-Type":"application/json"};
+  try{ if(auth&&auth.currentUser){ h.Authorization="Bearer "+await auth.currentUser.getIdToken(); } }catch(e){ console.warn("AI token unavailable:",e); }
+  return h;
+}
 // Security: for values placed inside a '...' JS string in an inline onclick="..." handler.
 // esc() alone is not enough there: the browser decodes &#39; back to ' before running the JS.
 const jsq=s=>esc(String(s??"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/\r?\n/g,"\\n").replace(/[\u2028\u2029]/g," "));
@@ -6496,9 +6502,7 @@ window.runHookGenerator = async function() {
   try {
     const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: await _aiHeaders(),
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 800,
@@ -6690,9 +6694,7 @@ window.runActionPlan = async function() {
   try {
     const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: await _aiHeaders(),
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 900,
@@ -6912,9 +6914,7 @@ window.runCaptionAssist = async function() {
   try {
     const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: await _aiHeaders(),
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 1200,
@@ -7043,7 +7043,7 @@ async function runCpaPreflightExtract() {
   try {
     const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await _aiHeaders(),
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 500,
@@ -7194,9 +7194,7 @@ window.runContentAnalysis = async function() {
   try {
     const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: await _aiHeaders(),
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 850,
@@ -7559,7 +7557,7 @@ window.runSnapshotAnalysis = async function() {
 
     const resp = await fetch("https://smac-ai-proxy.templetonimage.workers.dev", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await _aiHeaders(),
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 1100,
