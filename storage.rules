@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// SMAC Storage rules — Security Stage 3 (Oct 2026)
+// Each member can only write or delete their own photo: profile_photos/{their Auth UID}.jpg
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function isAdmin()  { return signedIn() && request.auth.token.email == 'nate@templetonimage.com'; }
+    function ownsFile(fileName) { return signedIn() && fileName == request.auth.uid + '.jpg'; }
+
+    match /profile_photos/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if (ownsFile(fileName) || isAdmin())
+                    && request.resource.size < 2 * 1024 * 1024
+                    && request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
+      allow delete: if ownsFile(fileName) || isAdmin();
+    }
+  }
+}
