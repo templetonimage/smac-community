@@ -6665,22 +6665,12 @@ window.runActionPlan = async function() {
   // Fetch last 3 saved plans for context
   let historyContext = "";
   try {
-    const { collection, query, where, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const hSnap = await getDocs(query(
-      collection(db, "pro_plans"),
-      where("uid", "==", currentUser.uid),
-      orderBy("createdAt", "desc"),
-      limit(3)
-    ));
-    if (!hSnap.empty) {
-      const pastPlans = [];
-      hSnap.forEach(d => {
-        const pd = d.data();
-        pastPlans.push(`${pd.weekLabel}: ${pd.planSummary || pd.plan.substring(0, 300)}`);
-      });
+    const recent = await _fetchMyPlans(3);
+    if (recent.length) {
+      const pastPlans = recent.map(pd => `${pd.weekLabel}: ${pd.planSummary || (pd.plan || "").substring(0, 300)}`);
       historyContext = "\n\nPREVIOUS WEEKS (do NOT repeat these topics, formats, or hook angles):\n" + pastPlans.reverse().join("\n---\n");
     }
-  } catch(e) { /* history fetch non-fatal */ }
+  } catch(e) { console.warn("Plan history context unavailable:", e); }
 
   const userMsg = [
     `Niche / business: ${niche}`,
@@ -6773,6 +6763,17 @@ window.saveActionPlan = async function() {
   }
 };
 
+// Member's saved plans, newest first. Sorted here instead of with orderBy so the
+// query needs no composite Firestore index (uid + createdAt never existed).
+async function _fetchMyPlans(max){
+  const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const snap = await getDocs(query(collection(db, "pro_plans"), where("uid", "==", currentUser.uid)));
+  const ms = v => v?.toMillis ? v.toMillis() : (typeof v === "number" ? v : Date.now()); // pending serverTimestamp = just saved
+  const items = [];
+  snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+  return items.sort((a, b) => ms(b.createdAt) - ms(a.createdAt)).slice(0, max);
+}
+
 // Load and render previous plans into the history accordion
 async function loadWapHistory() {
   if (!currentUser) return;
@@ -6780,16 +6781,8 @@ async function loadWapHistory() {
   const wrapEl = document.getElementById("wap-history-wrap");
   if (!listEl) return;
   try {
-    const { collection, query, where, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const snap = await getDocs(query(
-      collection(db, "pro_plans"),
-      where("uid", "==", currentUser.uid),
-      orderBy("createdAt", "desc"),
-      limit(12)
-    ));
-    if (snap.empty) { if (wrapEl) wrapEl.style.display = "none"; return; }
-    const items = [];
-    snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+    const items = await _fetchMyPlans(12);
+    if (!items.length) { if (wrapEl) wrapEl.style.display = "none"; return; }
     listEl.innerHTML = items.map(item => {
       const planHtml = (item.plan || "")
         .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
@@ -6805,7 +6798,7 @@ async function loadWapHistory() {
       </details>`;
     }).join("");
     if (wrapEl) wrapEl.style.display = "block";
-  } catch(e) { /* non-fatal */ }
+  } catch(e) { console.warn("Plan history load failed:", e); }
 }
 
 // Toggle history accordion open/closed
