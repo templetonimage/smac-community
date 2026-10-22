@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Security: Content-Security-Policy. connect-src limits where the page can send data (Firebase, the AI proxy). Add any new outside service here or it will be blocked. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://cdn.jsdelivr.net https://smac-ai-proxy.templetonimage.workers.dev; frame-src https://smac-2026.firebaseapp.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>SMAC Community</title>
   <meta name="description" content="Social Media Accountability Challenge — Member Community" />
@@ -2660,6 +2662,20 @@ const lsPush=(k,i)=>{const a=lsGet(k)||[];a.unshift(i);lsSet(k,a);return a;};
 // Migrate stale admin session: clear if name is old short value
 (()=>{try{const s=lsGet("smac_session");if(s&&s.isAdmin&&s.name==="Nate"){localStorage.removeItem("smac_session");}}catch(e){}})();
 const esc=s=>{if(!s)return"";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");};
+// Security: returns a normalized http(s) URL that is safe to put in an href, or "" if it isn't one.
+// Bare domains ("instagram.com/p/...") get https:// added. Blocks javascript:, data:, vbscript:, etc.
+// allowImg=true also allows in-app image proofs (data:image png/jpeg/webp/gif, never SVG).
+const safeHref=(u,allowImg)=>{
+  if(!u)return"";
+  let v=String(u).trim();
+  if(allowImg&&/^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+\/=\s]+$/i.test(v))return v;
+  if(v.startsWith("//"))v="https:"+v;
+  else if(!/^[a-z][a-z0-9+.-]*:/i.test(v))v="https://"+v;
+  try{const x=new URL(v);return(x.protocol==="https:"||x.protocol==="http:")&&x.hostname.includes(".")?x.href:"";}catch(e){return"";}
+};
+// Security: for values placed inside a '...' JS string in an inline onclick="..." handler.
+// esc() alone is not enough there: the browser decodes &#39; back to ' before running the JS.
+const jsq=s=>esc(String(s??"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/\r?\n/g,"\\n").replace(/[\u2028\u2029]/g," "));
 // Escapes text then wraps any https?:// URLs in a clickable anchor
 const linkify=s=>{
   if(!s)return"";
@@ -3369,8 +3385,10 @@ window.loadSubmitPage=function(){
 // ─────────────────────────────────────────────
 window.submitPost=async function(){
   const text=document.getElementById("compose-text").value.trim();
-  const link=document.getElementById("compose-link").value.trim();
+  const linkRaw=document.getElementById("compose-link").value.trim();
   if(!text){showToast("Write something first!");return;}
+  const link=linkRaw?safeHref(linkRaw):"";
+  if(linkRaw&&!link){showToast("That link doesn't look right. Paste the full post URL.");return;}
   const post={author:currentUser.name,uid:currentUser.uid,text,link,ts:Date.now(),likes:0,likedBy:[],props:0,propsBy:[],propsNames:[]};
   try{
     if(!useLocalFallback&&db){
@@ -3438,7 +3456,7 @@ function renderFeed(posts){
     const _feedInitials=p.author.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase(); // kept for fallback
     const likedByMe=(p.likedBy||[]).includes(currentUser.uid);
     const propsGiven=(p.propsBy||[]).includes(currentUser.uid);
-    const hasLink=!!p.link;
+    const safeLink=safeHref(p.link);const hasLink=!!safeLink;
     const isMine=p.uid===currentUser.uid;
     // Props button logic
     let propsBtn="";
@@ -3449,7 +3467,7 @@ function renderFeed(posts){
     } else if(propsGiven){
       propsBtn=`<button class="react-btn active" disabled>🙌 Props given!</button>`;
     } else {
-      propsBtn=`<button class="react-btn" onclick="giveProps('${p.id}','${esc(p.link)}','${esc(p.author)}')">🙌 Give Props</button>`;
+      propsBtn=`<button class="react-btn" onclick="giveProps('${p.id}','${jsq(safeLink)}','${jsq(p.author)}')">🙌 Give Props</button>`;
     }
     // Props count + expandable who-gave-props list
     const propsCount=p.props||0;
@@ -3471,7 +3489,7 @@ function renderFeed(posts){
         <div><div class="card-author">${esc(p.author)}${proBadgeFor(p.uid)}${founderBadgeFor(p.uid)}</div><div class="card-time">${timeAgo(p.ts)}</div></div>
       </div>
       <div class="card-body">${linkify(p.text)}</div>
-      ${hasLink?`<a class="card-link" href="${esc(p.link)}" target="_blank" rel="noopener">View Post ↗</a>`:""}
+      ${hasLink?`<a class="card-link" href="${esc(safeLink)}" target="_blank" rel="noopener">View Post ↗</a>`:""}
       <div class="card-actions">
         <button class="react-btn ${likedByMe?"active":""}" onclick="toggleLike('${p.id}')">♥ ${p.likes||0}</button>
         ${propsBtn}
@@ -3493,7 +3511,8 @@ function renderFeed(posts){
 
 // Props: open IG link → confirm button appears after redirect
 window.giveProps=function(postId,link,authorName){
-  window.open(link,"_blank","noopener");
+  const _safe=safeHref(link);if(!_safe){showToast("That post's link isn't valid.");return;}
+  window.open(_safe,"_blank","noopener");
   showToast(`Opening their post... come back to confirm Props for ${authorName.split(" ")[0]}!`);
   // After 1.5s, swap button to confirm state
   setTimeout(()=>{
@@ -4096,7 +4115,7 @@ function renderResources(items){
     const adminBtns=isAdmin&&!isDefault?`
       <div class="res-admin-btns" onclick="event.stopPropagation()">
         <button class="res-edit-btn" onclick="openEditResource('${r.id}')">✏️ Edit</button>
-        <button class="res-delete-btn" onclick="deleteResource('${r.id}','${esc(r.title)}')">🗑️</button>
+        <button class="res-delete-btn" onclick="deleteResource('${r.id}','${jsq(r.title)}')">🗑️</button>
       </div>`:"";
     return `<div class="resource-card" onclick='openResModal(${rJson})' style="position:relative;">
       ${adminBtns}
@@ -4115,9 +4134,9 @@ window.openResModal=function(r){
   document.getElementById("rmd-body").textContent=r.body||r.desc||"";
   const footer=document.getElementById("rmd-footer");
   let footerHtml="";
-  if(r.url&&r.url!=="#") footerHtml+=`<a class="res-modal-btn" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.urlLabel||"Open Resource")} ↗</a>`;
+  if(safeHref(r.url)) footerHtml+=`<a class="res-modal-btn" href="${esc(safeHref(r.url))}" target="_blank" rel="noopener">${esc(r.urlLabel||"Open Resource")} ↗</a>`;
   if(r.source||r.sourceUrl){
-    const srcLink=r.sourceUrl?`<a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:underline;">${esc(r.source||r.sourceUrl)}</a>`:esc(r.source);
+    const srcLink=safeHref(r.sourceUrl)?`<a href="${esc(safeHref(r.sourceUrl))}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:underline;">${esc(r.source||r.sourceUrl)}</a>`:esc(r.source);
     footerHtml+=`<div style="margin-top:${r.url&&r.url!=="#"?"16px":"0"};font-size:12px;color:var(--text-muted);">Source: ${srcLink}</div>`;
   }
   footer.innerHTML=footerHtml;
@@ -4132,9 +4151,7 @@ const SVG_EXTERNAL = `<svg style="flex-shrink:0;margin-left:auto;" width="14" he
 
 function buildZoomCardHTML(cfg) {
   if (!cfg || !cfg.visible) return "";
-  const rawUrl = (cfg.url || "").trim();
-  const absoluteUrl = rawUrl && !/^https?:\/\//i.test(rawUrl) ? "https://" + rawUrl : rawUrl;
-  const safeUrl = absoluteUrl.replace(/"/g, "&quot;");
+  const safeUrl = esc(safeHref(cfg.url));
   const safeTitle = esc(cfg.title || "");
   const safeSub = esc(cfg.subtext || "Tap to save the Zoom event to your calendar");
   return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="dash-cal-btn">
@@ -4586,7 +4603,7 @@ window.openReplayModal=function(){
         <div class="replay-item-title">${esc(r.title)}</div>
         <div class="replay-item-meta">${esc(r.date)}</div>
       </div>
-      <a class="replay-item-btn" href="${esc(r.url)}" target="_blank" rel="noopener">Watch ↗</a>
+      <a class="replay-item-btn" href="${esc(safeHref(r.url))}" target="_blank" rel="noopener">Watch ↗</a>
     </div>`).join("");
   document.getElementById("replay-modal-overlay").classList.add("open");
   document.body.style.overflow="hidden";
@@ -4935,7 +4952,7 @@ function renderAdminRegistry(registry, list){
     <div class="member-grid">${sorted.map((m,i)=>{
     const docId=m.id||m.uid||"";
     const initials=m.name.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
-    const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";
+    const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${encodeURIComponent(igHandle)}`:"";
     const enrolledNow=m.isFounder||(m.rounds||[]).includes(CURRENT_ROUND);
     return `<div class="member-card" style="${!enrolledNow?"opacity:0.55;":""}">
       <div class="member-card-top">
@@ -4965,10 +4982,10 @@ function renderAdminRegistry(registry, list){
           <button class="react-btn" style="flex:1;justify-content:center;" onclick="toggleRegistryFlag('${docId}','isVIP')">${m.isVIP?"Remove VIP":"⚡ VIP"}</button>
         </div>
         <button class="react-btn" style="width:100%;justify-content:center;" onclick="toggleRegistryFlag('${docId}','isAllStar')">${m.isAllStar?"Remove All-Star":"⭐ All-Star"}</button>
-        <button class="react-btn" style="width:100%;justify-content:center;" onclick="editRegistryIg('${docId}','${esc(m.ig||'')}')">📸 Edit Instagram</button>
-        <button class="react-btn" style="width:100%;justify-content:center;" onclick="editRegistryEmail('${docId}','${esc(m.email||'')}')" >✏️ Edit Email</button>
+        <button class="react-btn" style="width:100%;justify-content:center;" onclick="editRegistryIg('${docId}','${jsq(m.ig||'')}')">📸 Edit Instagram</button>
+        <button class="react-btn" style="width:100%;justify-content:center;" onclick="editRegistryEmail('${docId}','${jsq(m.email||'')}')" >✏️ Edit Email</button>
         <button class="react-btn" style="width:100%;justify-content:center;${m.isPro?"background:#eef3f6;border-color:var(--gold);color:var(--gold-dark);font-weight:600;":""}" onclick="toggleProAccess('${docId}',${!!m.isPro})">${m.isPro?"★ Remove Pro Access":"★ Grant Pro Access"}</button>
-        <button class="react-btn" style="width:100%;justify-content:center;" onclick="setTrialAccess('${docId}','${esc(m.name||'')}')">⏱ Set Trial Access</button>
+        <button class="react-btn" style="width:100%;justify-content:center;" onclick="setTrialAccess('${docId}','${jsq(m.name||'')}')">⏱ Set Trial Access</button>
         <button class="react-btn" style="width:100%;justify-content:center;" onclick="removeRegistryMember('${docId}')">🗑 Remove from Registry</button>
       </div>
     </div>`;
@@ -5061,7 +5078,7 @@ function renderMemberGrid(members, list, isAdmin){
   });
   sorted.forEach(m=>{ _memberMap[m.id||m.uid||m.name]=m; const _dk=m.id||""; const _uk=m.uid||""; if(m.photoURL){ if(_dk)_photoCache[_dk]=m.photoURL; if(_uk&&_uk!==_dk)_photoCache[_uk]=m.photoURL; } if(m.isPro===true){ if(_dk)_proCache[_dk]=true; if(_uk&&_uk!==_dk)_proCache[_uk]=true; } if(m.isFounder===true){ if(_dk)_founderCache[_dk]=true; if(_uk&&_uk!==_dk)_founderCache[_uk]=true; } });
   list.innerHTML=`<div class="member-grid">${sorted.map(m=>{
-    const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";const mapKey=m.id||m.uid||m.name;
+    const igHandle=m.ig?m.ig.trim().replace(/^@+/,""):"";const igUrl=igHandle?`https://www.instagram.com/${encodeURIComponent(igHandle)}`:"";const mapKey=m.id||m.uid||m.name;
     const isAdminCard=m._isAdmin===true;
     const _muid=m.id||m.uid||"";
     return `<div class="member-card" data-member-key="${mapKey}" onclick="handleMemberCardClick(this)" style="${isAdminCard?"border-color:var(--gold);background:linear-gradient(135deg,#eef3f6,#e3ebf0);":""}">
@@ -5266,7 +5283,7 @@ async function loadTrackerReport(){
               ${rows.map(r => `
                 <tr style="border-bottom:1px solid var(--border);">
                   <td style="padding:12px 10px 12px 0;font-weight:500;white-space:nowrap;">
-                    <span style="display:inline-flex;align-items:center;gap:6px;">${avatarHTML(r.name, r.docId, "avatar", "width:24px;height:24px;font-size:10px;flex-shrink:0;")}${currentUser.isAdmin && !r.noTracker ? `<button onclick="openAdminTrackerEditor('${r.docId}','${esc(r.name)}')" style="background:none;border:none;padding:0;font-weight:600;font-size:14px;color:var(--text-primary);cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--border);" title="View tracker">${esc(r.name)}</button>` : `<span>${esc(r.name)}</span>`}</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;">${avatarHTML(r.name, r.docId, "avatar", "width:24px;height:24px;font-size:10px;flex-shrink:0;")}${currentUser.isAdmin && !r.noTracker ? `<button onclick="openAdminTrackerEditor('${r.docId}','${jsq(r.name)}')" style="background:none;border:none;padding:0;font-weight:600;font-size:14px;color:var(--text-primary);cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--border);" title="View tracker">${esc(r.name)}</button>` : `<span>${esc(r.name)}</span>`}</span>
                     ${r.noTracker && currentUser.isAdmin ? '<span title="Has not logged in yet" style="font-size:9px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;">Not logged in</span>' : ''}
                     ${r.isPro ? '<span title="SMAC Pro member — Pro requirements apply" style="font-size:9px;color:var(--gold);background:rgba(91,132,163,.12);border:1px solid rgba(91,132,163,.4);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;font-weight:600;">PRO</span>' : ''}
                     ${currentUser.isAdmin ? `<button onclick="removeFromReport('${r.docId}')" style="margin-left:4px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:10px;cursor:pointer;padding:2px 5px;vertical-align:middle;" title="Remove from report">✕</button>` : ''}
@@ -8297,11 +8314,12 @@ window.submitEngagement=async function(){
   loadEngHistory();loadMyEngLog();if(window._lbSubCache) window._lbSubCache.ts=0;loadLeaderboard();
 };
 window.submitIgPost=async function(){
-  const url=document.getElementById("submit-ig-url").value.trim();
+  const urlRaw=document.getElementById("submit-ig-url").value.trim();
+  const url=urlRaw?safeHref(urlRaw):"";
   const errEl=document.getElementById("submit-error");
   errEl.style.display="none";
-  if(!url&&!screenshotBase64){errEl.style.display="block";errEl.textContent="Paste your Instagram URL or upload a screenshot.";return;}
-  if(url&&!url.includes("instagram.com")&&!url.includes("instagr.am")){errEl.style.display="block";errEl.textContent="URL must be an Instagram link.";return;}
+  if(!urlRaw&&!screenshotBase64){errEl.style.display="block";errEl.textContent="Paste your Instagram URL or upload a screenshot.";return;}
+  if(urlRaw&&(!url||!/(^|\.)(instagram\.com|instagr\.am)$/i.test(new URL(url).hostname))){errEl.style.display="block";errEl.textContent="URL must be an Instagram link.";return;}
 
   const now=Date.now();
   const weekIdx=getWeekIndex(now);
@@ -8647,10 +8665,10 @@ async function loadMySubmissions(){
       const editTitle = canEdit ? `Edit (${daysLeft}d left)` : "Edit window closed (7-day limit)";
       return `
       <div class="sub-item" style="flex-direction:column;align-items:stretch;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
-        ${s.screenshotBase64?`<img src="${s.screenshotBase64}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:140px;object-fit:cover;border:1px solid var(--border);" />`:""}
+        ${s.screenshotBase64?`<img src="${esc(s.screenshotBase64)}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:140px;object-fit:cover;border:1px solid var(--border);" />`:""}
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="flex:1;">
-            ${s.url?`<a href="${esc(s.url)}" target="_blank" style="color:var(--gold);font-size:12px;">View post ↗</a>`:`<span style="font-size:12px;color:var(--text-muted);">Screenshot only</span>`}
+            ${safeHref(s.url)?`<a href="${esc(safeHref(s.url))}" target="_blank" style="color:var(--gold);font-size:12px;">View post ↗</a>`:`<span style="font-size:12px;color:var(--text-muted);">Screenshot only</span>`}
             <div style="font-size:11px;color:var(--text-muted);">Week ${(s.weekIdx||0)+1} · ${s.format||"Static"} · ${new Date(s.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}${s.challengeApplied?` · <strong style="color:var(--gold);">⭐ Challenge</strong>`:""}${s.syfApplied?` · <strong style="color:#9b59b6;">🎥 SYF</strong>`:""}</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
@@ -8788,7 +8806,7 @@ async function loadMyEngLog(){
   const WEEK_LABELS=["W1","W2","W3","W4","W5","W6","W7","W8","W9","W10","W11","W12"];
   function engCardHTML(e){
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
-      ${e.screenshotBase64?`<img src="${e.screenshotBase64}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:120px;object-fit:cover;border:1px solid var(--border);" />`:""}
+      ${e.screenshotBase64?`<img src="${esc(e.screenshotBase64)}" style="width:100%;border-radius:6px;margin-bottom:6px;max-height:120px;object-fit:cover;border:1px solid var(--border);" />`:""}
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="flex:1;">
           <span style="font-size:13px;font-weight:600;color:var(--gold);">${esc(e.type||"—")}</span>
@@ -9074,7 +9092,7 @@ function buildSubCard(s){
         Grace Token applied — protects the member's All-Star streak for this week. Awards <strong>0 points</strong>.
       </div>
       <div class="sub-actions">
-        <button class="btn-sm" style="color:#e74c3c;border-color:#e74c3c;" onclick="deleteSubmission('${esc(s._id)}','${esc(s.memberName||"")}')">Delete</button>
+        <button class="btn-sm" style="color:#e74c3c;border-color:#e74c3c;" onclick="deleteSubmission('${jsq(s._id)}','${jsq(s.memberName||"")}')">Delete</button>
       </div>
     </div>`;
   }
@@ -9103,7 +9121,7 @@ function buildSubCard(s){
     </div>
 
     ${s.screenshotBase64 ? `<img src="${esc(s.screenshotBase64)}" class="sub-thumb" onclick="this.style.maxHeight=this.style.maxHeight==='none'?'160px':'none'" title="Click to expand" />` : ""}
-    ${s.url ? `<div style="margin-bottom:8px;"><a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:var(--gold);font-size:12px;word-break:break-all;">${esc(s.url)}</a></div>` : ""}
+    ${safeHref(s.url) ? `<div style="margin-bottom:8px;"><a href="${esc(safeHref(s.url))}" target="_blank" rel="noopener" style="color:var(--gold);font-size:12px;word-break:break-all;">${esc(s.url)}</a></div>` : ""}
 
     <!-- Admin Edit: Format + Challenge + Points -->
     <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;border:1px solid var(--border);">
@@ -9111,7 +9129,7 @@ function buildSubCard(s){
 
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
         <span style="font-size:12px;color:var(--text-muted);min-width:56px;">Format:</span>
-        <select id="fmt-${esc(s._id)}" onchange="recalcSubPts('${esc(s._id)}')" style="font-size:12px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;">
+        <select id="fmt-${esc(s._id)}" onchange="recalcSubPts('${jsq(s._id)}')" style="font-size:12px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;">
           <option value="Static"${currentFormat==="Static"?" selected":""}>📷 Static</option>
           <option value="Reel"${currentFormat==="Reel"?" selected":""}>🎬 Reel (+2 pts)</option>
           <option value="Carousel"${currentFormat==="Carousel"?" selected":""}>🖼 Carousel (+2 pts)</option>
@@ -9121,7 +9139,7 @@ function buildSubCard(s){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <span style="font-size:12px;color:var(--text-muted);min-width:56px;">Challenge:</span>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
-          <input type="checkbox" id="chal-${esc(s._id)}" ${challengeOn?"checked":""} onchange="recalcSubPts('${esc(s._id)}')" style="width:14px;height:14px;accent-color:var(--gold);" />
+          <input type="checkbox" id="chal-${esc(s._id)}" ${challengeOn?"checked":""} onchange="recalcSubPts('${jsq(s._id)}')" style="width:14px;height:14px;accent-color:var(--gold);" />
           ⭐ Weekly challenge modifier applied (+5 pts)
         </label>
       </div>
@@ -9129,24 +9147,24 @@ function buildSubCard(s){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <span style="font-size:12px;color:var(--text-muted);min-width:56px;">SYF:</span>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
-          <input type="checkbox" id="syf-${esc(s._id)}" ${syfOn?"checked":""} onchange="recalcSubPts('${esc(s._id)}')" style="width:14px;height:14px;accent-color:#9b59b6;" />
+          <input type="checkbox" id="syf-${esc(s._id)}" ${syfOn?"checked":""} onchange="recalcSubPts('${jsq(s._id)}')" style="width:14px;height:14px;accent-color:#9b59b6;" />
           🎥 Show Your Face modifier applied (+5 pts)
         </label>
       </div>
 
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:12px;color:var(--text-muted);min-width:56px;">Points:</span>
-        <input class="sub-pts-edit" type="number" value="${ptsDisplay}" id="pts-${esc(s._id)}" min="0" max="50" oninput="markPtsManual('${esc(s._id)}')" />
+        <input class="sub-pts-edit" type="number" value="${ptsDisplay}" id="pts-${esc(s._id)}" min="0" max="50" oninput="markPtsManual('${jsq(s._id)}')" />
         <span id="pts-note-${esc(s._id)}" style="font-size:11px;color:var(--text-muted);"></span>
-        <button class="btn-sm" onclick="saveSubDetails('${esc(s._id)}')" style="margin-left:auto;background:var(--gold);color:#000;border-color:var(--gold);">Save</button>
+        <button class="btn-sm" onclick="saveSubDetails('${jsq(s._id)}')" style="margin-left:auto;background:var(--gold);color:#000;border-color:var(--gold);">Save</button>
       </div>
     </div>
 
     <div class="sub-actions">
-      <button class="btn-sm${s.reviewed?" ":"" }" style="${s.reviewed?"background:rgba(39,174,96,.15);color:#27ae60;border-color:#27ae60;":""}" onclick="toggleSubReviewed('${esc(s._id)}',${s.reviewed?true:false})">
+      <button class="btn-sm${s.reviewed?" ":"" }" style="${s.reviewed?"background:rgba(39,174,96,.15);color:#27ae60;border-color:#27ae60;":""}" onclick="toggleSubReviewed('${jsq(s._id)}',${s.reviewed?true:false})">
         ${s.reviewed ? "✓ Reviewed" : "Mark Reviewed"}
       </button>
-      <button class="btn-sm" style="color:#e74c3c;border-color:#e74c3c;" onclick="deleteSubmission('${esc(s._id)}','${esc(s.memberName||"")}')">Delete</button>
+      <button class="btn-sm" style="color:#e74c3c;border-color:#e74c3c;" onclick="deleteSubmission('${jsq(s._id)}','${jsq(s.memberName||"")}')">Delete</button>
     </div>
   </div>`;
 }
@@ -9413,7 +9431,7 @@ window.runMemberReset = async function(){
       await updateDoc(trackerRef,{"tracked.w1":[], "tracked.w2":[]});
     }
 
-    statusEl.innerHTML = `<span style="color:#27ae60;font-weight:700;">Done.</span> ${name}'s points set to <strong>${newPts}</strong>. ${preSubIds.length} submission(s) and ${preEngIds.length} engagement(s) deleted. W1 + W2 tracker cleared.`;
+    statusEl.innerHTML = `<span style="color:#27ae60;font-weight:700;">Done.</span> ${esc(name)}'s points set to <strong>${newPts}</strong>. ${preSubIds.length} submission(s) and ${preEngIds.length} engagement(s) deleted. W1 + W2 tracker cleared.`;
     runBtn.style.display = "none";
     document.getElementById("member-reset-preview").style.display = "none";
     _memberResetTarget = null;
@@ -9926,7 +9944,7 @@ window.runPointsAudit = async function(){
       if(isGrace && postPts > 0)
         flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ Grace week post pts: ${postPts}</span>`);
       if(!isGrace && realSubs.length > required)
-        flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ ${realSubs.length} posts (max ${required})</span> <button onclick="voidOverCapPosts('${esc(uid)}','${esc(regId)}',${wi})" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;margin-left:4px;">Void ${realSubs.length - required} excess</button>`);
+        flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ ${realSubs.length} posts (max ${required})</span> <button onclick="voidOverCapPosts('${jsq(uid)}','${jsq(regId)}',${wi})" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;margin-left:4px;">Void ${realSubs.length - required} excess</button>`);
       if(bucket.engs.length > MAX_ENG_PER_WEEK)
         flags.push(`<span style="color:#e74c3c;font-weight:700;">⚠ ${bucket.engs.length} engagements (max ${MAX_ENG_PER_WEEK})</span>`);
       if(weekTotal > maxTotal)
@@ -10014,9 +10032,9 @@ window.runPointsAudit = async function(){
           fixBtns = `<span style="color:#27ae60;font-size:11px;font-weight:700;">✓ Fixed</span>`;
         } else {
           if(isDupChallenge)
-            fixBtns += `<button onclick="applyAuditCorrection('${esc(s._id)}','challenge',${s.pts||0},${wi},'${esc(uid)}','${esc(regId)}','${esc(name)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;margin-right:4px;">Remove Challenge</button>`;
+            fixBtns += `<button onclick="applyAuditCorrection('${jsq(s._id)}','challenge',${s.pts||0},${wi},'${jsq(uid)}','${jsq(regId)}','${jsq(name)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;margin-right:4px;">Remove Challenge</button>`;
           if(isDupSyf)
-            fixBtns += `<button onclick="applyAuditCorrection('${esc(s._id)}','syf',${s.pts||0},${wi},'${esc(uid)}','${esc(regId)}','${esc(name)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;">Remove SYF</button>`;
+            fixBtns += `<button onclick="applyAuditCorrection('${jsq(s._id)}','syf',${s.pts||0},${wi},'${jsq(uid)}','${jsq(regId)}','${jsq(name)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;">Remove SYF</button>`;
         }
 
         html += `<tr id="auditrow-${esc(s._id)}" style="border-bottom:1px solid var(--border);${rowFlag}">
@@ -10457,7 +10475,7 @@ window.runPointsAuditAll = async function(){
         ? `<span style="color:#e67e22;font-size:11px;">${r.flags.slice(0,2).map(f=>esc(f)).join(" · ")}${r.flags.length>2?" · +"+(r.flags.length-2)+" more":""}</span>`
         : `<span style="color:#27ae60;font-size:11px;">✓ Clean</span>`;
       const drillBtn = hasFlagRow
-        ? `<button onclick="drillAuditMember('${esc(r.uid)}','${esc(r.id)}','${esc(r.name)}')" style="font-size:11px;padding:3px 10px;border:1px solid var(--gold);color:var(--gold);background:transparent;border-radius:5px;cursor:pointer;white-space:nowrap;">Full Audit →</button>`
+        ? `<button onclick="drillAuditMember('${jsq(r.uid)}','${jsq(r.id)}','${jsq(r.name)}')" style="font-size:11px;padding:3px 10px;border:1px solid var(--gold);color:var(--gold);background:transparent;border-radius:5px;cursor:pointer;white-space:nowrap;">Full Audit →</button>`
         : "";
 
       html += `<tr style="border-bottom:1px solid var(--border);${rowBg}">
@@ -10805,9 +10823,9 @@ function renderSpotlights(items){
       <div class="spotlight-member">${esc(s.member)}</div>
       ${s.caption ? `<div class="spotlight-caption">${esc(s.caption)}</div>` : ""}
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener" class="spotlight-view-btn">View Post ↗</a>` : ""}
-        ${currentUser&&currentUser.isAdmin ? `<button onclick="archiveSpotlight('${esc(s.id)}')" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;" title="Archive">📦 Archive</button>` : ""}
-        ${currentUser&&currentUser.isAdmin ? `<button onclick="deleteSpotlight('${esc(s.id)}')" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;">🗑 Remove</button>` : ""}
+        ${safeHref(s.url) ? `<a href="${esc(safeHref(s.url))}" target="_blank" rel="noopener" class="spotlight-view-btn">View Post ↗</a>` : ""}
+        ${currentUser&&currentUser.isAdmin ? `<button onclick="archiveSpotlight('${jsq(s.id)}')" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;" title="Archive">📦 Archive</button>` : ""}
+        ${currentUser&&currentUser.isAdmin ? `<button onclick="deleteSpotlight('${jsq(s.id)}')" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;">🗑 Remove</button>` : ""}
       </div>
     </div>`).join("");
   }
@@ -10905,8 +10923,8 @@ function renderSpotlightArchiveModal(items){
     const sep = idx>0 ? '<div style="height:1px;background:var(--border);margin:0 0 16px;"></div>' : "";
     const adminHtml = (currentUser&&currentUser.isAdmin) ?
       `<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
-        <button class="react-btn" onclick="restoreSpotlight('${esc(s.id)}')">↩ Restore to Feed</button>
-        <button class="react-btn" onclick="deleteArchivedSpotlight('${esc(s.id)}')" style="color:#e74c3c;">🗑 Delete</button>
+        <button class="react-btn" onclick="restoreSpotlight('${jsq(s.id)}')">↩ Restore to Feed</button>
+        <button class="react-btn" onclick="deleteArchivedSpotlight('${jsq(s.id)}')" style="color:#e74c3c;">🗑 Delete</button>
       </div>` : "";
     return sep +
       `<div style="margin-bottom:16px;">
@@ -10914,7 +10932,7 @@ function renderSpotlightArchiveModal(items){
         <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px;">${esc(s.member)}</div>
         ${s.caption ? `<div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">${esc(s.caption)}</div>` : ""}
         <div style="display:flex;align-items:center;justify-content:space-between;">
-          ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener" class="spotlight-view-btn" style="font-size:11px;padding:5px 11px;">View Post ↗</a>` : "<span></span>"}
+          ${safeHref(s.url) ? `<a href="${esc(safeHref(s.url))}" target="_blank" rel="noopener" class="spotlight-view-btn" style="font-size:11px;padding:5px 11px;">View Post ↗</a>` : "<span></span>"}
           <span style="font-size:11px;color:var(--text-muted);">${timeAgo(s.ts)}</span>
         </div>
         ${adminHtml}
@@ -12190,7 +12208,7 @@ async function loadRenewModalConfig(){
 function applyRenewModalContent(){
   const cfg = window._renewModalConfig || RENEW_MODAL_DEFAULTS;
   const setText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
-  const setHref = (id, val) => { const el = document.getElementById(id); if(el) el.href = val; };
+  const setHref = (id, val) => { const el = document.getElementById(id); if(el) el.href = safeHref(val) || "#"; };
 
   setText("renew-modal-heading", cfg.heading);
   setText("renew-modal-subtext", cfg.subtext);
@@ -12198,11 +12216,11 @@ function applyRenewModalContent(){
   if(whyEl) whyEl.innerHTML = (cfg.why_bullets||[]).map(b => "• " + esc(b)).join("<br>\n          ");
   setText("renew-countdown-label", cfg.deadline_label);
   const baseBtn = document.getElementById("renew-base-cta");
-  if(baseBtn){ baseBtn.href = cfg.base_url; baseBtn.textContent = cfg.base_btn_label; }
+  if(baseBtn){ baseBtn.href = safeHref(cfg.base_url) || "#"; baseBtn.textContent = cfg.base_btn_label; }
   setText("renew-pro-heading", cfg.pro_heading);
   setText("renew-pro-subtext", cfg.pro_subtext);
   const proBtn = document.getElementById("renew-pro-cta");
-  if(proBtn){ proBtn.href = cfg.pro_url; proBtn.textContent = cfg.pro_btn_label; }
+  if(proBtn){ proBtn.href = safeHref(cfg.pro_url) || "#"; proBtn.textContent = cfg.pro_btn_label; }
 
   setText("dash-renew-card-title", cfg.card_title);
   setText("dash-renew-card-sub", cfg.card_sub);
@@ -12658,10 +12676,10 @@ window.renderRestartPackTable = function(){
     let proofCell = "—";
     if(m.ambassadorRevoked) proofCell = `<span style="color:#e74c3c;">Revoked</span>`;
     else if(m.ambassadorAwarded) proofCell = m.ambassadorProofUrl
-      ? `<a href="${esc(m.ambassadorProofUrl)}" target="_blank" rel="noopener" style="color:var(--gold-dark);">View ✓</a>`
+      ? `<a href="${esc(safeHref(m.ambassadorProofUrl,true))}" target="_blank" rel="noopener" style="color:var(--gold-dark);">View ✓</a>`
       : `<span style="color:#27ae60;">✓ Submitted</span>`;
     const actionCell = (m.ambassadorAwarded && !m.ambassadorRevoked)
-      ? `<button onclick="revokeAmbassador('${esc(m.id)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;">Revoke</button>`
+      ? `<button onclick="revokeAmbassador('${jsq(m.id)}')" style="font-size:11px;padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:transparent;border-radius:5px;cursor:pointer;">Revoke</button>`
       : "";
     return `<tr style="border-bottom:1px solid var(--border);">
       <td style="padding:7px 8px;">${esc(m.name||"(unnamed)")}</td>
@@ -12768,7 +12786,7 @@ window.openMemberProfile = async function(uid, name, data){
   // Admin synthetic card — show static profile, no Firestore lookup needed
   if(data && data._isAdmin){
     const igHandle=(data.ig||"").trim().replace(/^@+/,"");
-    const igUrl=igHandle?`https://www.instagram.com/${igHandle}`:"";
+    const igUrl=igHandle?`https://www.instagram.com/${encodeURIComponent(igHandle)}`:"";
     body.innerHTML=`
       <div class="member-modal-avatar" style="background:linear-gradient(135deg,var(--gold),var(--gold-dark));">NT</div>
       <div class="member-modal-name">Nate Templeton</div>
@@ -13059,8 +13077,8 @@ window.renderEngViewer = function(){
           ${hasShot ? `<img src="${esc(e.screenshotBase64)}" style="margin-top:8px;max-width:160px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" onclick="this.style.maxWidth=this.style.maxWidth==='100%'?'160px':'100%'" title="Click to expand" />` : ''}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
-          <button class="btn-sm" onclick="openEditEngModal('${esc(e.id)}')" style="padding:5px 10px;">✏️</button>
-          <button class="btn-sm" onclick="deleteEngEntry('${esc(e.id)}','${esc(e.memberName||'')}',${e.pts||2})" style="padding:5px 10px;color:#e74c3c;border-color:#e74c3c;">🗑️</button>
+          <button class="btn-sm" onclick="openEditEngModal('${jsq(e.id)}')" style="padding:5px 10px;">✏️</button>
+          <button class="btn-sm" onclick="deleteEngEntry('${jsq(e.id)}','${jsq(e.memberName||'')}',${e.pts||2})" style="padding:5px 10px;color:#e74c3c;border-color:#e74c3c;">🗑️</button>
         </div>
       </div>
     </div>`;
@@ -13174,7 +13192,7 @@ window.loadBugReports = async function(){
           <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:${r.resolved?"#e8f5e9":"#e3ebf0"};color:${r.resolved?"#27ae60":"#5B84A3"};">${r.resolved?"✓ Resolved":"Open"}</span>
         </div>
         <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;margin-bottom:10px;">${esc(r.message||"")}</div>
-        ${r.screenshot?`<img src="${r.screenshot}" alt="Screenshot" style="width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;" />`:""}
+        ${r.screenshot?`<img src="${esc(r.screenshot)}" alt="Screenshot" style="width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;" />`:""}
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-sm" onclick="toggleBugResolved('${d.id}',${!!r.resolved})" style="${r.resolved?"":"background:rgba(39,174,96,.12);color:#27ae60;border-color:#27ae60;"}">${r.resolved?"Mark Open":"✓ Mark Resolved"}</button>
           <button class="btn-sm" onclick="deleteBugReport('${d.id}')" style="color:#e74c3c;border-color:#e74c3c;">Delete</button>
@@ -13453,7 +13471,7 @@ async function loadCoworkCard() {
       ${hasRsvp
         ?`<div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:4px;">RSVP'd!</div>
            <div style="font-size:12px;color:var(--text-muted);">Attend to earn +${PTS_COWORK_ATTEND} pts</div>`
-        :`<button class="btn-gold" onclick="rsvpCowork('${session.id}','${esc(session.calendarUrl||'')}',this)" style="width:100%;">RSVP +${PTS_COWORK_RSVP} pts</button>`
+        :`<button class="btn-gold" onclick="rsvpCowork('${session.id}','${jsq(session.calendarUrl||'')}',this)" style="width:100%;">RSVP +${PTS_COWORK_RSVP} pts</button>`
       }
     </div>`;
   } catch(e){console.warn('loadCoworkCard failed:',e.message);const m=document.getElementById('dash-cowork-card-mount');if(m)m.style.display="none";}
