@@ -1,0 +1,181 @@
+rules_version = '2';
+
+// SMAC Firestore rules — Security Stage 2 (Oct 2026)
+// - No catch-all: any collection not listed here is denied.
+// - Admin = nate@templetonimage.com. Cloud Functions use the Admin SDK and skip these rules.
+// - Assumes public sign-up stays OFF (Authentication > Settings > User actions),
+//   so every signed-in account is a member or the admin.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ───────────────────────────────────────────────
+    function signedIn() { return request.auth != null; }
+    function isAdmin()  { return signedIn() && request.auth.token.email == 'nate@templetonimage.com'; }
+    function me()       { return request.auth.uid; }
+    function myEmail()  { return request.auth.token.get('email', '').lower(); }
+
+    function changed()          { return request.resource.data.diff(resource.data).affectedKeys(); }
+    function onlyChanges(keys)  { return changed().hasOnly(keys); }
+    function ownsNew()          { return signedIn() && request.resource.data.get('uid', '') == me(); }
+    function ownsDoc()          { return signedIn() && resource.data.get('uid', '') == me(); }
+
+    // Member point changes are capped per write (largest single award is +25 Ambassador).
+    function ptsDeltaOk() {
+      return !changed().hasAny(['points'])
+        || (request.resource.data.points is number
+            && math.abs(request.resource.data.points - resource.data.get('points', 0)) <= 25);
+    }
+
+    // ── Member registry ───────────────────────────────────────
+    // Registry doc IDs are random for older members, so "own doc" is matched by
+    // doc ID, stored uid, or the signed-in email.
+    function isOwnRegistry(regId) {
+      return regId == me()
+        || resource.data.get('uid', '') == me()
+        || (myEmail() != '' && resource.data.get('email', '') is string
+            && resource.data.get('email', '').lower() == myEmail());
+    }
+    function memberRegistryUpdateOk() {
+      return onlyChanges(['points', 'totalPosts', 'lastLogin', 'uid', 'email', 'phone', 'smsOptIn',
+                          'graceTokens', 'isAllStar', 'ig', 'photoURL',
+                          'ambassadorAwarded', 'ambassadorProofUrl', 'ambassadorProofAt', 'restartPts'])
+        && (!changed().hasAny(['uid'])   || request.resource.data.uid == me())
+        && (!changed().hasAny(['email']) || request.resource.data.email == myEmail())
+        && (!changed().hasAny(['isAllStar']) || request.resource.data.isAllStar == true)
+        && (!changed().hasAny(['ambassadorAwarded'])
+            || (request.resource.data.ambassadorAwarded == true && resource.data.get('ambassadorRevoked', false) != true))
+        && ptsDeltaOk();
+    }
+    match /smac_registry/{regId} {
+      allow read: if signedIn();
+      allow update: if isAdmin() || (signedIn() && isOwnRegistry(regId) && memberRegistryUpdateOk());
+      allow create, delete: if isAdmin();
+    }
+
+    // ── Feed ──────────────────────────────────────────────────
+    match /posts/{postId} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        || (ownsNew() && request.resource.data.get('likes', 0) == 0 && request.resource.data.get('props', 0) == 0);
+      allow update: if isAdmin()
+        || (ownsDoc() && onlyChanges(['text', 'editedAt']))
+        || (signedIn() && onlyChanges(['likes', 'likedBy']))
+        || (signedIn() && onlyChanges(['props', 'propsBy', 'propsNames']));
+      allow delete: if isAdmin() || ownsDoc();
+    }
+    match /polls/{pollId} {
+      allow read: if signedIn();
+      allow update: if isAdmin() || (signedIn() && onlyChanges(['votes']));
+      allow create, delete: if isAdmin();
+    }
+
+    // ── Chat ──────────────────────────────────────────────────
+    match /chat_messages/{msgId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || ownsNew();
+      allow update: if isAdmin()
+        || (ownsDoc() && onlyChanges(['text', 'editedAt']))
+        || (signedIn() && onlyChanges(['reactions']))
+        || (signedIn() && onlyChanges(['replyCount']))
+        || (signedIn() && onlyChanges(['votes']));
+      allow delete: if isAdmin() || ownsDoc();
+    }
+    match /chat_typing/{uid} {
+      allow read: if signedIn();
+      allow write: if isAdmin() || (signedIn() && uid == me());
+    }
+
+    // ── Posting challenge ─────────────────────────────────────
+    match /submissions/{subId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || ownsNew();
+      allow update: if isAdmin() || (ownsDoc() && onlyChanges(['url', 'format', 'pts', 'challengeApplied']));
+      allow delete: if isAdmin() || ownsDoc();
+    }
+    match /engagements/{engId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || ownsNew();
+      allow update: if isAdmin() || (ownsDoc() && onlyChanges(['type']));
+      allow delete: if isAdmin() || ownsDoc();
+    }
+    match /trackers/{uid} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        || (signedIn() && uid == me() && request.resource.data.get('uid', me()) == me()
+            && request.resource.data.keys().hasOnly(['name', 'uid', 'tracked', 'updatedAt']));
+      allow update: if isAdmin()
+        || (signedIn() && uid == me() && request.resource.data.get('uid', me()) == me()
+            && onlyChanges(['name', 'uid', 'tracked', 'updatedAt']));
+      allow delete: if isAdmin();
+    }
+    match /smac_community_pts/{id} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || ownsNew();
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Pro tools (private to each member) ────────────────────
+    match /pro_plans/{planId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == me());
+      allow create: if isAdmin() || ownsNew();
+      allow update, delete: if isAdmin();
+    }
+    match /analytics_snapshots/{snapId} {
+      allow get: if isAdmin() || (signedIn() && snapId.matches(me() + '_.*'));
+      allow list: if isAdmin() || (signedIn() && resource.data.uid == me());
+      allow create, update: if isAdmin() || (ownsNew() && snapId.matches(me() + '_.*'));
+      allow delete: if isAdmin();
+    }
+
+    // ── Coworking ─────────────────────────────────────────────
+    match /smac_coworking_sessions/{sessionId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      match /rsvps/{uid} {
+        allow read: if signedIn();
+        allow create, update: if isAdmin() || (signedIn() && uid == me());
+        allow delete: if isAdmin();
+      }
+      match /attendees/{uid} {
+        allow read: if signedIn();
+        allow write: if isAdmin();
+      }
+    }
+
+    // ── Reports in, admin reads ───────────────────────────────
+    match /bug_reports/{id} {
+      allow create: if signedIn();
+      allow read, update, delete: if isAdmin();
+    }
+    match /platform_errors/{id} {
+      allow create: if signedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── Admin-only content and config (members read) ──────────
+    // corrections is admin-only: creating one sends an email from info@joinsmac.com.
+    match /corrections/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /announcements/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /resources/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /spotlights/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /smac_config/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /app_config/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
