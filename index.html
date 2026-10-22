@@ -6221,9 +6221,12 @@ async function renderSmsCard(){
       const regId=currentUser.registryId||currentUser.uid;
       const snap=await getDoc(dcRef(db,"smac_registry",regId));
       if(snap.exists()){
-        phone=snap.data().phone||"";
+        phone=snap.data().phone||""; // legacy location, pre-migration only
         smsOptIn=snap.data().smsOptIn??null;
       }
+      // Phone numbers live in smac_private/{authUid} (readable only by the member and admin). Security Stage 2b.
+      const priv=await getDoc(dcRef(db,"smac_private",currentUser.uid));
+      if(priv.exists()&&priv.data().phone) phone=priv.data().phone;
     }catch(e){ console.warn("SMS card load error:",e); }
   }
 
@@ -6232,7 +6235,7 @@ async function renderSmsCard(){
     inner.innerHTML=`
       <div style="background:#f0faf0;border:1.5px solid #4caf50;border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
         <span style="font-size:18px;">✅</span>
-        <div><div style="font-size:13px;font-weight:700;color:#2e7d32;">SMS Reminders Active</div><div style="font-size:12px;color:#388e3c;margin-top:2px;">Sending to ${phone}</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:#2e7d32;">SMS Reminders Active</div><div style="font-size:12px;color:#388e3c;margin-top:2px;">Sending to ${esc(phone)}</div></div>
       </div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">You'll get a heads-up on Day 4 of each week and a final call the night the week closes.</div>
       <button onclick="showSmsEdit()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:9px 18px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;margin-right:10px;">Edit Number</button>
@@ -6273,9 +6276,10 @@ window.saveSmsOptIn = async function(){
   if(phone.length<10){showToast("Enter a valid US phone number.");return;}
   if(statusEl){statusEl.style.display="block";statusEl.textContent="Saving...";}
   try{
-    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const {updateDoc,setDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const regId=currentUser.registryId||currentUser.uid;
-    await updateDoc(dcRef(db,"smac_registry",regId),{phone,smsOptIn:true});
+    await setDoc(dcRef(db,"smac_private",currentUser.uid),{phone,registryId:regId,updatedAt:Date.now()},{merge:true});
+    await updateDoc(dcRef(db,"smac_registry",regId),{smsOptIn:true});
     showToast("SMS reminders enabled!");
     renderSmsCard();
   }catch(e){if(statusEl){statusEl.textContent="Error: "+e.message;}}
@@ -6310,9 +6314,9 @@ window.updateSmsPhone = async function(){
   const phone=_formatPhone(phoneRaw);
   if(statusEl){statusEl.style.display="block";statusEl.textContent="Saving...";}
   try{
-    const {updateDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const {setDoc,doc:dcRef}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const regId=currentUser.registryId||currentUser.uid;
-    await updateDoc(dcRef(db,"smac_registry",regId),{phone});
+    await setDoc(dcRef(db,"smac_private",currentUser.uid),{phone,registryId:regId,updatedAt:Date.now()},{merge:true});
     showToast("Phone number updated.");
     renderSmsCard();
   }catch(e){if(statusEl){statusEl.textContent="Error: "+e.message;}}
