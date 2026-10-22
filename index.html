@@ -1268,6 +1268,19 @@
       </div>
     </div>
 
+    <!-- ADMIN: R4 Week Re-stamp (one-time migration after R4 schedule moved to Oct 1–Dec 31) -->
+    <div id="r4-restamp-tool" style="display:none;margin-bottom:28px;">
+      <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🗓 R4 Week Re-stamp</div>
+      <div class="card" style="border:1.5px solid var(--gold);">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+          One-time fix after Round 4 moved to Oct 1–Dec 31. Recomputes <strong>weekIdx</strong> from each R4 submission and engagement timestamp, rebuilds tracker slots from submissions, remaps Grace Token weeks, and shifts any active deadline extension. Points and on-time status are not changed. Safe to re-run.
+        </div>
+        <button class="btn-sm" id="r4-restamp-preview-btn" onclick="runR4Restamp(false)">Preview</button>
+        <button class="btn-sm" id="r4-restamp-run-btn" onclick="runR4Restamp(true)" style="display:none;margin-left:8px;background:var(--gold);color:#fff;border-color:var(--gold);">Run Re-stamp</button>
+        <div id="r4-restamp-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);display:none;line-height:1.7;"></div>
+      </div>
+    </div>
+
     <!-- ADMIN: Restart Pack (Oct 1 restart pack — restarts + Ambassador proofs) -->
     <div id="restart-pack-tool" style="display:none;margin-bottom:28px;">
       <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;margin-bottom:14px;">🔄 Restart Pack</div>
@@ -2285,51 +2298,51 @@ const ROUND_CONFIGS = window.ROUND_CONFIGS = {
     monthReqs: {"June":"1 post/week","July":"2 posts/week","August":"3 posts/week"},
   },
   // ── ADD FUTURE ROUNDS BELOW ──
-  // After R4 ends Nov 30, the platform resets Dec 1 for SMAC 2027 R1.
+  // R4 was restarted: Week 1 = Oct 1. Round ends Dec 31; SMAC/WAC/AAC unify Jan 1, 2027.
   // Add R1_2027 (or whatever key convention you choose) following the same pattern.
   R4: {
     weeks: [
-      // Week 1: Sep 1–7 (EDT UTC-4)
-      [Date.UTC(2026,8,1,4,0,0),  Date.UTC(2026,8,8,3,59,59,999)],
-      // Week 2: Sep 8–14
-      [Date.UTC(2026,8,8,4,0,0),  Date.UTC(2026,8,15,3,59,59,999)],
-      // Week 3: Sep 15–21
-      [Date.UTC(2026,8,15,4,0,0), Date.UTC(2026,8,22,3,59,59,999)],
-      // Week 4: Sep 22–30
-      [Date.UTC(2026,8,22,4,0,0), Date.UTC(2026,9,1,3,59,59,999)],
-      // Week 5: Oct 1–7 (EDT UTC-4)
-      [Date.UTC(2026,9,1,4,0,0),  Date.UTC(2026,9,8,3,59,59,999)],
-      // Week 6: Oct 8–14
-      [Date.UTC(2026,9,8,4,0,0),  Date.UTC(2026,9,15,3,59,59,999)],
-      // Week 7: Oct 15–21
-      [Date.UTC(2026,9,15,4,0,0), Date.UTC(2026,9,22,3,59,59,999)],
-      // Week 8: Oct 22–31
-      [Date.UTC(2026,9,22,4,0,0), Date.UTC(2026,10,1,3,59,59,999)],
-      // Week 9: Nov 1–7 (DST ends Nov 1 2am: start EDT UTC-4, end EST UTC-5)
-      [Date.UTC(2026,10,1,4,0,0), Date.UTC(2026,10,8,4,59,59,999)],
-      // Week 10: Nov 8–14 (EST UTC-5)
-      [Date.UTC(2026,10,8,5,0,0), Date.UTC(2026,10,15,4,59,59,999)],
-      // Week 11: Nov 15–21 (EST UTC-5)
-      [Date.UTC(2026,10,15,5,0,0),Date.UTC(2026,10,22,4,59,59,999)],
-      // Week 12: Nov 22–30 (EST UTC-5)
-      [Date.UTC(2026,10,22,5,0,0),Date.UTC(2026,11,1,4,59,59,999)],
+      // Week 1: Oct 1–7 (EDT UTC-4)
+      [Date.UTC(2026,9,1,4,0,0),   Date.UTC(2026,9,8,3,59,59,999)],
+      // Week 2: Oct 8–14
+      [Date.UTC(2026,9,8,4,0,0),   Date.UTC(2026,9,15,3,59,59,999)],
+      // Week 3: Oct 15–21
+      [Date.UTC(2026,9,15,4,0,0),  Date.UTC(2026,9,22,3,59,59,999)],
+      // Week 4: Oct 22–31
+      [Date.UTC(2026,9,22,4,0,0),  Date.UTC(2026,10,1,3,59,59,999)],
+      // Week 5: Nov 1–7 (DST ends Nov 1 2am: start EDT UTC-4, end EST UTC-5)
+      [Date.UTC(2026,10,1,4,0,0),  Date.UTC(2026,10,8,4,59,59,999)],
+      // Week 6: Nov 8–14 (EST UTC-5)
+      [Date.UTC(2026,10,8,5,0,0),  Date.UTC(2026,10,15,4,59,59,999)],
+      // Week 7: Nov 15–21
+      [Date.UTC(2026,10,15,5,0,0), Date.UTC(2026,10,22,4,59,59,999)],
+      // Week 8: Nov 22–30
+      [Date.UTC(2026,10,22,5,0,0), Date.UTC(2026,11,1,4,59,59,999)],
+      // Week 9: Dec 1–7
+      [Date.UTC(2026,11,1,5,0,0),  Date.UTC(2026,11,8,4,59,59,999)],
+      // Week 10: Dec 8–14
+      [Date.UTC(2026,11,8,5,0,0),  Date.UTC(2026,11,15,4,59,59,999)],
+      // Week 11: Dec 15–21
+      [Date.UTC(2026,11,15,5,0,0), Date.UTC(2026,11,22,4,59,59,999)],
+      // Week 12: Dec 22–31
+      [Date.UTC(2026,11,22,5,0,0), Date.UTC(2027,0,1,4,59,59,999)],
     ],
     weekDefs: [
-      {id:"w1", label:"Week 1",  dates:"Sep 1–7",   month:"September", required:1},
-      {id:"w2", label:"Week 2",  dates:"Sep 8–14",  month:"September", required:1},
-      {id:"w3", label:"Week 3",  dates:"Sep 15–21", month:"September", required:1},
-      {id:"w4", label:"Week 4",  dates:"Sep 22–30", month:"September", required:1},
-      {id:"w5", label:"Week 1",  dates:"Oct 1–7",   month:"October",   required:2},
-      {id:"w6", label:"Week 2",  dates:"Oct 8–14",  month:"October",   required:2},
-      {id:"w7", label:"Week 3",  dates:"Oct 15–21", month:"October",   required:2},
-      {id:"w8", label:"Week 4",  dates:"Oct 22–31", month:"October",   required:2},
-      {id:"w9", label:"Week 1",  dates:"Nov 1–7",   month:"November",  required:3},
-      {id:"w10",label:"Week 2",  dates:"Nov 8–14",  month:"November",  required:3},
-      {id:"w11",label:"Week 3",  dates:"Nov 15–21", month:"November",  required:3},
-      {id:"w12",label:"Week 4",  dates:"Nov 22–30", month:"November",  required:3},
+      {id:"w1", label:"Week 1",  dates:"Oct 1–7",   month:"October",  required:1},
+      {id:"w2", label:"Week 2",  dates:"Oct 8–14",  month:"October",  required:1},
+      {id:"w3", label:"Week 3",  dates:"Oct 15–21", month:"October",  required:1},
+      {id:"w4", label:"Week 4",  dates:"Oct 22–31", month:"October",  required:1},
+      {id:"w5", label:"Week 1",  dates:"Nov 1–7",   month:"November", required:2},
+      {id:"w6", label:"Week 2",  dates:"Nov 8–14",  month:"November", required:2},
+      {id:"w7", label:"Week 3",  dates:"Nov 15–21", month:"November", required:2},
+      {id:"w8", label:"Week 4",  dates:"Nov 22–30", month:"November", required:2},
+      {id:"w9", label:"Week 1",  dates:"Dec 1–7",   month:"December", required:3},
+      {id:"w10",label:"Week 2",  dates:"Dec 8–14",  month:"December", required:3},
+      {id:"w11",label:"Week 3",  dates:"Dec 15–21", month:"December", required:3},
+      {id:"w12",label:"Week 4",  dates:"Dec 22–31", month:"December", required:3},
     ],
-    months: ["September","October","November"],
-    monthReqs: {"September":"1 post/week","October":"2 posts/week","November":"3 posts/week"},
+    months: ["October","November","December"],
+    monthReqs: {"October":"1 post/week","November":"2 posts/week","December":"3 posts/week"},
   },
   // R1_2027: { weeks: [...], weekDefs: [...], months: [...], monthReqs: {...} },
 };
@@ -2809,6 +2822,7 @@ function bootApp(){
     document.getElementById("deadline-extend-tool").style.display="block";
     loadDeadlineEditor();
     document.getElementById("restart-pack-tool").style.display="block";
+    document.getElementById("r4-restamp-tool").style.display="block";
     document.getElementById("points-sweep-tool").style.display="block";
     document.getElementById("point-audit-tool").style.display="block";
     document.getElementById("eng-viewer").style.display="block";
@@ -4683,6 +4697,14 @@ function initGracePeriod(tracked){
 
 function buildTracker(){
   const key=`smac_tracker_${currentUser.uid}`;
+  // One-time local reset after R4 moved to Oct 1 (old Oct checks sat in w5–w7)
+  try{
+    const _verKey=`smac_tracker_ver_${currentUser.uid}`;
+    if(window.CURRENT_ROUND==="R4" && localStorage.getItem(_verKey)!=="r4-oct1"){
+      localStorage.removeItem(key);
+      localStorage.setItem(_verKey,"r4-oct1");
+    }
+  }catch(_){}
   let tracked=lsGet(key)||{};
 
   // ── Lazy backfill (runs once per session) ──────────────────────────────────
@@ -12486,6 +12508,111 @@ window.submitAmbassadorProof=async function(){
     console.error("submitAmbassadorProof error:",e);
     showToast("Upload failed — please try again.");
     if(btn){btn.disabled=false;btn.textContent="Submit Proof";}
+  }
+};
+
+// ── ADMIN: R4 Week Re-stamp ────────────────────────────────────────────────
+// Recomputes weekIdx on R4 submissions/engagements from ts against the
+// pristine R4 schedule, rebuilds trackers from submissions, remaps grace
+// token weeks, and shifts an active R4 deadline override. Idempotent.
+window.runR4Restamp = async function(apply){
+  if(!currentUser||!currentUser.isAdmin||!db) return;
+  const statusEl=document.getElementById("r4-restamp-status");
+  const runBtn=document.getElementById("r4-restamp-run-btn");
+  const say=(h)=>{statusEl.style.display="block";statusEl.innerHTML=h;};
+  if(apply && !confirm("Run the R4 week re-stamp now?\n\nUpdates weekIdx on R4 submissions and engagements, rebuilds trackers, and remaps grace tokens. Points are not changed.")) return;
+  say(apply?"Running...":"Reading Firestore...");
+  try{
+    const {getDocs,getDoc,collection:col,query:q,where,doc:dcRef,writeBatch} =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const sched=window.ROUND_CONFIGS.R4.weeks;
+    const defs=window.ROUND_CONFIGS.R4.weekDefs;
+    const idxFor=ts=>sched.findIndex(([a,b])=>ts>=a&&ts<=b);
+    const [subSnap,engSnap,regSnap,trkSnap,dlSnap]=await Promise.all([
+      getDocs(q(col(db,"submissions"),where("round","==","R4"))),
+      getDocs(q(col(db,"engagements"),where("round","==","R4"))),
+      getDocs(col(db,"smac_registry")),
+      getDocs(col(db,"trackers")),
+      getDoc(dcRef(db,"smac_config","deadline_override"))
+    ]);
+    const ops=[]; // [ref,data,merge]
+    let subFix=0,engFix=0,outside=0;
+    const newIdxBySub={};
+    const realCounts={}; // uid -> {idx:count}
+    subSnap.docs.forEach(d=>{
+      const s=d.data(); const ni=idxFor(s.ts||0);
+      if(ni<0){outside++;return;}
+      newIdxBySub[d.id]=ni;
+      if(s.weekIdx!==ni){subFix++;ops.push([d.ref,{weekIdx:ni}]);}
+      if(s.uid && s.status!=="grace" && s.voided!==true){
+        (realCounts[s.uid]=realCounts[s.uid]||{})[ni]=((realCounts[s.uid]||{})[ni]||0)+1;
+      }
+    });
+    engSnap.docs.forEach(d=>{
+      const e=d.data(); const ni=idxFor(e.ts||0);
+      if(ni<0){outside++;return;}
+      if(e.weekIdx!==ni){engFix++;ops.push([d.ref,{weekIdx:ni}]);}
+    });
+    // Grace token covered entries
+    let graceFix=0;
+    const proByUid={};
+    regSnap.docs.forEach(d=>{
+      const m=d.data(); if(m.uid) proByUid[m.uid]=m.isPro===true;
+      const g=m.graceTokens; if(!g||!Array.isArray(g.covered)||!g.covered.length) return;
+      let changed=false;
+      const covered=g.covered.map(c=>{
+        const ni=newIdxBySub[c.subId];
+        if(ni!==undefined && ni!==c.weekIdx){changed=true;return {...c,weekIdx:ni};}
+        return c;
+      });
+      if(changed){graceFix++;ops.push([d.ref,{graceTokens:{...g,covered}}]);}
+    });
+    // Trackers: rebuild from real submissions (R4 week ids only)
+    let trkFix=0;
+    const trkIds=new Set(trkSnap.docs.map(d=>d.id));
+    const uids=new Set([...Object.keys(realCounts),...trkSnap.docs.map(d=>d.id)]);
+    uids.forEach(uid=>{
+      if(!trkIds.has(uid) && !realCounts[uid]) return;
+      const counts=realCounts[uid]||{};
+      const tracked={};
+      defs.forEach((w,i)=>{
+        const req=weekRequirementFor(i,proByUid[uid]===true);
+        tracked[w.id]=Array.from({length:req},(_,k)=>k<(counts[i]||0));
+      });
+      trkFix++;
+      ops.push([dcRef(db,"trackers",uid),{uid,tracked,updatedAt:Date.now(),r4Restamp:"oct1"},true]);
+    });
+    // Deadline override (old R4 index = new + 4 for Oct weeks)
+    let dlNote="none active";
+    if(dlSnap.exists()){
+      const dl=dlSnap.data();
+      if(dl.active && dl.round==="R4" && typeof dl.newEnd==="number"){
+        const ni=dl.weekIdx>=4?dl.weekIdx-4:-1;
+        if(dl.restampedOct1){ dlNote="already shifted"; }
+        else if(ni>=0){ dlNote=`Week ${dl.weekIdx+1} → Week ${ni+1}`; ops.push([dlSnap.ref,{weekIdx:ni,restampedOct1:true},true]); }
+        else { dlNote="active but outside new schedule — clear it manually"; }
+      }
+    }
+    const summary=`Submissions to re-stamp: <strong>${subFix}</strong> of ${subSnap.size}<br>
+      Engagements to re-stamp: <strong>${engFix}</strong> of ${engSnap.size}<br>
+      Docs dated before Oct 1 (left as-is): <strong>${outside}</strong><br>
+      Grace Token records remapped: <strong>${graceFix}</strong><br>
+      Trackers rebuilt: <strong>${trkFix}</strong><br>
+      Deadline extension: ${dlNote}`;
+    if(!apply){ say(summary); runBtn.style.display="inline-block"; return; }
+    for(let i=0;i<ops.length;i+=400){
+      const b=writeBatch(db);
+      ops.slice(i,i+400).forEach(([ref,data,merge])=>merge?b.set(ref,data,{merge:true}):b.update(ref,data));
+      await b.commit();
+      say(`Writing... ${Math.min(i+400,ops.length)}/${ops.length}`);
+    }
+    if(window._lbSubCache) window._lbSubCache.ts=0;
+    say(`<span style="color:#27ae60;font-weight:700;">Done.</span><br>${summary}`);
+    runBtn.style.display="none";
+    showToast("R4 re-stamp complete");
+  }catch(e){
+    console.error("runR4Restamp error:",e);
+    say(`<span style="color:#e74c3c;">Error: ${esc(e.message)}</span>`);
   }
 };
 
