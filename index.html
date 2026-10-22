@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <!-- Security: Content-Security-Policy. connect-src limits where the page can send data (Firebase, the AI proxy). Add any new outside service here or it will be blocked. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://cdn.jsdelivr.net https://smac-ai-proxy.templetonimage.workers.dev; frame-src https://smac-2026.firebaseapp.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://cdn.jsdelivr.net https://smac-ai-proxy.templetonimage.workers.dev https://us-central1-smac-2026.cloudfunctions.net; frame-src https://smac-2026.firebaseapp.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>SMAC Community</title>
   <meta name="description" content="Social Media Accountability Challenge — Member Community" />
@@ -5352,38 +5352,29 @@ window.createMemberAccount=async function(){
   const rounds=["R2","R3","R4"].filter(r=>document.getElementById("dir-"+r.toLowerCase()).checked);
   const finalRounds=isFounder?["R2","R3","R4"]:rounds;
   btn.disabled=true;btn.textContent="Creating...";
-  // Step 1: Firebase Auth via REST API (does NOT sign out current user)
+  // Step 1+2: server-side Cloud Function (Admin SDK) creates the login AND the registry doc.
+  // Public sign-up is OFF, so the old browser sign-up call no longer works. (Security Stage 3)
   let uid=null;
-  const apiKey=_a+_b;
-  try{
-    const authRes=await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="+apiKey,{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({email,password,displayName:name,returnSecureToken:false})
-    });
-    const authData=await authRes.json();
-    if(authData.error){
-      const msg=authData.error.message||"Unknown error";
+  if(!useLocalFallback&&_firebaseApp){
+    try{
+      const {getFunctions,httpsCallable}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js");
+      const createFn=httpsCallable(getFunctions(_firebaseApp,"us-central1"),"createMemberAccount");
+      const res=await createFn({name,email,password,ig,business,type,isFounder,isVIP,rounds:finalRounds});
+      uid=res.data.uid;
+    }catch(e){
+      const code=(e&&e.code)||"";
       errEl.style.display="block";
-      errEl.textContent=msg==="EMAIL_EXISTS"
-        ?"That email already has a Firebase Auth account. Use a different email or reset their password."
-        :"Firebase Auth error: "+msg;
+      errEl.textContent=(code==="functions/not-found"||code==="functions/internal"&&(!e.message||e.message==="internal"))
+        ?"Couldn't reach the createMemberAccount function. Make sure it's deployed (firebase deploy --only functions:createMemberAccount)."
+        :((e&&e.message)||"Could not create the account.");
+      logPlatformError("createMemberAccount",code+": "+((e&&e.message)||""));
       btn.disabled=false;btn.textContent="Create Account";return;
     }
-    uid=authData.localId;
-  }catch(e){
-    errEl.style.display="block";errEl.textContent="Could not reach Firebase Auth. Check your API key.";
-    btn.disabled=false;btn.textContent="Create Account";return;
+  }else{
+    uid=email.replace(/[^a-z0-9]/g,"-");
+    const member={name,email,ig,business,type,uid,isFounder,isVIP,isAllStar:false,rounds:finalRounds,points:0,totalPosts:0,addedAt:Date.now()};
+    const reg=lsGet("smac_registry")||[];reg.push({...member,id:uid});lsSet("smac_registry",reg);
   }
-  // Step 2: Firestore registry doc
-  const member={name,email,ig,business,type,uid,isFounder,isVIP,isAllStar:false,rounds:finalRounds,points:0,totalPosts:0,addedAt:Date.now()};
-  if(!useLocalFallback&&db){
-    try{
-      const {addDoc:aDoc,collection:col,getDocs,query:q,where}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      const existing=await getDocs(q(col(db,"smac_registry"),where("email","==",email)));
-      if(!existing.empty){errEl.style.display="block";errEl.textContent=email+" already exists in the registry. Auth user was created — use the password shown for their login.";btn.disabled=false;btn.textContent="Create Account";return;}
-      await aDoc(col(db,"smac_registry"),member);
-    }catch(e){errEl.style.display="block";errEl.textContent="Auth user created but Firestore failed: "+e.message;logPlatformError("createMemberAccount_firestore",e.message);btn.disabled=false;btn.textContent="Create Account";return;}
-  }else{const reg=lsGet("smac_registry")||[];reg.push({...member,id:uid});lsSet("smac_registry",reg);}
   // Step 3: Show result
   _lastCreatedMember={name,email,password};
   document.getElementById("create-member-result-body").innerHTML=
@@ -5391,7 +5382,7 @@ window.createMemberAccount=async function(){
     "<strong>Email:</strong> "+esc(email)+"<br>"+
     "<strong>Password:</strong> <code style='background:var(--surface);padding:2px 6px;border-radius:4px;'>"+esc(password)+"</code><br>"+
     "<strong>Rounds:</strong> "+(finalRounds.join(", ")||"(none)")+"<br>"+
-    "<strong>Firebase UID:</strong> <span style='font-size:11px;color:var(--text-muted);'>"+uid+"</span>";
+    "<strong>Firebase UID:</strong> <span style='font-size:11px;color:var(--text-muted);'>"+esc(uid)+"</span>";
   resultEl.style.display="block";
   ["dir-name","dir-email","dir-ig","dir-business"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   document.getElementById("dir-type").value="";
