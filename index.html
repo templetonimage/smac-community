@@ -2169,7 +2169,7 @@
 </div>
 
 <!-- FIREBASE + APP LOGIC -->
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module">
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {getFirestore, collection, addDoc, doc, getDoc, setDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc,getDocs} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {getAuth, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updatePassword, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -6665,7 +6665,7 @@ window.runActionPlan = async function() {
   // Fetch last 3 saved plans for context
   let historyContext = "";
   try {
-    const { collection, query, where, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const { collection, query, where, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const hSnap = await getDocs(query(
       collection(db, "pro_plans"),
       where("uid", "==", currentUser.uid),
@@ -6750,7 +6750,7 @@ window.saveActionPlan = async function() {
   const saveBtn = document.getElementById("wap-save-btn");
   if (saveBtn) { saveBtn.textContent = "Saving..."; saveBtn.disabled = true; saveBtn.style.opacity = "0.6"; }
   try {
-    const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     // Extract a short summary (first 200 chars of plan, stripped of markdown)
     const planSummary = _wapCurrentPlanText.replace(/\*\*/g,"").replace(/^---$/gm,"").replace(/\n+/g," ").substring(0, 200).trim();
     await addDoc(collection(db, "pro_plans"), {
@@ -6780,7 +6780,7 @@ async function loadWapHistory() {
   const wrapEl = document.getElementById("wap-history-wrap");
   if (!listEl) return;
   try {
-    const { collection, query, where, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const { collection, query, where, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const snap = await getDocs(query(
       collection(db, "pro_plans"),
       where("uid", "==", currentUser.uid),
