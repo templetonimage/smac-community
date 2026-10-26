@@ -11461,7 +11461,8 @@ function renderChatMessages(messages, snap){
 
 function buildChatBubble(m, isThread){
   const isMine = m.uid === currentUser.uid;
-  const isAdmin = m.uid === "admin" || m.authorEmail === "nate@templetonimage.com";
+  // authorIsAdmin is only writable by the admin (Firestore rules); authorEmail kept as a fallback for un-migrated old messages
+  const isAdmin = m.uid === "admin" || m.authorIsAdmin === true || m.authorEmail === "nate@templetonimage.com";
   const ts = m.ts ? new Date(m.ts).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "";
   const photo = _photoCache[m.uid] || "";
   const initials = (m.author||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
@@ -11584,7 +11585,7 @@ window.sendChatMessage = async function(){
     const { collection: col, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     await addDoc(col(db,"chat_messages"),{
       author: currentUser.name,
-      authorEmail: currentUser.email||"",
+      ...(currentUser.isAdmin ? { authorIsAdmin: true } : {}),
       uid: currentUser.uid,
       text,
       ts: Date.now(),
@@ -11754,7 +11755,7 @@ window.sendThreadReply = async function(){
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     await addDoc(col(db,"chat_messages"),{
       author: currentUser.name,
-      authorEmail: currentUser.email||"",
+      ...(currentUser.isAdmin ? { authorIsAdmin: true } : {}),
       uid: currentUser.uid,
       text,
       ts: Date.now(),
