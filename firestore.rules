@@ -19,6 +19,13 @@ service cloud.firestore {
     function ownsNew()          { return signedIn() && request.resource.data.get('uid', '') == me(); }
     function ownsDoc()          { return signedIn() && resource.data.get('uid', '') == me(); }
 
+    // Size caps on member-written text (abuse/cost guard; normal use is far below these).
+    function textOk(field, max) {
+      return !(field in request.resource.data)
+        || (request.resource.data[field] is string && request.resource.data[field].size() <= max);
+    }
+    function postTextOk() { return textOk('text', 10000) && textOk('link', 1000) && textOk('author', 200); }
+
     // Member point changes are capped per write (largest single award is +25 Ambassador).
     function ptsDeltaOk() {
       return !changed().hasAny(['points'])
@@ -65,9 +72,9 @@ service cloud.firestore {
     match /posts/{postId} {
       allow read: if signedIn();
       allow create: if isAdmin()
-        || (ownsNew() && request.resource.data.get('likes', 0) == 0 && request.resource.data.get('props', 0) == 0);
+        || (ownsNew() && postTextOk() && request.resource.data.get('likes', 0) == 0 && request.resource.data.get('props', 0) == 0);
       allow update: if isAdmin()
-        || (ownsDoc() && onlyChanges(['text', 'editedAt']))
+        || (ownsDoc() && onlyChanges(['text', 'editedAt']) && postTextOk())
         || (signedIn() && onlyChanges(['likes', 'likedBy']))
         || (signedIn() && onlyChanges(['props', 'propsBy', 'propsNames']));
       allow delete: if isAdmin() || ownsDoc();
@@ -83,10 +90,10 @@ service cloud.firestore {
       allow read: if signedIn();
       // Members can't claim the admin badge or another person's email.
       allow create: if isAdmin()
-        || (ownsNew() && !request.resource.data.keys().hasAny(['authorIsAdmin'])
+        || (ownsNew() && postTextOk() && !request.resource.data.keys().hasAny(['authorIsAdmin'])
             && request.resource.data.get('authorEmail', myEmail()) == myEmail());
       allow update: if isAdmin()
-        || (ownsDoc() && onlyChanges(['text', 'editedAt']))
+        || (ownsDoc() && onlyChanges(['text', 'editedAt']) && postTextOk())
         || (signedIn() && onlyChanges(['reactions']))
         || (signedIn() && onlyChanges(['replyCount']))
         || (signedIn() && onlyChanges(['votes']));
@@ -156,11 +163,11 @@ service cloud.firestore {
 
     // ── Reports in, admin reads ───────────────────────────────
     match /bug_reports/{id} {
-      allow create: if signedIn();
+      allow create: if signedIn() && textOk('message', 10000) && textOk('name', 200);
       allow read, update, delete: if isAdmin();
     }
     match /platform_errors/{id} {
-      allow create: if signedIn();
+      allow create: if signedIn() && textOk('message', 5000) && textOk('context', 200);
       allow read, update, delete: if isAdmin();
     }
 

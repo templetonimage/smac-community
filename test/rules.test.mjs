@@ -125,6 +125,15 @@ test("DENY member edits seats", () => assertFails(setDoc(doc(db(ALICE), "app_con
 test("ALLOW member creates own post", () => assertSucceeds(addDoc(collection(db(ALICE), "posts"),
   { author: "Alice", uid: "alice", text: "t", link: "", ts: 1, likes: 0, likedBy: [], props: 0, propsBy: [], propsNames: [] })));
 test("DENY member creates post as someone else", () => assertFails(addDoc(collection(db(ALICE), "posts"), { author: "Bob", uid: "bob", text: "t", likes: 0, props: 0 })));
+test("ALLOW long-ish post (3,000 chars)", () => assertSucceeds(addDoc(collection(db(ALICE), "posts"),
+  { author: "Alice", uid: "alice", text: "x".repeat(3000), link: "", ts: 1, likes: 0, likedBy: [], props: 0, propsBy: [], propsNames: [] })));
+test("DENY 50,000-char post", () => assertFails(addDoc(collection(db(ALICE), "posts"),
+  { author: "Alice", uid: "alice", text: "x".repeat(50000), link: "", ts: 1, likes: 0, props: 0 })));
+test("DENY 50,000-char chat message", () => assertFails(addDoc(collection(db(ALICE), "chat_messages"),
+  { author: "Alice", uid: "alice", text: "x".repeat(50000), ts: 1, reactions: {}, replyCount: 0 })));
+test("DENY editing own post to 50,000 chars", () => assertFails(updateDoc(doc(db(BOB), "posts/postBob"), { text: "x".repeat(50000), editedAt: 1 })));
+test("DENY huge bug report", () => assertFails(addDoc(collection(db(ALICE), "bug_reports"), { uid: "alice", message: "x".repeat(50000) })));
+test("ALLOW bug report with screenshot field", () => assertSucceeds(addDoc(collection(db(ALICE), "bug_reports"), { name: "Alice", email: "alice@x.com", uid: "alice", message: "m", screenshot: null, resolved: false, ts: 1 })));
 test("ALLOW member likes another's post", () => assertSucceeds(updateDoc(doc(db(ALICE), "posts/postBob"), { likes: 1, likedBy: ["alice"] })));
 test("ALLOW member gives props", () => assertSucceeds(updateDoc(doc(db(ALICE), "posts/postBob"), { props: 1, propsBy: ["alice"], propsNames: ["Alice"] })));
 test("DENY member edits another's post text", () => assertFails(updateDoc(doc(db(ALICE), "posts/postBob"), { text: "hacked" })));
