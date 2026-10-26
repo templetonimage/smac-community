@@ -140,6 +140,18 @@ test("DENY member creates poll", () => assertFails(addDoc(collection(db(ALICE), 
 // ── Chat ─────────────────────────────────────────────────
 test("ALLOW member sends chat message", () => assertSucceeds(addDoc(collection(db(ALICE), "chat_messages"),
   { author: "Alice", authorEmail: "alice@x.com", uid: "alice", text: "hey", ts: 1, reactions: {}, replyCount: 0 })));
+test("ALLOW member sends chat without authorEmail (new app)", () => assertSucceeds(addDoc(collection(db(ALICE), "chat_messages"),
+  { author: "Alice", uid: "alice", text: "hey", ts: 1, reactions: {}, replyCount: 0 })));
+test("ALLOW stale app sending own authorEmail", () => assertSucceeds(addDoc(collection(db(ALICE), "chat_messages"),
+  { author: "Alice", authorEmail: "alice@x.com", uid: "alice", text: "hey", ts: 1, reactions: {}, replyCount: 0 })));
+test("DENY member claims admin badge", () => assertFails(addDoc(collection(db(ALICE), "chat_messages"),
+  { author: "Alice", uid: "alice", text: "hey", authorIsAdmin: true })));
+test("DENY member spoofs admin email", () => assertFails(addDoc(collection(db(ALICE), "chat_messages"),
+  { author: "Nate", uid: "alice", text: "hey", authorEmail: "nate@templetonimage.com" })));
+test("ALLOW admin message with badge", () => assertSucceeds(addDoc(collection(db(ADMIN), "chat_messages"),
+  { author: "Nate", uid: "adminUid", text: "hi", authorIsAdmin: true })));
+test("ALLOW admin migration strips authorEmail", () => assertSucceeds(updateDoc(doc(db(ADMIN), "chat_messages/msgBob"), { authorEmail: deleteField(), authorIsAdmin: false })));
+test("DENY member adds authorIsAdmin to own message", () => assertFails(updateDoc(doc(db(BOB), "chat_messages/msgBob"), { authorIsAdmin: true })));
 test("ALLOW member reacts", () => assertSucceeds(updateDoc(doc(db(ALICE), "chat_messages/msgBob"), { "reactions.🔥": arrayUnion("alice") })));
 test("ALLOW thread reply bumps parent replyCount", () => assertSucceeds(updateDoc(doc(db(ALICE), "chat_messages/msgBob"), { replyCount: increment(1) })));
 test("ALLOW member votes in chat poll", () => assertSucceeds(updateDoc(doc(db(ALICE), "chat_messages/chatPoll"), { "votes.1": ["alice"] })));

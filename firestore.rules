@@ -81,7 +81,10 @@ service cloud.firestore {
     // ── Chat ──────────────────────────────────────────────────
     match /chat_messages/{msgId} {
       allow read: if signedIn();
-      allow create: if isAdmin() || ownsNew();
+      // Members can't claim the admin badge or another person's email.
+      allow create: if isAdmin()
+        || (ownsNew() && !request.resource.data.keys().hasAny(['authorIsAdmin'])
+            && request.resource.data.get('authorEmail', myEmail()) == myEmail());
       allow update: if isAdmin()
         || (ownsDoc() && onlyChanges(['text', 'editedAt']))
         || (signedIn() && onlyChanges(['reactions']))
