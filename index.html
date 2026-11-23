@@ -2808,6 +2808,19 @@ window.handleLogout=async function(){
   document.getElementById("bottomnav").style.display="none";
 };
 function bootApp(){
+  // Record a visit once a day, not only on password sign-in, so a member who stays
+  // signed in still counts as active (TAC hub Inactive check). Same field and rule
+  // as the sign-in stamp; at most one write per device per day.
+  try{
+    if(currentUser&&!currentUser.isAdmin&&currentUser.registryId&&!useLocalFallback&&db){
+      const _today=new Date().toLocaleDateString("en-CA");
+      if(lsGet("smac_lastlogin_day")!==_today){
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({updateDoc,doc:_dlc})=>
+          updateDoc(_dlc(db,"smac_registry",currentUser.registryId),{lastLogin:Date.now()})
+        ).then(()=>lsSet("smac_lastlogin_day",_today)).catch(()=>{});
+      }
+    }
+  }catch(e){}
   document.getElementById("auth-screen").classList.add("hidden");
   const _appEl=document.getElementById("app");_appEl.removeAttribute("style");_appEl.classList.add("visible");document.getElementById("topnav").style.display="flex";
   document.getElementById("bottomnav").style.display="flex";
